@@ -89,8 +89,8 @@ export function WarningBox({ title = "Na co zwrócić uwagę", items }: { title?
   );
 }
 
-export function Chip({ children }: { children: ReactNode }) {
-  return <span className="inline-block rounded-sm bg-secondary px-2 py-0.5 text-sm text-muted-foreground">{children}</span>;
+export function Chip({ children, className }: { children: ReactNode; className?: string }) {
+  return <span className={cn("inline-block rounded-sm bg-secondary px-2 py-0.5 text-sm text-muted-foreground", className)}>{children}</span>;
 }
 
 export function PageTitle({ children, lead }: { children: ReactNode; lead?: ReactNode }) {

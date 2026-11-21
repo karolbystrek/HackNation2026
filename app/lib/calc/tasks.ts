@@ -18,8 +18,8 @@ export type Task = {
   waitingFor: string[];
 };
 
-export function buildTasks(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[]): Task[] {
-  const timeline = buildFamilyTimeline(persona, events, chosen, params, doneTasks);
+export function buildTasks(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[], today: string): Task[] {
+  const timeline = buildFamilyTimeline(persona, events, chosen, params, doneTasks, today);
   const byId = new Map(timeline.map((entry) => [entry.id, entry]));
 
   return timeline.filter((entry) => entry.kind === "application").map((entry) => ({

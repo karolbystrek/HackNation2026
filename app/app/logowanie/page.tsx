@@ -21,7 +21,7 @@ export default function MObywatelLogin() {
         onSubmit={(event) => {
           event.preventDefault();
           logIn(personaId);
-          router.push("/rodzina");
+          router.push("/plan");
         }}
       >
         <fieldset className="w-full min-w-0">
@@ -30,12 +30,11 @@ export default function MObywatelLogin() {
             {personas.map((p) => (
               <RadioOption key={p.id} name="persona" checked={personaId === p.id} onChange={() => setPersonaId(p.id)} className="p-3">
                 <strong className="block">{p.label}</strong>
-                <span className="text-muted-foreground">{p.description}</span>
               </RadioOption>
             ))}
           </div>
         </fieldset>
-        <Button type="submit">Przejdź do danych rodziny</Button>
+        <Button type="submit">Przejdź do planu rodziny</Button>
       </form>
     </main>
   );

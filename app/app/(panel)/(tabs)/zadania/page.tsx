@@ -2,22 +2,62 @@
 
 import Link from "next/link";
 import { Button, Chip, PageTitle } from "@/components/ui";
+import { Disclosure } from "@/components/ui/disclosure";
+import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
 import { tasksToIcs } from "@/lib/ics";
 import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { persona, params, chosen, plan, names } = useFamily();
+  const { persona, params, chosen, plan, names, today } = useFamily();
 
-  const tasks = buildTasks(persona, plan.events, chosen, params, plan.doneTasks);
-  const done = tasks.filter((task) => task.done).length;
+  const tasks = buildTasks(persona, plan.events, chosen, params, plan.doneTasks, today);
+  const remaining = tasks.filter((task) => !task.done);
+  const completed = tasks.filter((task) => task.done);
 
   function downloadCalendar() {
     const url = URL.createObjectURL(new Blob([tasksToIcs(tasks)], { type: "text/calendar" }));
     const link = Object.assign(document.createElement("a"), { href: url, download: "przewodnik-rodzica.ics" });
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function renderTask(task: (typeof tasks)[number]) {
+    const inputId = `task-${task.id}`;
+    return (
+      <li key={task.id} className="flex items-start gap-3 border-t py-4">
+        <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
+          <input
+            id={inputId}
+            type="checkbox"
+            checked={task.done}
+            disabled={task.locked}
+            aria-label={task.title}
+            onChange={() => {
+              updatePlan((state) => ({
+                ...state,
+                doneTasks: task.done ? state.doneTasks.filter((id) => id !== task.id) : [...state.doneTasks, task.id],
+              }));
+              requestAnimationFrame(() => document.getElementById(task.done ? inputId : "pozostale-zadania")?.focus());
+            }}
+            className="size-5"
+          />
+        </label>
+        <div className="flex min-w-0 grow flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <span className="text-sm font-bold">{task.when}</span>
+            <Chip>{names[task.who]}</Chip>
+          </div>
+          <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
+          <p className="text-muted-foreground">{task.description}</p>
+          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {task.title}</a>}
+          {task.waitingFor.length > 0 && !task.done && (
+            <p className="text-sm text-muted-foreground">Wymaga: {task.waitingFor.join(", ")}.</p>
+          )}
+        </div>
+      </li>
+    );
   }
 
   return (
@@ -37,40 +77,18 @@ export default function Tasks() {
         </Button>
       </div>
 
-      <label className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span>Ukończono {done} z {tasks.length} zadań</span>
-        <progress value={done} max={tasks.length} className="h-2 w-full max-w-xs accent-primary" />
-      </label>
+      <Progress label={`Ukończono ${completed.length} z ${tasks.length} zadań`} value={completed.length} total={tasks.length} />
 
-      {tasks.map((t) => {
-        const isDone = t.done;
-        return (
-          <section key={t.id} className="flex items-start gap-3 border-t py-4">
-            <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
-              <input
-                type="checkbox"
-                checked={isDone}
-                disabled={t.locked}
-                aria-label={t.title}
-                onChange={() => updatePlan((s) => ({ ...s, doneTasks: isDone ? s.doneTasks.filter((id) => id !== t.id) : [...s.doneTasks, t.id] }))}
-                className="size-5"
-              />
-            </label>
-            <div className="flex min-w-0 grow flex-col gap-1.5">
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                <span className="text-[15px] font-bold">{t.when}</span>
-                <Chip>{names[t.who]}</Chip>
-              </div>
-              <h2 className={`text-lg leading-snug font-bold ${isDone ? "text-muted-foreground line-through" : ""}`}>{t.title}</h2>
-              <div className="text-[15px] leading-relaxed text-muted-foreground">{t.description}</div>
-              {t.guide && <a href={t.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {t.title}</a>}
-              {t.waitingFor.length > 0 && !isDone && (
-                <p className="text-sm text-muted-foreground">Wymaga: {t.waitingFor.join(", ")}.</p>
-              )}
-            </div>
-          </section>
-        );
-      })}
+      <section aria-labelledby="pozostale-zadania">
+        <h2 id="pozostale-zadania" tabIndex={-1} className="mb-3 text-xl font-bold">Pozostałe zadania ({remaining.length})</h2>
+        {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}
+      </section>
+
+      {completed.length > 0 && (
+        <Disclosure className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>
+          <ul role="list">{completed.map(renderTask)}</ul>
+        </Disclosure>
+      )}
     </main>
   );
 }

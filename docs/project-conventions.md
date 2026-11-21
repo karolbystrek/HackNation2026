@@ -33,7 +33,7 @@ The public-service UI uses the light theme from `app/app/globals.css`. Use its s
 
 ## Conventions
 
-- UI copy in Polish, code (identifiers, comments) in English.
+- UI copy in Polish, code (identifiers, comments) in English. Keep labels that help users understand a state or decide what to do next. Put administrative detail in expanded views and avoid repeating a status in the date label.
 - Mobile-first responsive layout - every screen must work on a phone (formal requirement).
 - All benefit parameters (percentages, durations, limits) are defined in one place: defaults in `app/lib/params.ts`, overridable from the Supabase table edited in the admin panel. Never hardcode a rate or a duration elsewhere.
 - Any feature that uses AI must be listed in the "Funkcje AI" section of `README.md` (challenge rule: AI usage must be declared).

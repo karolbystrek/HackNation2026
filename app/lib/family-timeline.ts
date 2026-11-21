@@ -15,7 +15,7 @@ type Entry = {
   description: string;
   date: string;
   due?: string;
-  end?: string;
+  end?: string | null;
   completedOn?: string;
   requires?: string[];
   estimated?: boolean;
@@ -28,11 +28,15 @@ type Entry = {
 
 export type FamilyTimelineEntry = Entry & { status: Status };
 
+export function timelineDate(entry: FamilyTimelineEntry) {
+  return entry.completedOn ?? entry.due ?? entry.date;
+}
+
 function shift(date: string, days: number) {
   return toIso(addDays(parseIso(date)!, days));
 }
 
-export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[]): FamilyTimelineEntry[] {
+export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[], today: string): FamilyTimelineEntry[] {
   const birth = persona.birthDate ?? persona.dueDate;
   const birthEvent = persona.events.find((event) => event.type === "birth")!;
   const birthId = `event-${birthEvent.id}`;
@@ -45,6 +49,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     ...event,
     id: `event-${event.id}`,
     kind: "event",
+    end: event.endDate === undefined && event.type === "sickLeave" ? null : event.endDate,
     estimated: event.id === birthEvent.id && provisional,
   }));
 
@@ -69,7 +74,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     },
     {
       id: "maternity-claim", kind: "application", who: "mother",
-      title: parents.mother.contract === "uop" ? "Dokumenty do wypłaty zasiłku macierzyńskiego" : "ZAM · zasiłek macierzyński",
+      title: parents.mother.contract === "uop" ? "Dokumenty do wypłaty zasiłku macierzyńskiego" : "Wniosek o zasiłek macierzyński (ZAM)",
       description: parents.mother.contract === "uop"
         ? "Po porodzie urlop macierzyński rozpoczyna się z mocy prawa. Ten krok dotyczy wypłaty zasiłku."
         : rateDeadline
@@ -84,7 +89,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
   if (parents.mother.contract === "jdg" && parents.mother.sickLeaveFrom) {
     const sickLeave = events.find((event) => event.type === "sickLeave" && event.who === "mother");
     if (sickLeave) entries.push({
-      id: "sickness-claim", kind: "application", who: "mother", title: "ZAS-53 · wniosek o zasiłek chorobowy",
+      id: "sickness-claim", kind: "application", who: "mother", title: "Wniosek o zasiłek chorobowy (ZAS-53)",
       description: "Wniosek dotyczy zwolnienia w ciąży wystawionego przed porodem.",
       date: sickLeave.date, recipient: "ZUS", guide: "https://www.zus.pl/-/zaswiadczenie-zas-53", requires: [`event-${sickLeave.id}`],
     });
@@ -125,7 +130,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     entries.push(
       {
         id, kind: "application", who: parent,
-        title: employee ? "Wniosek o urlop rodzicielski" : "ZAM · zasiłek za okres rodzicielskiego",
+        title: employee ? "Wniosek o urlop rodzicielski" : "Wniosek o zasiłek za okres rodzicielskiego (ZAM)",
         description: `Planowany start: ${formatDate(period.from)}. Podaj, kiedy drugi rodzic korzysta z rodzicielskiego.`,
         date: birth, due, recipient: employee ? "Pracodawca" : "ZUS",
         guide: employee ? "https://www.gov.pl/web/rodzina/urlop-rodzicielski" : "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
@@ -142,7 +147,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
 
   const completed = new Set(entries.filter((entry) =>
     entry.completedOn || (persona.completedSteps?.[entry.id] && !entry.review) ||
-    (entry.kind === "event" && !entry.estimated && entry.date <= persona.fetchedAt) ||
+    (entry.kind === "event" && !entry.estimated && entry.date <= today) ||
     (entry.kind === "application" && doneTasks.includes(entry.id))
   ).map((entry) => entry.id));
 
@@ -152,11 +157,11 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
       : completed.has(entry.id)
       ? entry.kind === "event" ? "confirmed" : "completed"
       : entry.requires?.some((id) => !completed.has(id)) ? "blocked"
-      : entry.kind === "application" && entry.due && entry.due < persona.fetchedAt ? "late"
+      : entry.kind === "application" && entry.due && entry.due < today ? "late"
       : entry.kind === "application" ? "ready"
-      : entry.kind === "period" && entry.end && entry.date <= persona.fetchedAt
-        ? entry.end < persona.fetchedAt ? "ended" : "active"
+      : entry.kind === "period" && entry.end && entry.date <= today
+        ? entry.end < today ? "ended" : "active"
         : "planned";
     return { ...entry, status, completedOn };
-  }).sort((a, b) => (a.completedOn ?? a.due ?? a.date).localeCompare(b.completedOn ?? b.due ?? b.date));
+  }).sort((a, b) => timelineDate(a).localeCompare(timelineDate(b)));
 }

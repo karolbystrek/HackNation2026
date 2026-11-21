@@ -23,8 +23,7 @@ export type ParentProfile = {
 export type Persona = {
   id: string;
   label: string;
-  description: string;
-  /** Day the data was "downloaded"; the demo treats it as today. */
+  /** Day the demo data was fetched. */
   fetchedAt: string;
   dueDate: string;
   birthDate?: string;
@@ -46,7 +45,6 @@ export const personas: Persona[] = [
   {
     id: "anna-tomasz",
     label: "Anna i Tomasz",
-    description: "Oboje na umowie o pracę, pierwsze dziecko w drodze, Anna na zwolnieniu w ciąży.",
     fetchedAt: "2026-11-21",
     dueDate: "2027-03-15",
     paternityStart: "2027-04-01",
@@ -85,6 +83,7 @@ export const personas: Persona[] = [
         type: "sickLeave",
         who: "mother",
         date: "2026-11-04",
+        endDate: null,
         source: "zus",
         title: "Zwolnienie w ciąży (e-ZLA, kod B)",
         description: "Zasiłek chorobowy 100% podstawy. Wypłaca pracodawca Anny.",
@@ -118,14 +117,13 @@ personas.push(
   {
     id: "maja-piotr",
     label: "Maja i Piotr",
-    description: "Po porodzie · Maja prowadzi działalność, rodzina czeka na akt urodzenia.",
     fetchedAt: "2026-11-21",
     dueDate: "2026-11-20",
     birthDate: "2026-11-17",
     birthCardDate: "2026-11-18",
     birthPlace: "Kraków",
     childName: "Zofia",
-    paternityStart: "2026-12-07",
+    paternityStart: "2026-12-01",
     wantsAveragedRate: true,
     kids: 1,
     parents: {
@@ -148,6 +146,7 @@ personas.push(
         type: "sickLeave",
         who: "mother",
         date: "2026-11-02",
+        endDate: "2026-11-16",
         source: "zus",
         title: "Zwolnienie w ciąży (e-ZLA, kod B)",
         description: "Zwolnienie wystawione przed narodzinami Zofii.",
@@ -168,7 +167,6 @@ personas.push(
   {
     id: "ola-marek",
     label: "Ola i Marek",
-    description: "Po urlopie macierzyńskim · oboje pracują na etacie i mają uzgodniony podział urlopu.",
     fetchedAt: "2026-11-21",
     dueDate: "2026-06-14",
     birthDate: "2026-06-10",

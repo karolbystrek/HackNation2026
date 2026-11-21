@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Card } from "@/components/ui";
+import { Disclosure } from "@/components/ui/disclosure";
+import { Progress } from "@/components/ui/progress";
 
 export const amountPattern = " *[0-9][0-9 ]*(?:[.,][0-9]+)? *";
 export const amountHint = "Wpisz kwotę w złotych, np. 5200,50.";
@@ -32,10 +34,12 @@ export function CalculatorSteps({
   return (
     <section className="flex min-w-0 flex-col gap-4">
       <header>
-        <p className="text-sm font-bold text-muted-foreground">
-          {current ? `Krok ${step + 1} z ${steps.length}` : "Podsumowanie obliczeń"}
-        </p>
-        <h2 ref={heading} tabIndex={-1} className="mt-1 text-2xl font-bold">
+        <Progress
+          label={current ? `Krok ${step + 1} z ${steps.length}` : `Ukończono ${steps.length} z ${steps.length} kroków`}
+          value={step}
+          total={steps.length}
+        />
+        <h2 ref={heading} tabIndex={-1} className="mt-3 text-2xl font-bold">
           {current?.title ?? "Wynik"}
         </h2>
       </header>
@@ -80,9 +84,8 @@ export function CalculatorDetails({ label, children, initiallyOpen }: {
 }) {
   const [startOpen] = useState(initiallyOpen);
   return (
-    <details className="rounded-sm border border-border bg-background" open={startOpen}>
-      <summary className="text-link min-h-11 cursor-pointer px-4 py-3 font-bold">{label}</summary>
+    <Disclosure className="rounded-sm border border-border bg-background" open={startOpen} label={<span className="font-bold text-primary">{label}</span>}>
       <div className="flex min-w-0 flex-col gap-4 px-4 pb-4">{children}</div>
-    </details>
+    </Disclosure>
   );
 }

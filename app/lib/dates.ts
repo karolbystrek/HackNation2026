@@ -29,3 +29,9 @@ export function formatDate(value: Date | string | null | undefined): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(date.getUTCDate())}.${pad(date.getUTCMonth() + 1)}.${date.getUTCFullYear()}`;
 }
+
+const warsawDate = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Warsaw", dateStyle: "short" });
+
+export function todayInWarsaw(): string {
+  return warsawDate.format(new Date());
+}

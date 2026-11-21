@@ -8,6 +8,8 @@ export type TimelineEvent = {
   type: EventType;
   who: EventWho;
   date: string;
+  /** A period uses date as its start. A null end means the end is unknown. */
+  endDate?: string | null;
   /** zus = downloaded from state systems, user = entered earlier, new = added in this session. */
   source: "zus" | "user" | "new";
   title: string;
