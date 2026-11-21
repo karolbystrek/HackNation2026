@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { CalculatorSteps } from "@/components/calculator/calculator-steps";
 import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageTitle, RadioGroup, WarningBox } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
@@ -178,6 +179,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
           )}
           <WarningBox items={warnings} />
           <Summary spec={spec} ctx={ctx} values={values} onEdit={goTo} />
+          {errors.length === 0 && <PrintButton spec={spec} ctx={ctx} values={values} date={ctx.today} />}
           <Button className="self-start" disabled={sending} onClick={send}>
             {sending ? "Wysyłanie…" : ctx.recipient === "zus" ? "Wyślij do ZUS" : "Wyślij do pracodawcy"}
           </Button>
@@ -200,12 +202,71 @@ function Submitted({ spec, ctx, submission }: { spec: FormSpec; ctx: FormContext
         </dl>
         <p className="mt-3">Zadanie jest oznaczone w planie jako zakończone.</p>
       </Notice>
-      <ButtonLink href={`/plan#timeline-${ctx.taskId}`} className="self-start">Wróć do planu</ButtonLink>
+      <div className="flex flex-wrap items-start gap-3">
+        <ButtonLink href={`/plan#timeline-${ctx.taskId}`}>Wróć do planu</ButtonLink>
+        <PrintButton spec={spec} ctx={ctx} values={submission.values} date={submission.sentAt.slice(0, 10)} number={submission.number} />
+      </div>
       <section aria-labelledby="sent-title" className="flex min-w-0 flex-col gap-3">
         <h2 id="sent-title" className="text-2xl font-bold">Wysłany wniosek</h2>
         <Summary spec={spec} ctx={ctx} values={submission.values} />
       </section>
     </div>
+  );
+}
+
+function PrintButton(props: { spec: FormSpec; ctx: FormContext; values: FormValues; date: string; number?: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Button variant="outline" className="self-start" onClick={() => window.print()}>Pobierz PDF do wydruku</Button>
+      <p className="text-sm text-muted-foreground">W oknie drukowania wybierz „Zapisz jako PDF” albo wydrukuj wniosek.</p>
+      {createPortal(<PrintableApplication {...props} />, document.body)}
+    </div>
+  );
+}
+
+/** Letter-style copy of the application, shown only when printing (see `.print-document` in globals.css). */
+function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormSpec; ctx: FormContext; values: FormValues; date: string; number?: string }) {
+  const me = ctx.persona.parents[ctx.parent];
+  const city = /\d{2}-\d{3} (.+)$/.exec(me.address)?.[1] ?? "";
+  const fields = formSteps(spec, ctx, values).flatMap((step) => step.fields).filter((field) => field.type !== "signature");
+  const attachments = requiredAttachments(spec, ctx, values);
+  return (
+    <article className="print-document text-[11pt] leading-normal text-black">
+      <p className="text-right">{city && `${city}, `}{formatDate(date)}</p>
+      <div className="mt-6 grid grid-cols-2 gap-8">
+        <div>
+          <p className="font-bold">{me.name} {me.lastName}</p>
+          <p>{me.address}</p>
+          <p>PESEL {me.pesel}</p>
+        </div>
+        <div>
+          <p className="font-bold">{ctx.recipient === "zus" ? "Zakład Ubezpieczeń Społecznych" : me.payerName}</p>
+          {ctx.recipient === "employer" && <p>NIP {me.payerNip}</p>}
+        </div>
+      </div>
+      <h1 className="mt-8 text-center text-[14pt] font-bold">{spec.title}</h1>
+      {number && <p className="text-center">Kopia wniosku wysłanego elektronicznie, nr {number}</p>}
+      <table className="mt-6 w-full border-collapse">
+        <tbody>
+          {fields.map((field) => (
+            <tr key={field.key} className="break-inside-avoid border-b border-black/30 align-top">
+              <th scope="row" className="w-1/2 py-1.5 pr-4 text-left font-normal">{field.label}</th>
+              <td className="py-1.5 font-bold">{formatValue(field, values[field.key])}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {attachments.length > 0 && (
+        <section className="mt-6 break-inside-avoid">
+          <p className="font-bold">Załączniki:</p>
+          <ol className="list-decimal pl-6">{attachments.map((a) => <li key={a.id}>{a.title}</li>)}</ol>
+        </section>
+      )}
+      <div className="mt-16 ml-auto w-64 break-inside-avoid text-center">
+        <div className="border-t border-black pt-1 text-[9pt]">{number ? "Podpisano w mObywatelu" : "Data i podpis"}</div>
+      </div>
+      <p className="mt-10 text-[8pt] text-black/60">Wniosek przygotowany w Zasiłkowym Przewodniku Przyszłego Rodzica (projekt demonstracyjny, dane symulowane).</p>
+    </article>
   );
 }
 

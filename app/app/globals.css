@@ -73,3 +73,22 @@
     @apply text-primary underline underline-offset-4 hover:text-foreground;
   }
 }
+
+/* A printed application shows only its letter-style copy, which is hidden on screen. */
+.print-document {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 2cm;
+  }
+
+  body > :not(.print-document) {
+    display: none !important;
+  }
+
+  .print-document {
+    display: block;
+  }
+}
