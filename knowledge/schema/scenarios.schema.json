@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/scenarios.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["code", "conditions", "steps", "outcome_benefit_ids"],
+            "properties": {
+              "code": {"type": "string", "pattern": "^S[0-9]+$"},
+              "conditions": {"$ref": "common.schema.json#/$defs/condition"},
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["order", "actor", "action_pl", "recipient"],
+                  "properties": {
+                    "order": {"type": "integer", "minimum": 1},
+                    "actor": {"$ref": "common.schema.json#/$defs/actor"},
+                    "action_pl": {"type": "string"},
+                    "recipient": {"$ref": "common.schema.json#/$defs/actor"},
+                    "condition": {"$ref": "common.schema.json#/$defs/condition"},
+                    "form_ids": {"$ref": "common.schema.json#/$defs/idList"},
+                    "leave_request_ids": {"$ref": "common.schema.json#/$defs/idList"},
+                    "document_ids": {"$ref": "common.schema.json#/$defs/idList"},
+                    "deadline_ids": {"$ref": "common.schema.json#/$defs/idList"},
+                    "channels": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/channel"}}
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "outcome_benefit_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "risk_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "support_org_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "test_case_hint_pl": {"type": "string"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

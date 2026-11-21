@@ -21,6 +21,8 @@ project. Load the `zus-domena` skill before changing benefit logic, forms or sco
 | --- | --- |
 | [Project conventions](docs/project-conventions.md) | Hackathon priorities, architecture, Polish UI, benefit parameters, AI disclosure and protected challenge materials. Read before implementing or reviewing features. |
 | [Family case model](docs/model-sprawy-rodzinnej.md) | Domain entities, parent workflows and application timeline. Read before planning family cases, simulations or task flows. |
+| [ZUS knowledge base skill](.agents/skills/zus-knowledge/SKILL.md) | Architecture, connections and query recipes for `knowledge/` (sourced JSON: law, parameters, forms, documents, deadlines, scenarios). Read before using or editing domain facts, numbers, forms or deadlines. |
+| [Forms and documents catalog](docs/wnioski-i-dokumenty.md) | Human-readable Polish catalog of ZUS forms, attachments and deadlines by scenario. Read for a quick overview; `knowledge/` is more current and detailed. |
 | [Public-service UI skill](.agents/skills/polish-public-ui/SKILL.md) | ZUS-inspired design, shadcn/ui component choice and theme. Read before designing, implementing or reviewing frontend UI. |
 | [Local development and commands](docs/local-development.md) | Setup, Make targets, service endpoints, checks, restart, teardown and cleanup. Read when running, testing or troubleshooting the project. |
 | [Supabase](docs/supabase.md) | Client/server configuration, session cookies, credentials, migrations and data preservation. Read when changing Auth, database access or environment configuration. |

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/deadlines.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["anchor_event", "offset", "kind", "actor", "consequence_pl"],
+            "properties": {
+              "anchor_event": {"$ref": "common.schema.json#/$defs/anchorEvent"},
+              "anchor_param": {"type": ["string", "null"]},
+              "offset": {"$ref": "common.schema.json#/$defs/offset"},
+              "kind": {"enum": ["hard", "protective", "recommended", "limit", "statutory_payment"]},
+              "actor": {"$ref": "common.schema.json#/$defs/actor"},
+              "action_pl": {"type": "string"},
+              "consequence_pl": {"type": "string"},
+              "condition": {"$ref": "common.schema.json#/$defs/condition"},
+              "param_id": {"oneOf": [{"$ref": "common.schema.json#/$defs/id"}, {"type": "null"}]}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

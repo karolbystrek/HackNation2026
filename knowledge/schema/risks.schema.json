@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/risks.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["trigger_pl", "consequence_pl", "prevention_pl", "severity"],
+            "properties": {
+              "trigger_pl": {"type": "string"},
+              "consequence_pl": {"type": "string"},
+              "prevention_pl": {"type": "string"},
+              "severity": {"enum": ["loss_of_right", "reduction", "delay", "refund", "information"]},
+              "affected_benefit_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "detection_condition": {"$ref": "common.schema.json#/$defs/condition"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

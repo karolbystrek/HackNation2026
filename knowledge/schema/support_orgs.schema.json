@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/support_orgs.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["org_form", "situations", "region", "website", "charitable_only"],
+            "properties": {
+              "org_form": {"enum": ["foundation", "association", "informal_group", "church_community", "information_portal"]},
+              "situations": {"type": "array", "items": {"enum": ["stillbirth", "miscarriage", "child_death", "prematurity", "severe_illness", "perinatal_hospice", "lethal_diagnosis", "grief_support", "birth_rights"]}},
+              "help_types": {"type": "array", "items": {"enum": ["psychological", "medical", "legal", "spiritual", "social", "equipment_loan", "peer_support", "information", "funeral_support", "financial"]}},
+              "region": {"type": "string"},
+              "address_pl": {"type": ["string", "null"]},
+              "website": {"type": "string"},
+              "phones": {"type": "array", "items": {"type": "object", "required": ["number"], "properties": {"number": {"type": "string"}, "label_pl": {"type": "string"}}, "additionalProperties": false}},
+              "emails": {"type": "array", "items": {"type": "string"}},
+              "krs": {"type": ["string", "null"]},
+              "charitable_only": {"type": "boolean"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

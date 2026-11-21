@@ -1,0 +1,156 @@
+{
+  "$schema": "./schema/enums.schema.json",
+  "records": [
+    {
+      "id": "insured_type",
+      "description_pl": "Tytuł ubezpieczenia / sytuacja osoby",
+      "values": [
+        {"value": "employee", "label_pl": "pracownik (umowa o pracę)", "note_pl": "ubezpieczenie chorobowe obowiązkowe; prawo do zasiłku po 30 dniach"},
+        {"value": "contractor", "label_pl": "zleceniobiorca / umowa agencyjna / o świadczenie usług", "note_pl": "chorobowe dobrowolne; prawo po 90 dniach"},
+        {"value": "self_employed", "label_pl": "osoba prowadząca pozarolniczą działalność (JDG, wspólnik itp.)", "note_pl": "chorobowe dobrowolne; zasiłki zawsze wypłaca ZUS"},
+        {"value": "cooperating", "label_pl": "osoba współpracująca z prowadzącym działalność", "note_pl": "jak self_employed"},
+        {"value": "clergy", "label_pl": "duchowny", "note_pl": "brak zaświadczenia płatnika od 24.10.2026"},
+        {"value": "seafarer", "label_pl": "marynarz (art. 6 ust. 1 pkt 24 ustawy systemowej)", "note_pl": "brak zaświadczenia płatnika od 24.10.2026"},
+        {"value": "after_insurance", "label_pl": "osoba po ustaniu tytułu ubezpieczenia", "note_pl": "świadczenia po ustaniu wypłaca ZUS"},
+        {"value": "uninsured", "label_pl": "osoba bez ubezpieczenia chorobowego", "note_pl": "brak zasiłku macierzyńskiego; ew. świadczenie rodzicielskie"},
+        {"value": "unemployed", "label_pl": "bezrobotny", "note_pl": "brak zasiłku macierzyńskiego; ew. świadczenie rodzicielskie"},
+        {"value": "student", "label_pl": "student / uczeń do 26 lat na zleceniu", "note_pl": "zlecenie nie daje ubezpieczenia; ew. świadczenie rodzicielskie"},
+        {"value": "work_contract_dzielo", "label_pl": "umowa o dzieło (z podmiotem innym niż pracodawca)", "note_pl": "brak ubezpieczeń społecznych"},
+        {"value": "start_relief", "label_pl": "przedsiębiorca na uldze na start", "note_pl": "brak ubezpieczeń społecznych, w tym chorobowego"}
+      ]
+    },
+    {
+      "id": "payer_size",
+      "description_pl": "Wielkość płatnika składek wg liczby osób zgłoszonych do ubezpieczenia chorobowego na 30 listopada poprzedniego roku",
+      "values": [
+        {"value": "gt20", "label_pl": "powyżej 20 ubezpieczonych (duży płatnik)", "note_pl": "płatnik sam ustala i wypłaca zasiłki"},
+        {"value": "le20", "label_pl": "do 20 ubezpieczonych (mały płatnik)", "note_pl": "zasiłki ustala i wypłaca ZUS"},
+        {"value": "na", "label_pl": "nie dotyczy (JDG, osoba po ustaniu ubezpieczenia)", "note_pl": "płaci ZUS"}
+      ]
+    },
+    {
+      "id": "parent_role",
+      "description_pl": "Rola osoby wobec dziecka",
+      "values": [
+        {"value": "mother", "label_pl": "matka"},
+        {"value": "father", "label_pl": "ojciec"},
+        {"value": "other_family", "label_pl": "inny członek najbliższej rodziny"},
+        {"value": "adoptive", "label_pl": "osoba, która przyjęła dziecko i wystąpiła o przysposobienie"},
+        {"value": "foster", "label_pl": "rodzina zastępcza niezawodowa"},
+        {"value": "any", "label_pl": "dowolny rodzic/opiekun"}
+      ]
+    },
+    {
+      "id": "event",
+      "description_pl": "Zdarzenia życiowe wpływające na uprawnienia",
+      "values": [
+        {"value": "pregnancy", "label_pl": "ciąża"},
+        {"value": "sickness_in_pregnancy", "label_pl": "niezdolność do pracy w ciąży (kod B)"},
+        {"value": "birth", "label_pl": "urodzenie dziecka"},
+        {"value": "multiple_birth", "label_pl": "urodzenie więcej niż jednego dziecka przy jednym porodzie"},
+        {"value": "stillbirth", "label_pl": "martwe urodzenie"},
+        {"value": "miscarriage", "label_pl": "poronienie"},
+        {"value": "child_death_lt8w", "label_pl": "zgon dziecka przed upływem 8 tygodni życia"},
+        {"value": "child_death_gt8w", "label_pl": "zgon dziecka po upływie 8 tygodni życia"},
+        {"value": "prematurity", "label_pl": "przedwczesny poród (wcześniak)"},
+        {"value": "child_hospitalisation", "label_pl": "pobyt noworodka w szpitalu"},
+        {"value": "za_zyciem", "label_pl": "dziecko z zaświadczeniem „Za życiem”"},
+        {"value": "adoption", "label_pl": "przyjęcie dziecka i wniosek o przysposobienie"},
+        {"value": "foster_placement", "label_pl": "przyjęcie dziecka do rodziny zastępczej niezawodowej"},
+        {"value": "mother_hospitalisation", "label_pl": "pobyt matki w szpitalu po porodzie"},
+        {"value": "mother_incapacity", "label_pl": "orzeczenie o niezdolności matki do samodzielnej egzystencji"},
+        {"value": "mother_death", "label_pl": "śmierć matki"},
+        {"value": "abandonment", "label_pl": "porzucenie dziecka przez matkę"},
+        {"value": "mother_uninsured", "label_pl": "matka nie ma tytułu do ubezpieczenia chorobowego"},
+        {"value": "mother_returns_to_work", "label_pl": "matka wraca do pracy / rezygnuje z części zasiłku"},
+        {"value": "job_loss_liquidation", "label_pl": "utrata pracy w ciąży: upadłość, likwidacja lub śmierć pracodawcy"},
+        {"value": "job_loss_unlawful", "label_pl": "rozwiązanie umowy w ciąży z naruszeniem prawa (prawomocny wyrok)"},
+        {"value": "fixed_term_extended", "label_pl": "umowa terminowa przedłużona do dnia porodu"},
+        {"value": "insurance_end", "label_pl": "ustanie tytułu ubezpieczenia"},
+        {"value": "combine_parental_with_work", "label_pl": "łączenie urlopu rodzicielskiego z pracą"},
+        {"value": "sickness_period_exhausted", "label_pl": "wyczerpanie okresu zasiłkowego"}
+      ]
+    },
+    {
+      "id": "actor",
+      "description_pl": "Kto wykonuje czynność / wystawia dokument",
+      "values": [
+        {"value": "insured", "label_pl": "ubezpieczony / rodzic"},
+        {"value": "other_parent", "label_pl": "drugi rodzic"},
+        {"value": "employer", "label_pl": "pracodawca"},
+        {"value": "payer", "label_pl": "płatnik składek (pracodawca, zleceniodawca)"},
+        {"value": "payer_of_benefit", "label_pl": "płatnik zasiłku (płatnik >20 albo ZUS)"},
+        {"value": "zus", "label_pl": "ZUS"},
+        {"value": "doctor", "label_pl": "lekarz"},
+        {"value": "midwife", "label_pl": "położna"},
+        {"value": "hospital", "label_pl": "szpital / placówka lecznicza"},
+        {"value": "court", "label_pl": "sąd (opiekuńczy / pracy)"},
+        {"value": "usc", "label_pl": "urząd stanu cywilnego"},
+        {"value": "starosta", "label_pl": "starosta (umowa z rodziną zastępczą)"},
+        {"value": "municipality", "label_pl": "gmina / MOPS / GOPS"},
+        {"value": "funeral_home", "label_pl": "zakład pogrzebowy"}
+      ]
+    },
+    {
+      "id": "channel",
+      "description_pl": "Kanał złożenia dokumentu",
+      "values": [
+        {"value": "paper", "label_pl": "papier (osobiście, pocztą)"},
+        {"value": "ezus", "label_pl": "PUE/eZUS z podpisem elektronicznym"},
+        {"value": "e_doreczenia", "label_pl": "adres do doręczeń elektronicznych / ePUAP"},
+        {"value": "employer_system", "label_pl": "system kadrowy pracodawcy / e-mail / skan (gdy płaci płatnik)"},
+        {"value": "online_gov", "label_pl": "usługa online gov.pl / mObywatel"},
+        {"value": "automatic", "label_pl": "automatycznie (np. e-ZLA trafia do ZUS i płatnika)"}
+      ]
+    },
+    {
+      "id": "anchor_events",
+      "description_pl": "Zdarzenia, od których liczone są terminy",
+      "values": [
+        {"value": "expected_birth_date", "label_pl": "przewidywana data porodu"},
+        {"value": "birth_date", "label_pl": "dzień porodu"},
+        {"value": "child_death_date", "label_pl": "dzień zgonu dziecka"},
+        {"value": "death_date", "label_pl": "dzień śmierci osoby (zasiłek pogrzebowy)"},
+        {"value": "funeral_date", "label_pl": "dzień pogrzebu"},
+        {"value": "adoption_intake_date", "label_pl": "dzień przyjęcia dziecka na wychowanie"},
+        {"value": "adoption_final_date", "label_pl": "dzień uprawomocnienia postanowienia o przysposobieniu"},
+        {"value": "leave_start", "label_pl": "pierwszy dzień wnioskowanego urlopu / części"},
+        {"value": "return_to_work", "label_pl": "dzień powrotu do pracy"},
+        {"value": "maternity_leave_end", "label_pl": "ostatni dzień urlopu macierzyńskiego"},
+        {"value": "work_start", "label_pl": "dzień podjęcia pracy w czasie urlopu rodzicielskiego"},
+        {"value": "benefit_period_end", "label_pl": "ostatni dzień okresu, za który przysługuje zasiłek"},
+        {"value": "sickness_period_end", "label_pl": "koniec okresu zasiłkowego (182/270 dni)"},
+        {"value": "insurance_end_date", "label_pl": "dzień ustania tytułu ubezpieczenia"},
+        {"value": "right_arises_date", "label_pl": "dzień powstania prawa do świadczenia"},
+        {"value": "document_received_by_payer", "label_pl": "dzień otrzymania dokumentu przez płatnika"},
+        {"value": "zus_summons_received", "label_pl": "dzień doręczenia wezwania ZUS"},
+        {"value": "last_circumstance_clarified", "label_pl": "dzień wyjaśnienia ostatniej okoliczności"},
+        {"value": "debt_paid_date", "label_pl": "dzień spłaty zadłużenia składkowego"},
+        {"value": "child_birthday_year_end", "label_pl": "koniec roku kalendarzowego, w którym dziecko kończy wskazany wiek"},
+        {"value": "child_age", "label_pl": "ukończenie przez dziecko wskazanego wieku"},
+        {"value": "nov30_previous_year", "label_pl": "30 listopada poprzedniego roku"},
+        {"value": "insurance_title_start", "label_pl": "dzień powstania tytułu ubezpieczenia (start działalności / umowy)"}
+      ]
+    },
+    {
+      "id": "facts",
+      "description_pl": "Fakty, których mogą dotyczyć warunki (klucz `fact`)",
+      "values": [
+        {"value": "payer_of_benefit", "label_pl": "kto wypłaca zasiłek: payer | zus"},
+        {"value": "children_count", "label_pl": "liczba dzieci z jednego porodu / przyjętych jednocześnie"},
+        {"value": "child_age_years", "label_pl": "wiek dziecka w latach"},
+        {"value": "weeks_after_birth_used", "label_pl": "liczba tygodni zasiłku/urlopu wykorzystanych po porodzie"},
+        {"value": "insured_days_uninterrupted", "label_pl": "liczba dni nieprzerwanego ubezpieczenia chorobowego"},
+        {"value": "debt_over_1pct_min_wage", "label_pl": "zadłużenie składkowe > 1% minimalnego wynagrodzenia (bool)"},
+        {"value": "employee_age", "label_pl": "wiek pracownika (próg 50 lat dla 33/14 dni)"},
+        {"value": "gestation_week_at_birth", "label_pl": "tydzień ciąży w chwili porodu"},
+        {"value": "birth_weight_g", "label_pl": "masa urodzeniowa w gramach"},
+        {"value": "school_deferral", "label_pl": "decyzja o odroczeniu obowiązku szkolnego (bool)"},
+        {"value": "has_za_zyciem", "label_pl": "dziecko ma zaświadczenie „Za życiem” (bool)"},
+        {"value": "full_leave_declared_within_21_days", "label_pl": "wniosek o pełny wymiar złożony do 21 dni po porodzie (bool)"},
+        {"value": "other_employment_provided", "label_pl": "zapewniono inne zatrudnienie (bool)"},
+        {"value": "no_pesel", "label_pl": "osoba nie ma nadanego numeru PESEL (bool)"}
+      ]
+    }
+  ]
+}

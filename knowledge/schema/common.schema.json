@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/common.schema.json",
+  "title": "Wspólne definicje bazy wiedzy",
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"},
+    "idList": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true},
+    "date": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "status": {"enum": ["current", "superseded", "withdrawn", "pending", "out_of_scope"]},
+    "insuredType": {"enum": ["employee", "contractor", "self_employed", "cooperating", "clergy", "seafarer", "after_insurance", "uninsured", "unemployed", "student", "work_contract_dzielo", "start_relief"]},
+    "payerSize": {"enum": ["gt20", "le20", "na"]},
+    "parentRole": {"enum": ["mother", "father", "other_family", "adoptive", "foster", "any"]},
+    "event": {"enum": ["pregnancy", "sickness_in_pregnancy", "birth", "multiple_birth", "stillbirth", "miscarriage", "child_death_lt8w", "child_death_gt8w", "prematurity", "child_hospitalisation", "za_zyciem", "adoption", "foster_placement", "mother_hospitalisation", "mother_incapacity", "mother_death", "abandonment", "mother_uninsured", "mother_returns_to_work", "job_loss_liquidation", "job_loss_unlawful", "fixed_term_extended", "insurance_end", "combine_parental_with_work", "sickness_period_exhausted"]},
+    "actor": {"enum": ["insured", "other_parent", "employer", "payer", "payer_of_benefit", "zus", "doctor", "midwife", "hospital", "court", "usc", "starosta", "municipality", "funeral_home"]},
+    "channel": {"enum": ["paper", "ezus", "e_doreczenia", "employer_system", "online_gov", "automatic"]},
+    "anchorEvent": {"enum": ["expected_birth_date", "birth_date", "child_death_date", "death_date", "funeral_date", "adoption_intake_date", "adoption_final_date", "leave_start", "return_to_work", "maternity_leave_end", "work_start", "benefit_period_end", "sickness_period_end", "insurance_end_date", "right_arises_date", "document_received_by_payer", "zus_summons_received", "last_circumstance_clarified", "debt_paid_date", "child_birthday_year_end", "child_age", "nov30_previous_year", "insurance_title_start"]},
+    "verification": {
+      "type": "object",
+      "required": ["status", "checked_at"],
+      "properties": {
+        "status": {"enum": ["verified_primary", "verified_secondary", "unverified"]},
+        "checked_at": {"$ref": "#/$defs/date"},
+        "note": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "sourceRef": {
+      "type": "object",
+      "required": ["source_id"],
+      "properties": {"source_id": {"$ref": "#/$defs/id"}, "locator": {"type": "string"}},
+      "additionalProperties": false
+    },
+    "appliesTo": {
+      "type": "object",
+      "properties": {
+        "insured_type": {"type": "array", "items": {"$ref": "#/$defs/insuredType"}},
+        "payer_size": {"type": "array", "items": {"$ref": "#/$defs/payerSize"}},
+        "parent_role": {"type": "array", "items": {"$ref": "#/$defs/parentRole"}},
+        "events": {"type": "array", "items": {"$ref": "#/$defs/event"}}
+      },
+      "additionalProperties": false
+    },
+    "condition": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "all": {"type": "array", "items": {"$ref": "#/$defs/condition"}},
+        "any": {"type": "array", "items": {"$ref": "#/$defs/condition"}},
+        "not": {"$ref": "#/$defs/condition"},
+        "insured_type": {"$ref": "#/$defs/insuredType"},
+        "payer_size": {"$ref": "#/$defs/payerSize"},
+        "parent_role": {"$ref": "#/$defs/parentRole"},
+        "event": {"$ref": "#/$defs/event"},
+        "channel": {"$ref": "#/$defs/channel"},
+        "fact": {"type": "string"},
+        "eq": {},
+        "gte": {"type": "number"},
+        "lte": {"type": "number"},
+        "note_pl": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "offset": {
+      "type": "object",
+      "required": ["value", "unit", "direction"],
+      "properties": {
+        "value": {"type": "number"},
+        "unit": {"enum": ["days", "weeks", "months", "years"]},
+        "direction": {"enum": ["before", "after", "at"]}
+      },
+      "additionalProperties": false
+    },
+    "attachmentRule": {
+      "type": "object",
+      "required": ["document_id"],
+      "properties": {
+        "document_id": {"$ref": "#/$defs/id"},
+        "required": {"enum": ["always", "conditional", "optional"]},
+        "condition": {"$ref": "#/$defs/condition"},
+        "copy_allowed": {"type": "boolean"},
+        "note_pl": {"type": "string"},
+        "legal_refs": {"$ref": "#/$defs/idList"}
+      },
+      "additionalProperties": false
+    },
+    "field": {
+      "type": "object",
+      "required": ["key", "label_pl", "type"],
+      "properties": {
+        "key": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "label_pl": {"type": "string"},
+        "type": {"enum": ["text", "date", "date_range", "pesel", "nip", "regon", "id_document", "address", "phone", "email", "bank_account", "number", "percent", "money", "boolean", "choice", "multi_choice", "person", "child_list", "signature", "table"]},
+        "section": {"type": "string"},
+        "required": {"enum": ["always", "conditional", "optional"]},
+        "required_if": {"$ref": "#/$defs/condition"},
+        "options": {"type": "array", "items": {"type": "string"}},
+        "help_pl": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "record": {
+      "type": "object",
+      "required": ["id", "title_pl", "status", "source_refs", "verification"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "title_pl": {"type": "string", "minLength": 2},
+        "summary_pl": {"type": "string"},
+        "body_pl": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9_\\-]+$"}},
+        "applies_to": {"$ref": "#/$defs/appliesTo"},
+        "valid_from": {"$ref": "#/$defs/date"},
+        "valid_to": {"$ref": "#/$defs/date"},
+        "status": {"$ref": "#/$defs/status"},
+        "superseded_by": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+        "legal_refs": {"$ref": "#/$defs/idList"},
+        "source_refs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/sourceRef"}},
+        "verification": {"$ref": "#/$defs/verification"}
+      }
+    }
+  }
+}

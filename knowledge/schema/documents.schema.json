@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/documents.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["issuer", "doc_kind"],
+            "properties": {
+              "issuer": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/actor"}},
+              "doc_kind": {"enum": ["medical", "civil_registry", "court", "employer_certificate", "payer_certificate", "statement", "hospital_certificate", "administrative", "contract"]},
+              "form_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "needed_when": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/condition"}},
+              "not_needed_when": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/condition"}},
+              "content_requirements_pl": {"type": "array", "items": {"type": "string"}},
+              "how_to_obtain_pl": {"type": "string"},
+              "fee_pl": {"type": "string"},
+              "online_url": {"type": ["string", "null"]},
+              "electronic_from": {"$ref": "common.schema.json#/$defs/date"},
+              "copy_allowed": {"type": "boolean"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

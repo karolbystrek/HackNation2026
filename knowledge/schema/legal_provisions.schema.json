@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/legal_provisions.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["act", "unit", "paraphrase_pl"],
+            "properties": {
+              "act": {"enum": ["uz", "kp", "r1316", "r322", "usus", "usr", "uer", "zazyciem"]},
+              "unit": {"type": "string"},
+              "paraphrase_pl": {"type": "string"},
+              "amended_by": {"type": ["string", "null"]}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

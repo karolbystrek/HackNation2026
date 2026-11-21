@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/glossary.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["term_pl", "definition_pl"],
+            "properties": {
+              "term_pl": {"type": "string"},
+              "synonyms_pl": {"type": "array", "items": {"type": "string"}},
+              "definition_pl": {"type": "string"},
+              "not_to_confuse_with_pl": {"type": "array", "items": {"type": "string"}},
+              "related_ids": {"$ref": "common.schema.json#/$defs/idList"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

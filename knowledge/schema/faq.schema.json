@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/faq.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["question_pl", "answer_pl"],
+            "properties": {
+              "question_pl": {"type": "string"},
+              "alt_questions_pl": {"type": "array", "items": {"type": "string"}},
+              "answer_pl": {"type": "string"},
+              "related_ids": {"$ref": "common.schema.json#/$defs/idList"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

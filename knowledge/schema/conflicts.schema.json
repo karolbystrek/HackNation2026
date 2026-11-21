@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/conflicts.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["conflict_type", "claims", "resolution_pl", "app_behaviour_pl", "resolution_status"],
+            "properties": {
+              "conflict_type": {"enum": ["sources_disagree", "superseded_statement", "unverified", "ambiguous_law", "missing_material"]},
+              "claims": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["source_id", "claim_pl"],
+                  "properties": {"source_id": {"$ref": "common.schema.json#/$defs/id"}, "locator": {"type": "string"}, "claim_pl": {"type": "string"}},
+                  "additionalProperties": false
+                }
+              },
+              "resolution_pl": {"type": "string"},
+              "app_behaviour_pl": {"type": "string"},
+              "resolution_status": {"enum": ["resolved", "open"]},
+              "related_ids": {"$ref": "common.schema.json#/$defs/idList"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}
