@@ -43,7 +43,7 @@ export async function extractCase(bytes: Uint8Array): Promise<{ extraction: Case
   if (hit) return { extraction: hit.extraction as CaseExtraction, cached: true };
 
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new ExtractionUnavailable("Brak klucza GEMINI_API_KEY, więc nowej teczki nie da się odczytać.");
+  if (!apiKey) throw new ExtractionUnavailable("Odczyt dokumentów jest teraz niedostępny. Spróbuj później."); // GEMINI_API_KEY is unset
   const ai = new GoogleGenAI({ apiKey });
   // shortcut: inline PDF only (ZUS sample files are at most ~7 MB); use the Files API for files above 20 MB.
   const response = await ai.models.generateContent({

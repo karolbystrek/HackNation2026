@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const sampleId = typeof body === "object" && body !== null && "sampleId" in body ? body.sampleId : null;
     if (typeof sampleId !== "string") return Response.json({ error: "Wyślij plik PDF albo sampleId." }, { status: 400 });
     bytes = await downloadSample(sampleId);
-    if (!bytes) return Response.json({ error: "Nie ma takiej przykładowej teczki." }, { status: 404 });
+    if (!bytes) return Response.json({ error: "Nie ma takiej przykładowej sprawy." }, { status: 404 });
   }
 
   try {
@@ -34,6 +34,6 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ExtractionUnavailable) return Response.json({ error: error.message }, { status: 503 });
     console.error(error);
-    return Response.json({ error: "Nie udało się odczytać teczki. Spróbuj ponownie albo wpisz dane ręcznie." }, { status: 502 });
+    return Response.json({ error: "Nie udało się odczytać dokumentów. Spróbuj ponownie za chwilę." }, { status: 502 });
   }
 }

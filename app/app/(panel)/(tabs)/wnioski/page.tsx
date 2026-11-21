@@ -29,15 +29,15 @@ export default function Applications() {
 
   return (
     <main id="main-content" tabIndex={-1} className="page">
-      <PageTitle lead="Sprawdź teczkę ZUS, wypełnij wnioski do ZUS, pracodawcy lub urzędu stanu cywilnego i wyślij je w symulacji.">
+      <PageTitle lead="Wypełnij wnioski do ZUS, pracodawcy i urzędu stanu cywilnego albo sprawdź dokumenty, które już masz.">
         Wnioski
       </PageTitle>
 
       <section aria-labelledby="teczka" className="flex flex-col gap-4">
         <div>
-          <h2 id="teczka" className="text-2xl font-bold">Sprawdź teczkę ZUS</h2>
+          <h2 id="teczka" className="text-2xl font-bold">Sprawdź swoje dokumenty z ZUS</h2>
           <p className="max-w-[70ch] text-muted-foreground">
-            Model AI odczytuje skan i rozpoznaje dokumenty. Ubezpieczenie, podstawę i kwotę zasiłku liczy kalkulator według przepisów, a wynik porównuje z decyzją ZUS.
+            Wgraj skan, a sprawdzimy, czy zasiłek Ci przysługuje, ile wynosi i czy zgadza się z decyzją ZUS. Dokumenty odczytuje sztuczna inteligencja, więc pod wynikiem możesz poprawić odczytane dane.
           </p>
         </div>
         <CaseCheck params={params} />

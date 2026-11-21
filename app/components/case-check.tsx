@@ -38,6 +38,7 @@ export function CaseCheck({ params }: { params: Params }) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
   const selectId = useId();
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/cases").then((r) => r.json()).then((body: { samples: Sample[] }) => setSamples(body.samples)).catch(() => setSamples([]));
@@ -54,10 +55,10 @@ export function CaseCheck({ params }: { params: Params }) {
     try {
       const response = await fetch("/api/cases/analyze", { method: "POST", ...init });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Nie udało się odczytać teczki.");
+      if (!response.ok) throw new Error(body.error ?? "Nie udało się odczytać dokumentów.");
       setLoaded({ extraction: body.extraction, cached: body.cached, source });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Nie udało się odczytać teczki.");
+      setError(e instanceof Error ? e.message : "Nie udało się odczytać dokumentów.");
     } finally {
       setBusy(false);
     }
@@ -72,46 +73,51 @@ export function CaseCheck({ params }: { params: Params }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-2">
-          <label htmlFor={`${selectId}-file`} className="font-bold">Wgraj teczkę (PDF)</label>
-          <p className="text-sm text-muted-foreground">Skan wniosku z dokumentami, np. ZAM, ZUR, Z-3, poświadczenie ubezpieczenia, decyzja ZUS.</p>
-          <input
-            id={`${selectId}-file`}
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }}
-            className="min-h-11 rounded-sm border border-input bg-background px-3 py-2 file:mr-3 file:rounded-sm file:border-0 file:bg-secondary file:px-3 file:py-1 file:font-bold"
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2">
-          <label htmlFor={selectId} className="font-bold">albo wybierz przykładową sprawę ZUS</label>
-          <p className="text-sm text-muted-foreground">Zanonimizowane teczki udostępnione przez ZUS na potrzeby wyzwania.</p>
+      <div className="flex max-w-xl flex-col gap-2">
+        <input
+          ref={fileInput}
+          id={`${selectId}-file`}
+          type="file"
+          accept="application/pdf"
+          className="sr-only"
+          tabIndex={-1}
+          disabled={busy}
+          onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }}
+        />
+        <Button className="self-start" disabled={busy} onClick={() => fileInput.current?.click()}>
+          Wgraj dokumenty (PDF)
+        </Button>
+        <p className="text-sm text-muted-foreground">Na przykład decyzję ZUS, wniosek o zasiłek albo zaświadczenie od pracodawcy. Może to być jeden plik ze skanem wielu stron.</p>
+      </div>
+
+      {!!samples?.length && (
+        <div className="flex max-w-xl flex-col gap-2">
+          <label htmlFor={selectId} className="font-bold">Nie masz dokumentów pod ręką? Wybierz przykładową sprawę</label>
           <div className="flex flex-wrap gap-2">
             <select
               id={selectId}
               value={sampleId}
-              disabled={busy || !samples?.length}
+              disabled={busy}
               onChange={(e) => setSampleId(e.target.value)}
               className="min-h-11 min-w-0 grow basis-60 rounded-sm border border-input bg-background px-3 py-2"
             >
-              <option value="">{samples === null ? "Wczytuję listę…" : samples.length ? "Wybierz sprawę" : "Brak przykładów"}</option>
-              {samples?.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              <option value="">Wybierz sprawę</option>
+              {samples.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
             <Button
+              variant="outline"
               disabled={busy || !sampleId}
-              onClick={() => read({ headers: { "content-type": "application/json" }, body: JSON.stringify({ sampleId }) }, samples?.find((s) => s.id === sampleId)?.label ?? sampleId)}
+              onClick={() => read({ headers: { "content-type": "application/json" }, body: JSON.stringify({ sampleId }) }, samples.find((s) => s.id === sampleId)?.label ?? sampleId)}
             >
               Sprawdź
             </Button>
           </div>
         </div>
-      </div>
+      )}
 
       <div aria-live="polite">
-        {busy && <Notice><p className="font-bold">Odczytuję teczkę…</p><p className="text-muted-foreground">Dokumenty czyta model AI. Długi skan może potrwać do 2 minut.</p></Notice>}
-        {error && <Notice className="border-destructive"><p className="font-bold">Nie udało się sprawdzić teczki</p><p>{error}</p></Notice>}
+        {busy && <Notice><p className="font-bold">Odczytujemy dokumenty…</p><p className="text-muted-foreground">To może potrwać do 2 minut.</p></Notice>}
+        {error && <Notice className="border-destructive"><p className="font-bold">Nie udało się odczytać dokumentów</p><p>{error}</p></Notice>}
       </div>
 
       {loaded && (
@@ -134,7 +140,7 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
       <div>
         <h3 id="case-result" ref={headingRef} tabIndex={-1} className="text-2xl font-bold">Wynik: {loaded.source}</h3>
         <p className="text-sm text-muted-foreground">
-          {loaded.cached ? "Odczyt z pamięci podręcznej." : "Odczytano przez AI."} Dane możesz poprawić, a wynik przeliczy się od razu.
+          Jeśli coś odczytaliśmy źle, popraw dane pod wynikiem, a wynik przeliczy się od razu.
         </p>
       </div>
 
@@ -174,7 +180,7 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
       {c.decision.present && (
         <div className="flex min-w-0 flex-col gap-2">
           {analysis.comparison.length > 0 ? (
-            <Table caption="Porównanie z decyzją ZUS z teczki" head={["Pozycja", "Nasze wyliczenie", "ZUS", "Wynik"]}>
+            <Table caption="Porównanie z decyzją ZUS" head={["Pozycja", "Nasze wyliczenie", "ZUS", "Wynik"]}>
               {analysis.comparison.map((row, i) => (
                 <tr key={i} className="border-t">
                   <th scope="row" className="py-2 pr-3 text-left font-normal">{row.label}</th>
@@ -244,7 +250,7 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
                 />
               ))}
             </div>
-            {c.basisMonths.length === 0 && <p className="text-muted-foreground">W teczce nie odczytano miesięcznych kwot.</p>}
+            {c.basisMonths.length === 0 && <p className="text-muted-foreground">W dokumentach nie odczytano miesięcznych kwot.</p>}
           </fieldset>
         </div>
       </details>
