@@ -22,8 +22,8 @@ export default function Calculators() {
   const [mode, setMode] = useState<Mode | null>(null);
   const [basisRequest, setBasisRequest] = useState<{ parent: ParentKey; startMonth: string } | null>(null);
   const [bases, setBases] = useState(() => ({
-    mother: computeBasis(persona.parents.mother.monthlyGross, params).basis.toFixed(2).replace(".", ","),
-    father: computeBasis(persona.parents.father.monthlyGross, params).basis.toFixed(2).replace(".", ","),
+    mother: computeBasis(persona.parents.mother.monthlyGross, params, persona.parents.mother.contract).basis.toFixed(2).replace(".", ","),
+    father: computeBasis(persona.parents.father.monthlyGross, params, persona.parents.father.contract).basis.toFixed(2).replace(".", ","),
   }));
   const picker = useRef<HTMLHeadingElement>(null);
 

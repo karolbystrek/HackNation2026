@@ -23,7 +23,7 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
   const [startMonth, setStartMonth] = useState(request?.startMonth || persona.dueDate.slice(0, 7));
   const [months, setMonths] = useState(() => persona.parents[initialParent].monthlyGross.map(String));
 
-  const r = computeBasis(months.map(parseAmount), params);
+  const r = computeBasis(months.map(parseAmount), params, incomeType);
   const [startYear, startMon] = startMonth.split("-").map(Number);
   const firstMonth = (startYear || 2027) * 12 + ((startMon || 1) - 1) - 12;
   const basisText = r.basis.toFixed(2).replace(".", ",");
@@ -31,6 +31,7 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
   const rows: [string, string][] = [
     [`Średnia z ${r.months} mies.`, formatPln(r.average, 2)],
     [`Minus składki ${formatRate(params.employeeContributionRate)}`, formatPln(-r.contributions, 2)],
+    ...(r.floored ? [["Podniesiono do minimum dla pełnego etatu", formatPln(r.basis, 2)] as [string, string]] : []),
     ["Stawka dzienna (podstawa / 30)", formatPln(r.daily, 2)],
     [`Zasiłek ${formatRate(params.rates.full)} / mies.`, formatPln(r.basis * params.rates.full, 2)],
     [`Zasiłek ${formatRate(params.rates.flat)} / mies.`, formatPln(r.basis * params.rates.flat, 2)],

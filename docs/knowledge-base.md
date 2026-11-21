@@ -61,8 +61,6 @@ Every AI feature must be listed under "Funkcje AI" in `README.md`.
 
 | Where | Gap | Data |
 |---|---|---|
-| [basis.ts:16](../app/lib/calc/basis.ts#L16) | No minimum base for full-time work. No base for self-employed or contractors (their declared contribution base). | `param.min_wage_floor_net_2026`, `benefit.maternity_leave.base_calculation_steps_pl` |
-| [leave.ts:127](../app/lib/calc/leave.ts#L127) | No top-up of benefits below 1,000 zł. | `benefit.top_up`, `param.parental_allowance_amount` |
 | [pregnancy.ts:27](../app/lib/calc/pregnancy.ts#L27) | Assumes every employer pays the benefit itself (>20 insured). Employers with ≤20 send the case to ZUS, which changes the documents and who pays. | `enums.payer_size`, scenarios S1–S4 |
 | [family-timeline.ts:97](../app/lib/family-timeline.ts#L97), [:123](../app/lib/family-timeline.ts#L123) | 7 and 21 days are hardcoded, which breaks the "parameters in one place" rule. Links are hardcoded too. | `deadlines.json`, `sources.json` |
 | [variants.ts](../app/lib/calc/variants.ts) | Varies only the leave split. | Add the 81.5% option, part-time work and paternity timing (table above). |

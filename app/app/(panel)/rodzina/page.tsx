@@ -40,7 +40,7 @@ export default function FamilyData() {
             ["Zatrudnienie", parent.employment, "ZUS"],
             ["Kto wypłaca zasiłek", parent.payer, "ZUS"],
             ["Wynagrodzenie brutto", `${formatPln(last)} / mies.`, "KAS"],
-            ["Podstawa wymiaru zasiłku", formatPln(computeBasis(parent.monthlyGross, params).basis, 2), "ZUS"],
+            ["Podstawa wymiaru zasiłku", formatPln(computeBasis(parent.monthlyGross, params, parent.contract).basis, 2), "ZUS"],
             ["Ubezpieczenie chorobowe", parent.insurance, "ZUS"],
             ["Składki", parent.contributions, "ZUS"],
             ["Zwolnienia e-ZLA", parent.sickLeaveFrom ? `Aktywne od ${formatDate(parent.sickLeaveFrom)}, kod B` : "Brak", "ZUS"],

@@ -1,5 +1,5 @@
 import { addDays, addYears, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
-import { formatWeeks } from "@/lib/format";
+import { formatPln, formatWeeks } from "@/lib/format";
 import type { Params } from "@/lib/params";
 
 export type ParentKey = "mother" | "father";
@@ -94,6 +94,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
 
   const periods: Record<ParentKey, LeavePeriod[]> = { mother: [], father: [] };
   let lostToCap = 0;
+  let toppedUp = false;
 
   function add(parent: ParentKey, label: string, kind: LeavePeriod["kind"], from: Date, weeks: number, rate: number, workFraction: number): Date {
     if (weeks <= 0) return from;
@@ -114,6 +115,9 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
       }
     }
     const base = input.bases[parent];
+    // shortcut: compares the gross benefit with the top-up amount; the law compares it after the PIT advance, so the top-up is slightly understated.
+    const monthly = base > 0 ? Math.max(base * rate, p.parentalAllowanceMonthly) : 0;
+    if (monthly > base * rate) toppedUp = true;
     periods[parent].push({
       parent,
       label,
@@ -124,9 +128,9 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
       spanWeeks: days / 7,
       rate,
       workFraction,
-      monthlyBenefit: base * rate * (1 - workFraction),
+      monthlyBenefit: monthly * (1 - workFraction),
       monthlyWage: workFraction > 0 ? (base / (1 - p.employeeContributionRate)) * workFraction : 0,
-      total: ((paid * 7 * base) / 30) * rate,
+      total: (paid * 7 * monthly) / 30,
     });
     return end;
   }
@@ -174,6 +178,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   if (lostOwnWeeks > 0)
     warnings.push(`${lostOwnWeeks} tyg. urlopu rodzicielskiego (${input.names[other]}) przepada – ${p.parentalOwnWeeks} tygodni każdego rodzica jest nieprzenoszalne.`);
   if (lostToCap > 0.05) warnings.push(`Urlop kończy się w dniu ${capYears}. urodzin dziecka – przepada ok. ${formatWeeks(lostToCap)} urlopu.`);
+  if (toppedUp) warnings.push(`Zasiłek poniżej ${formatPln(p.parentalAllowanceMonthly)} miesięcznie jest podwyższany do tej kwoty (świadczenie rodzicielskie).`);
   if (zaZyciem) warnings.push("„Za życiem” wymaga zaświadczenia lekarza specjalisty – dołączcie je do wniosku.");
   if (input.workingParent) warnings.push("Praca do połowy etatu wydłuża urlop rodzicielski proporcjonalnie. Suma zasiłku się nie zmienia, dochodzi pensja.");
 

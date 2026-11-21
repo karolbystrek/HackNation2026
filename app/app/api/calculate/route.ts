@@ -1,9 +1,9 @@
 import { computeBasis } from "@/lib/calc/basis";
 import { planLeave, type LeaveInput } from "@/lib/calc/leave";
-import { calcPregnancy, type PregnancyInput } from "@/lib/calc/pregnancy";
+import { calcPregnancy, type ContractType, type PregnancyInput } from "@/lib/calc/pregnancy";
 import { defaultParams } from "@/lib/params";
 
-type Body = { type: "leave"; input: LeaveInput } | { type: "pregnancy"; input: PregnancyInput } | { type: "basis"; input: { monthlyGross: number[] } };
+type Body = { type: "leave"; input: LeaveInput } | { type: "pregnancy"; input: PregnancyInput } | { type: "basis"; input: { monthlyGross: number[]; contract?: ContractType } };
 
 /** REST entry point to the same benefit engine the UI uses. */
 export async function POST(request: Request) {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     case "pregnancy":
       return Response.json(calcPregnancy(body.input, defaultParams));
     case "basis":
-      return Response.json(computeBasis(body.input.monthlyGross, defaultParams));
+      return Response.json(computeBasis(body.input.monthlyGross, defaultParams, body.input.contract));
     default:
       return Response.json({ error: "type must be leave, pregnancy or basis" }, { status: 400 });
   }

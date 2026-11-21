@@ -23,7 +23,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
   return {
     mode: "birth",
     names: { mother: mother.name, father: father.name },
-    bases: { mother: computeBasis(mother.monthlyGross, p).basis, father: computeBasis(father.monthlyGross, p).basis },
+    bases: { mother: computeBasis(mother.monthlyGross, p, mother.contract).basis, father: computeBasis(father.monthlyGross, p, father.contract).basis },
     startDate: persona.birthDate ?? persona.dueDate,
     kids: persona.kids,
     zaZyciem: false,
