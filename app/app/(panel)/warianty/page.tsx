@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { LeaveLanes } from "@/components/leave-lanes";
-import { BackLink, Button, PageTitle, WarningBox } from "@/components/ui";
+import { BackLink, Button, Card, Chip, PageTitle, WarningBox } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import { updatePlan } from "@/lib/plan-store";
@@ -14,7 +14,7 @@ export default function Variants() {
   const raise = plan.events.find((e) => e.type === "salary");
 
   return (
-    <main className="mx-auto flex w-full max-w-[980px] flex-col gap-5 px-5 pt-8 pb-12">
+    <main id="main-content" tabIndex={-1} className="page">
       <BackLink href="/plan">Wróć do osi czasu</BackLink>
       <PageTitle
         lead={`Policzyliśmy 3 warianty z Waszych zarobków${raise ? ` (z uwzględnieniem: ${raise.title})` : ""}. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem.`}
@@ -25,11 +25,10 @@ export default function Variants() {
       {variants.map((v) => {
         const active = plan.chosenVariant === v.key;
         return (
-          <section key={v.key} className={`flex flex-col gap-4 rounded-[20px] bg-white p-5 sm:p-[22px] ${active ? "outline-3 outline-brand" : ""}`}>
+          <Card key={v.key} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ink text-lg font-black text-white">{v.key}</span>
-              <h2 className="grow text-[22px] font-black">{v.name}</h2>
-              <span className="rounded-full bg-brand-soft px-3 py-1 text-[13px] font-extrabold text-brand-deep">{v.tag}</span>
+              <h2 className="grow text-[22px] font-bold">Wariant {v.key} · {v.name}</h2>
+              <Chip>{v.tag}</Chip>
             </div>
 
             <LeaveLanes
@@ -44,9 +43,9 @@ export default function Variants() {
                 ["Zasiłki łącznie", `ok. ${formatPln(Math.round(v.result.familyTotal / 10) * 10)}`],
                 ["Dziecko pod opieką rodzica", `${v.childcareWeeks} tyg.`],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-xl bg-paper px-3.5 py-3">
-                  <div className="text-[13px] text-muted">{label}</div>
-                  <div className="text-xl font-black sm:text-2xl">{value}</div>
+                <div key={label} className="rounded-sm bg-secondary px-3.5 py-3">
+                  <div className="text-[13px] text-muted-foreground">{label}</div>
+                  <div className="text-xl font-bold sm:text-2xl">{value}</div>
                 </div>
               ))}
             </div>
@@ -54,7 +53,7 @@ export default function Variants() {
             <ul className="flex flex-col gap-1.5">
               {v.points.map((pt) => (
                 <li key={pt.text} className="flex gap-2.5 text-[15px] leading-relaxed">
-                  <span className={`flex size-[22px] shrink-0 items-center justify-center rounded-full text-[15px] font-black ${pt.sign === "+" ? "bg-brand-soft text-brand-deep" : "bg-warn-soft text-warn"}`}>{pt.sign}</span>
+                  <span className="w-5 shrink-0 text-center font-bold text-primary">{pt.sign}</span>
                   <span>{pt.text}</span>
                 </li>
               ))}
@@ -70,7 +69,7 @@ export default function Variants() {
             >
               {active ? "Wybrany wariant ✓" : `Wybieram wariant ${v.key}`}
             </Button>
-          </section>
+          </Card>
         );
       })}
 

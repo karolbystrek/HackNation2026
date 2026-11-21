@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { amountHint, amountPattern, CalculatorDetails, CalculatorSteps } from "./calculator-steps";
-import { Button, Field, PillGroup } from "@/components/ui";
+import { Button, Field, RadioGroup, ResultSummary } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import { PARENTS, type ParentKey } from "@/lib/calc/leave";
 import { formatPln, formatRate, parseAmount } from "@/lib/format";
@@ -59,7 +59,7 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
       title: "Dane do obliczenia podstawy",
       content: (
         <>
-          <PillGroup
+          <RadioGroup
             label="Skąd wziąć dane?"
             value={source}
             onChange={(value) => {
@@ -74,7 +74,7 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
             }}
             options={[...PARENTS.map((p): [ParentKey, string] => [p, `${names[p]} – z ZUS`]), ["manual", "Wpiszę ręcznie"]]}
           />
-          <PillGroup
+          <RadioGroup
             label="Rodzaj przychodu"
             value={incomeType}
             onChange={setIncomeType}
@@ -88,7 +88,7 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
       title: "Przychody z 12 miesięcy",
       content: (
         <>
-          <p className="text-muted">
+          <p className="text-muted-foreground">
             {incomeType === "jdg" ? "Zadeklarowana podstawa składek" : "Wynagrodzenie brutto"} w miesiącach przed rozpoczęciem zasiłku.
           </p>
           {source === "manual" ? (
@@ -109,13 +109,10 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
   return (
     <CalculatorSteps steps={steps} calculate="Oblicz podstawę" backFromResult={request ? "Wróć bez użycia kwoty" : undefined} onBack={onBack} active={active} result={
       <div className="flex flex-col gap-4">
-        <div className="rounded-[20px] bg-brand p-[22px] text-white">
-          <div className="text-[15px] font-bold text-brand-soft">Podstawa wymiaru zasiłku</div>
-          <div className="mt-1 text-[34px] leading-tight font-black sm:text-[42px]">{formatPln(r.basis, 2)}</div>
-        </div>
+        <ResultSummary label="Podstawa wymiaru zasiłku" value={formatPln(r.basis, 2)} />
         <CalculatorDetails label="Zobacz szczegóły">
           {rows.map(([label, value]) => (
-            <div key={label} className="flex justify-between gap-2 border-b border-line-soft py-2.5 text-[15px] last:border-0">
+            <div key={label} className="flex justify-between gap-2 border-b border-border py-2.5 text-[15px] last:border-0">
               <span>{label}</span>
               <b>{value}</b>
             </div>

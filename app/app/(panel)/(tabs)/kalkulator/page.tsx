@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { BasisCalculator } from "@/components/calculator/basis-calculator";
 import { LeaveCalculator } from "@/components/calculator/leave-calculator";
 import { PregnancyCalculator } from "@/components/calculator/pregnancy-calculator";
-import { Button } from "@/components/ui";
+import { Button, PageTitle } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import type { ParentKey } from "@/lib/calc/leave";
 import { useFamily } from "@/lib/use-family";
@@ -40,15 +40,15 @@ export default function Calculators() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-[640px] flex-col gap-5 px-5 pt-7 pb-12">
-      <h1 className="text-[28px] font-black sm:text-[34px]">Kalkulatory zasiłków</h1>
+    <main id="main-content" tabIndex={-1} className="page max-w-3xl">
+      <PageTitle>Kalkulatory zasiłków</PageTitle>
       {mode === null && (
         <section className="flex flex-col items-start gap-3">
-          <h2 ref={picker} tabIndex={-1} className="text-2xl font-black focus:outline-none">Co chcesz obliczyć?</h2>
-          <p className="text-muted">Uzupełniliśmy dane z profilu. Możesz je zmienić w każdym kroku.</p>
+          <h2 ref={picker} tabIndex={-1} className="text-2xl font-bold">Co chcesz obliczyć?</h2>
+          <p className="text-muted-foreground">Uzupełniliśmy dane z profilu. Możesz je zmienić w każdym kroku.</p>
           <div className="flex w-full flex-col gap-2">
             {MODES.map(([key, label]) => (
-              <Button key={key} variant="outline" className="justify-start rounded-xl py-3 text-left" onClick={() => setMode(key)}>
+              <Button key={key} variant="outline" className="justify-start py-3 text-left" onClick={() => setMode(key)}>
                 {label}
               </Button>
             ))}
@@ -72,7 +72,7 @@ export default function Calculators() {
         <BasisCalculator request={basisRequest} onUse={useBasis} onBack={() => setBasisRequest(null)} />
       )}
       {mode !== null && (
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="text-[13px] leading-relaxed text-muted-foreground">
           Kwoty brutto, przed zaliczką na podatek. Wynik ma charakter informacyjny. O prawie do zasiłku decyduje ZUS lub płatnik składek.
         </p>
       )}

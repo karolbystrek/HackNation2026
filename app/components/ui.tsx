@@ -1,124 +1,113 @@
 import Link from "next/link";
-import type { ComponentProps, ReactNode } from "react";
-import type { EventWho } from "@/lib/events";
+import { useId, type ComponentProps, type ReactNode } from "react";
+import { cn } from "cn";
+import { buttonVariants } from "@/components/ui/button";
 
-const buttonBase = "inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full px-6 font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50";
-const buttonVariants = {
-  primary: "bg-brand text-white hover:bg-brand-deep",
-  outline: "border-2 border-brand bg-white text-brand hover:bg-brand-soft",
-  link: "min-h-11 px-0 text-brand underline-offset-4 hover:underline",
-};
-type ButtonVariant = keyof typeof buttonVariants;
+export { Button } from "@/components/ui/button";
 
-export function Button({ variant = "primary", className = "", ...props }: ComponentProps<"button"> & { variant?: ButtonVariant }) {
-  return <button type="button" className={`${buttonBase} ${buttonVariants[variant]} ${className}`} {...props} />;
-}
+type LinkVariant = Parameters<typeof buttonVariants>[0];
 
-export function ButtonLink({ variant = "primary", className = "", ...props }: ComponentProps<typeof Link> & { variant?: ButtonVariant }) {
-  return <Link className={`${buttonBase} ${buttonVariants[variant]} ${className}`} {...props} />;
+export function ButtonLink({ variant, className, ...props }: ComponentProps<typeof Link> & Pick<NonNullable<LinkVariant>, "variant">) {
+  return <Link className={cn(buttonVariants({ variant }), className)} {...props} />;
 }
 
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="self-start py-2 font-extrabold text-brand hover:underline">
-      ← {children}
+    <Link href={href} className="text-link min-h-11 content-center self-start font-bold">
+      <span aria-hidden="true">← </span>{children}
     </Link>
   );
 }
 
-/** Option pill used for single-choice groups. */
-export function Pill({ active, className = "", ...props }: ComponentProps<"button"> & { active: boolean }) {
+export function RadioOption({ children, className, ...props }: ComponentProps<"input">) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      className={`min-h-11 cursor-pointer rounded-full px-4 font-extrabold ${active ? "border-2 border-ink bg-ink text-white" : "border border-stone bg-white text-ink hover:bg-sand"} ${className}`}
-      {...props}
-    />
+    <label className={cn("flex min-h-11 cursor-pointer items-start gap-3 rounded-sm border border-input px-3 py-2 hover:bg-secondary has-checked:border-primary has-checked:bg-secondary", className)}>
+      <input type="radio" className="mt-1 size-4 shrink-0" {...props} />
+      <span>{children}</span>
+    </label>
   );
 }
 
-export function PillGroup<T extends string | number>({ label, options, value, onChange }: { label?: string; options: [T, string][]; value: T; onChange: (v: T) => void }) {
+export function RadioGroup<T extends string | number>({ label, options, value, onChange }: { label: string; options: [T, string][]; value: T; onChange: (v: T) => void }) {
+  const name = useId();
   return (
-    <div className="flex flex-col gap-2">
-      {label && <span className="font-extrabold">{label}</span>}
-      <div className="flex flex-wrap gap-1.5">
+    <fieldset className="min-w-0">
+      <legend className="mb-2 font-bold">{label}</legend>
+      <div className="flex flex-wrap gap-2">
         {options.map(([v, text]) => (
-          <Pill key={String(v)} active={v === value} onClick={() => onChange(v)}>
+          <RadioOption key={v} name={name} checked={v === value} onChange={() => onChange(v)}>
             {text}
-          </Pill>
+          </RadioOption>
         ))}
       </div>
+    </fieldset>
+  );
+}
+
+export function Field({ label, hint, className, id, "aria-describedby": describedBy, ...props }: ComponentProps<"input"> & { label: ReactNode; hint?: ReactNode }) {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const hintId = hint ? `${inputId}-hint` : undefined;
+  return (
+    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
+      <label htmlFor={inputId} className="font-bold">{label}</label>
+      {hint && <p id={hintId} className="text-sm text-muted-foreground">{hint}</p>}
+      <input id={inputId} aria-describedby={[hintId, describedBy].filter(Boolean).join(" ") || undefined} className="min-h-11 w-full min-w-0 rounded-sm border border-input bg-background px-3 py-2 aria-invalid:border-destructive" {...props} />
     </div>
   );
 }
 
-export function Field({ label, hint, className = "", ...props }: ComponentProps<"input"> & { label: ReactNode; hint?: ReactNode }) {
+export function Checkbox({ checked, onChange, title, children }: { checked: boolean; onChange: () => void; title: ReactNode; children?: ReactNode }) {
   return (
-    <label className={`flex flex-col gap-1.5 font-extrabold ${className}`}>
+    <label className="flex min-h-11 cursor-pointer items-start gap-3">
+      <input type="checkbox" checked={checked} onChange={onChange} className="mt-1 size-5 shrink-0" />
       <span>
-        {label} {hint && <span className="font-normal text-muted">{hint}</span>}
-      </span>
-      <input className="min-h-12 w-full rounded-xl border-2 border-stone bg-white px-3.5 text-[17px] text-ink focus:border-brand focus:outline-none" {...props} />
-    </label>
-  );
-}
-
-export function Checkbox({ checked, onChange, title, children, accent = "brand" }: { checked: boolean; onChange: () => void; title: ReactNode; children?: ReactNode; accent?: "brand" | "dad" }) {
-  return (
-    <label className="flex cursor-pointer items-start gap-3 leading-snug">
-      <input type="checkbox" checked={checked} onChange={onChange} className={`mt-0.5 size-5.5 shrink-0 ${accent === "dad" ? "accent-dad" : "accent-brand"}`} />
-      <span>
-        <b>{title}</b>
-        {children && (
-          <>
-            <br />
-            <span className="text-muted">{children}</span>
-          </>
-        )}
+        <strong className="block">{title}</strong>
+        {children && <span className="text-muted-foreground">{children}</span>}
       </span>
     </label>
   );
 }
 
-export function Card({ className = "", ...props }: ComponentProps<"section">) {
-  return <section className={`rounded-[20px] bg-white p-5 sm:p-[22px] ${className}`} {...props} />;
+export function Card({ className, ...props }: ComponentProps<"section">) {
+  return <section className={cn("min-w-0 border-t border-border py-4", className)} {...props} />;
 }
 
-export function WarningBox({ title = "Uważajcie na to", items }: { title?: string; items: ReactNode[] }) {
+export function Notice({ className, ...props }: ComponentProps<"div">) {
+  return <div className={cn("min-w-0 border-l-4 border-primary bg-secondary p-4", className)} {...props} />;
+}
+
+export function WarningBox({ title = "Na co zwrócić uwagę", items }: { title?: string; items: ReactNode[] }) {
   if (!items.length) return null;
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-warn-soft px-[18px] py-4 text-warn">
-      <div className="text-base font-black">{title}</div>
-      {items.map((item, i) => (
-        <div key={i} className="text-[15px] leading-relaxed">
-          {item}
-        </div>
-      ))}
-    </div>
+    <Notice>
+      <p className="font-bold">{title}</p>
+      <ul className="mt-2 list-disc space-y-1 pl-5">
+        {items.map((item, i) => <li key={i}>{item}</li>)}
+      </ul>
+    </Notice>
   );
 }
 
-const whoChip: Record<EventWho, string> = {
-  mother: "bg-mom-chip text-brand-deep",
-  father: "bg-dad-chip text-dad-deep",
-  both: "bg-both-chip text-ink",
-};
-
-export function WhoChip({ who, label }: { who: EventWho; label: string }) {
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${whoChip[who]}`}>{label}</span>;
-}
-
-export function Chip({ children, tone = "sand" }: { children: ReactNode; tone?: "sand" | "brand" | "solid" }) {
-  const tones = { sand: "bg-sand text-muted", brand: "bg-brand-soft text-brand-deep", solid: "bg-brand text-white" };
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${tones[tone]}`}>{children}</span>;
+export function Chip({ children }: { children: ReactNode }) {
+  return <span className="inline-block rounded-sm bg-secondary px-2 py-0.5 text-sm text-muted-foreground">{children}</span>;
 }
 
 export function PageTitle({ children, lead }: { children: ReactNode; lead?: ReactNode }) {
   return (
-    <div>
-      <h1 className="text-[28px] leading-tight font-black sm:text-[34px]">{children}</h1>
-      {lead && <p className="mt-2 leading-relaxed text-muted">{lead}</p>}
+    <div className="max-w-[70ch]">
+      <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{children}</h1>
+      {lead && <p className="mt-3 text-lg text-muted-foreground">{lead}</p>}
     </div>
+  );
+}
+
+export function ResultSummary({ label, value, children }: { label: string; value: ReactNode; children?: ReactNode }) {
+  return (
+    <Notice>
+      <p className="font-bold">{label}</p>
+      <p className="my-1 text-3xl leading-tight font-bold text-primary sm:text-4xl">{value}</p>
+      {children && <div className="text-muted-foreground">{children}</div>}
+    </Notice>
   );
 }

@@ -23,7 +23,7 @@ We have a few hours, not weeks.
 
 ## Application map
 
-The UI follows the team's design canvas (https://claude.ai/artifact/2TSCL1uxqkR2fxiWoQjm1w); its palette lives as Tailwind tokens in `app/app/globals.css`.
+The public-service UI uses the light theme from `app/app/globals.css`. Use its semantic Tailwind tokens for all colors and the shared `shell`, `page` and `text-link` classes for layout and links. Reuse the shadcn button variants in `app/components/ui/button.tsx` and the shared fields, choices, notices and headings in `app/components/ui.tsx`. Each page gives its main landmark `id="main-content"` and `tabIndex={-1}` for the skip link.
 - Benefit engine: pure functions in `app/lib/calc/` (`leave.ts` birth/adoption leave, `pregnancy.ts`, `basis.ts`, `variants.ts` A/B/C leave splits, `tasks.ts` to-do list). The calculator UI, the variants page and `POST /api/calculate` all call the same functions; add new benefit logic there, not in components.
 - The calculator page keeps each path’s draft in browser memory while open. The basis calculator can open inside a benefit path and return the new amount to the same step.
 - Demo families returned by the simulated mObywatel login live in `app/lib/mock/personas.ts`. Add a persona there to get a new demo account.

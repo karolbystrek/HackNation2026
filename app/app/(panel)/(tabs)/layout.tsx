@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "cn";
 import { buildTasks } from "@/lib/calc/tasks";
 import { useFamily } from "@/lib/use-family";
 
@@ -17,8 +18,8 @@ export default function TabsLayout({ children }: LayoutProps<"/">) {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[980px] px-5 pt-7">
-        <nav className="flex overflow-x-auto overflow-y-hidden border-b-2 border-line sm:gap-1.5">
+      <div className="border-b bg-secondary">
+        <nav aria-label="Panel rodziny" className="shell flex flex-wrap gap-x-4 sm:gap-x-8">
           {tabs.map((tab) => {
             const active = pathname === tab.href;
             return (
@@ -26,7 +27,10 @@ export default function TabsLayout({ children }: LayoutProps<"/">) {
                 key={tab.href}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`-mb-0.5 flex min-h-12 shrink-0 grow items-center justify-center border-b-4 px-1.5 text-[15px] font-extrabold sm:grow-0 sm:px-[18px] sm:text-base ${active ? "border-brand text-ink" : "border-transparent text-muted hover:text-ink"}`}
+                className={cn(
+                  "min-h-11 content-center border-b-4 border-transparent py-2 font-bold text-primary hover:underline",
+                  active && "border-primary text-foreground",
+                )}
               >
                 {tab.label}
               </Link>

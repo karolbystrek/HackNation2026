@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { amountHint, amountPattern, CalculatorDetails, CalculatorSteps } from "./calculator-steps";
-import { Button, Checkbox, Field, PillGroup, WarningBox } from "@/components/ui";
+import { Button, Checkbox, Field, RadioGroup, ResultSummary, WarningBox } from "@/components/ui";
 import { calcPregnancy, type PregnancyInput } from "@/lib/calc/pregnancy";
 import { addDays, parseIso, toIso } from "@/lib/dates";
 import type { ParentKey } from "@/lib/calc/leave";
@@ -34,7 +34,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }
       title: "Praca i ubezpieczenie",
       content: (
         <>
-          <PillGroup
+          <RadioGroup
             label={`Forma pracy (${names.mother})`}
             value={form.contract}
             onChange={(value) => set("contract", value)}
@@ -74,23 +74,21 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }
   return (
     <CalculatorSteps steps={steps} onBack={onBack} active={active} result={
       <>
-        <div className="rounded-[20px] bg-brand p-[22px] text-white">
-          <div className="text-[15px] font-bold text-brand-soft">Do dnia porodu (brutto)</div>
-          <div className="mt-1 mb-2.5 text-[34px] leading-tight font-black sm:text-[42px]">{formatPln(r.total)}</div>
+        <ResultSummary label="Do dnia porodu (brutto)" value={formatPln(r.total)}>
           <div className="text-[15px]">
             {r.days} dni płatnego zwolnienia · {formatPln(parseAmount(basis), 2)} / mies.
           </div>
-          <div className="text-sm text-brand-soft">Wypłaca: {r.payer}</div>
-        </div>
+          <p>Wypłaca: {r.payer}</p>
+        </ResultSummary>
         <WarningBox items={r.warnings} />
         <CalculatorDetails label="Zobacz szczegóły">
           {r.rows.map((row) => (
-            <div key={row.label} className="flex flex-col gap-0.5 border-b border-line-soft py-2.5 last:border-0">
-              <div className="flex justify-between gap-2 text-[15px] font-extrabold">
+            <div key={row.label} className="flex flex-col gap-0.5 border-b border-border py-2.5 last:border-0">
+              <div className="flex justify-between gap-2 text-[15px] font-bold">
                 <span>{row.label}</span>
                 <span>{row.amount === null ? "" : formatPln(row.amount)}</span>
               </div>
-              <div className="text-sm text-muted">{row.note}</div>
+              <div className="text-sm text-muted-foreground">{row.note}</div>
             </div>
           ))}
         </CalculatorDetails>

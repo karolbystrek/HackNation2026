@@ -1,25 +1,24 @@
 import type { Metadata } from "next";
-import { Nunito_Sans } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
-const nunito = Nunito_Sans({
-  variable: "--font-nunito",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "700", "800", "900"],
-});
-
 export const metadata: Metadata = {
-  title: "Przewodnik Rodzica",
-  description: "Zaplanujcie urlop i zasiłki z ZUS – razem i na spokojnie.",
+  title: "Zasiłkowy Przewodnik Przyszłego Rodzica",
+  description: "Zaplanuj urlopy, oszacuj zasiłki i sprawdź terminy składania dokumentów.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pl" className={`${nunito.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">
+    <html lang="pl">
+      <body className="flex min-h-dvh flex-col">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-5 focus:z-10 focus:bg-background focus:px-4 focus:py-2 focus:text-primary">
+          Przejdź do treści
+        </a>
         <SiteHeader />
         {children}
+        <footer className="mt-auto border-t bg-secondary">
+          <p className="shell py-5 text-sm text-muted-foreground">Projekt demonstracyjny HackNation 2026. Dane i logowanie są symulowane.</p>
+        </footer>
       </body>
     </html>
   );
