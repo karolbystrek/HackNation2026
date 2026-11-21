@@ -37,6 +37,15 @@ describe("analyzeCase", () => {
     expect(r.comparison[0]).toMatchObject({ label: "Prawo do zasiłku", match: true });
   });
 
+  it("uses a supplied benefit basis as-is and retains the decision for comparison", () => {
+    const result = analyzeCase(base, defaultParams, 6000);
+    expect(result.basis?.value).toBe(6000);
+    expect(result.periods[0].daily).toBe(200);
+    expect(result.total).toBe(28000);
+    expect(result.comparison.find((row) => row.label === "Podstawa wymiaru")?.match).toBe(false);
+    expect(analyzeCase(base, defaultParams, 0).basis?.value).toBe(5177.4);
+  });
+
   it("leaves eligibility open when no sickness insurance dates were read", () => {
     const missing = { ...base, sickInsurance: [] };
     const result = analyzeCase(missing, defaultParams);
