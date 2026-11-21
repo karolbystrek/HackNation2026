@@ -20,6 +20,12 @@ export type ParentProfile = {
   contract: ContractType;
   employment: string;
   payer: string;
+  /** Insured persons the payer reports (knowledge/enums.json payer_size): gt20 pays benefits itself, le20 leaves it to ZUS, na = no payer. */
+  payerSize: "gt20" | "le20" | "na";
+  /** knowledge/enums.json insured_type when the contract alone does not say it, e.g. "uninsured" or "after_insurance". */
+  insuredType?: string;
+  /** knowledge/enums.json events that concern only this parent, e.g. "job_loss_liquidation". */
+  events?: string[];
   insuredFrom: string;
   insurance: string;
   contributions: string;
@@ -43,6 +49,10 @@ export type Persona = {
   paternityStart: string;
   initialVariant?: VariantKey;
   wantsAveragedRate?: boolean;
+  /** knowledge/enums.json events about the child; defaults to ["birth"] (e.g. "adoption", "stillbirth", "prematurity"). */
+  childEvents?: string[];
+  /** Supplementary maternity leave the child's hospital stay gives, in weeks. */
+  supplementaryWeeks?: number;
   zaZyciem?: boolean;
   completedSteps?: Record<string, string>;
   kids: number;
@@ -73,6 +83,7 @@ export const personas: Persona[] = [
         contract: "uop",
         employment: "Umowa o pracę, czas nieokreślony",
         payer: "Pracodawca (zgłasza ponad 20 osób)",
+        payerSize: "gt20",
         insuredFrom: "2024-03-01",
         insurance: "Od 01.03.2024 – obowiązkowe",
         contributions: "Opłacone, brak zaległości",
@@ -93,6 +104,7 @@ export const personas: Persona[] = [
         contract: "uop",
         employment: "Umowa o pracę, czas nieokreślony",
         payer: "Pracodawca (zgłasza ponad 20 osób)",
+        payerSize: "gt20",
         insuredFrom: "2019-09-01",
         insurance: "Od 01.09.2019 – obowiązkowe",
         contributions: "Opłacone, brak zaległości",
@@ -163,6 +175,7 @@ personas.push(
         contract: "jdg",
         employment: "Jednoosobowa działalność gospodarcza",
         payer: "ZUS",
+        payerSize: "na",
         insurance: "Od 01.03.2024 – dobrowolne",
         sickLeaveFrom: "2026-11-02",
         monthlyGross: Array(12).fill(6500),

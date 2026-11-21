@@ -11,7 +11,7 @@ import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { plan, fromGuide, chosen, names, entries } = useFamily();
+  const { plan, chosen, names, entries } = useFamily();
 
   const tasks = buildTasks(entries);
   const main = tasks.filter((task) => !task.extra);
@@ -55,6 +55,7 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
+          {task.documents.length > 0 && <p className="text-sm">Dokumenty: {task.documents.join(", ")}.</p>}
           <ApplicationAction origin="zadania" task={task} submission={submission} />
           {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja składania wniosku</a>}
           {task.waitingFor.length > 0 && !task.done && (
@@ -84,11 +85,9 @@ export default function Tasks() {
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          {!fromGuide && (
-            <Link href="/warianty?z=zadania" className="text-link font-bold">
-              {chosen ? `Zmień wariant (${chosen.name})` : "Wybierz wariant urlopu"}
-            </Link>
-          )}
+          <Link href="/warianty?z=zadania" className="text-link font-bold">
+            {chosen ? `Zmień wariant (${chosen.name})` : "Wybierz wariant urlopu"}
+          </Link>
           <Button variant="outline" onClick={downloadCalendar}>Dodaj terminy do kalendarza</Button>
         </div>
       </div>

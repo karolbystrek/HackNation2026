@@ -4,6 +4,7 @@ import type { TimelineEvent } from "@/lib/events";
 import type { FamilyTimelineEntry } from "@/lib/family-timeline";
 import { planTimeline } from "@/lib/guide/timeline";
 import type { Answers } from "@/lib/guide/tree";
+import type { Journey } from "@/lib/journey";
 import type { Persona } from "@/lib/mock/personas";
 import type { Params } from "@/lib/params";
 
@@ -25,11 +26,11 @@ export type FormContext = {
 };
 
 export function formContext(
-  persona: Persona, events: TimelineEvent[], chosenKey: VariantKey | null, params: Params,
+  persona: Persona, events: TimelineEvent[], chosenKey: VariantKey | null, params: Params, journey: Journey,
   doneTasks: string[], today: string, taskId: string, guideAnswers: Answers = {}, customLeave?: CustomLeave,
 ): { entry: FamilyTimelineEntry; ctx: FormContext } | null {
   const chosen = buildVariants(persona, params, customLeave).find((variant) => variant.key === chosenKey) ?? null;
-  const timeline = planTimeline(persona, events, chosen, params, doneTasks, today, guideAnswers);
+  const timeline = planTimeline(persona, events, chosen, params, journey, doneTasks, today);
   const entry = timeline.find((item) => item.id === taskId && item.form);
   if (!entry) return null;
 

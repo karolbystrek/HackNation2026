@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { existsSync, readFileSync } from "node:fs";
-import { TERM, activeAnswers, buildGuideTimeline, matchedTopics, nextQuestion, plainText, questions, resolveGuide, supplementaryWeeks, topics, visibleQuestions } from "../lib/guide/tree.ts";
+import { TERM, activeAnswers, matchedTopics, nextQuestion, plainText, questions, resolveGuide, supplementaryWeeks, topics, visibleQuestions } from "../lib/guide/tree.ts";
 import guide from "../lib/guide/guide.json" with { type: "json" };
 import knowledge from "../lib/guide/knowledge.json" with { type: "json" };
 
@@ -29,7 +29,7 @@ test("every question reads only answers to questions with a lower priority", () 
     }
   }
   for (const t of topics) {
-    const preds = [t.when, ...[t.scenarios, t.riskIds, t.choices, t.support, t.steps].flatMap((list) => (list ?? []).map((x) => x.when))];
+    const preds = [t.when, ...[t.scenarios, t.riskIds, t.choices, t.support].flatMap((list) => (list ?? []).map((x) => x.when))];
     for (const field of preds.flatMap((p) => [...reads(p)])) assert.ok(field in priority, `${t.id} reads unknown ${field}`);
   }
 });
@@ -61,23 +61,6 @@ test("employed father of a newborn sees paternity, parental and filing", () => {
 
 test("adoption of a 10-year-old gives leave on maternity terms", () => {
   assert.ok(ids({ situation: "adoption", insurance: ["employment"], childAge: 10 }).includes("adoptionLeave"));
-});
-
-test("timeline for an employed mother expecting twins", () => {
-  const a = { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", multiplePregnancy: true, childrenCount: 2, wantsAveragedRate: true };
-  const byId = Object.fromEntries(buildGuideTimeline(a, params, "2026-11-21").map((e) => [e.id, e]));
-  assert.equal(byId["pre-birth-leave"].date, "2027-01-18");
-  assert.equal(byId["averaged-rate"].due, "2027-03-22");
-  assert.equal(byId["maternity-period"].end, "2027-10-03"); // 31 weeks
-  assert.ok(byId["maternity-period"].estimated);
-  assert.equal(byId["parental-period"].who, "mother");
-  assert.ok(!byId["sick-claim-zas53"]);
-});
-
-test("planning has no birth date, so only undated-anchor steps appear", () => {
-  const got = buildGuideTimeline({ situation: "planning", role: "mother", insurance: ["employment"] }, params, "2026-11-21");
-  assert.ok(got.every((e) => e.date === "2026-11-21"));
-  assert.ok(got.some((e) => e.id === "sick-ezla"));
 });
 
 const forms = (r) => r.scenarios.flatMap((s) => s.steps.flatMap((step) => step.forms.map((f) => f.symbol)));
@@ -118,29 +101,6 @@ test("supplementary leave: a week per week in hospital, capped by gestation week
   assert.equal(supplementaryWeeks({ gestationWeek: 32, birthWeight: 1500, hospitalWeeks: 12 }, params), 8);
   assert.equal(supplementaryWeeks({ gestationWeek: 30, birthWeight: 900, hospitalWeeks: 20 }, params), 15);
   assert.equal(supplementaryWeeks({ gestationWeek: 38, birthWeight: 3200, hospitalWeeks: 1.5 }, params), 2);
-});
-
-test("premature baby: supplementary period starts the day after maternity ends", () => {
-  const a = { situation: "born", role: "mother", insurance: ["employment"], birthDate: "2026-11-01", multipleBirth: false, special: ["premature"], gestationWeek: 30, birthWeight: 1400, hospitalWeeks: 4 };
-  assert.ok(visibleQuestions(a).some((q) => q.id === "hospitalWeeks"));
-  const byId = Object.fromEntries(buildGuideTimeline(a, params, "2026-11-21").map((e) => [e.id, e]));
-  assert.equal(byId["maternity-period"].end, "2027-03-20");
-  assert.equal(byId["supplementary-period"].date, "2027-03-21");
-  assert.equal(byId["supplementary-period"].end, "2027-04-17");
-  assert.ok(!ids({ ...a, hospitalWeeks: 0 }).includes("supplementary"));
-});
-
-test("employer pays 14 sick days after 50, 33 before", () => {
-  const a = { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01" };
-  const ezla = (x) => buildGuideTimeline(x, params, "2026-11-21").find((e) => e.id === "sick-ezla").description;
-  assert.match(ezla({ ...a, over50: false }), /33 dni/);
-  assert.match(ezla({ ...a, over50: true }), /14 dni/);
-});
-
-test("paternity in two parts gives two periods", () => {
-  const a = { situation: "born", role: "father", insurance: ["employment"], birthDate: "2026-11-01", multipleBirth: false, paternityParts: "two" };
-  const got = buildGuideTimeline(a, params, "2026-11-21").map((e) => e.id);
-  assert.ok(got.includes("paternity-part-1") && got.includes("paternity-part-2") && !got.includes("paternity-period"));
 });
 
 test("insurance ended in pregnancy: claim with ZAS-53 and Z-10", () => {

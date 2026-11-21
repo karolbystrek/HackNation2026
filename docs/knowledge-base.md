@@ -17,7 +17,7 @@ The app then walks them through seven steps. The file descriptions below refer t
 | 2 | **Eligibility** | Which benefits each parent gets or does not get, and why (with legal basis) | `benefits`, `parameters`, `legal_provisions` | `lib/calc/pregnancy.ts` (partly) |
 | 3 | **Amounts** | Benefit base, monthly amounts, durations, totals | `parameters`, `benefits.base_calculation_steps_pl` | `lib/calc/basis.ts`, `leave.ts` |
 | 4 | **Variants** | Comparison of options: best money-wise, longest at home, earliest return | `parameters`, `scenarios` (S10, S23, S24), `risks` | `lib/calc/variants.ts` |
-| 5 | **Plan** | Dated to-do list and calendar for the chosen variant | `scenarios.steps`, `deadlines` | `lib/calc/tasks.ts`, `lib/ics.ts` |
+| 5 | **Plan** | Dated to-do list and calendar for the chosen variant | `scenarios.steps` (`task` tags), `deadlines`, `forms`, `leave_requests`, `documents` | `lib/journey.ts`, `lib/family-timeline.ts`, `lib/calc/tasks.ts`, `lib/ics.ts` |
 | 6 | **Paperwork** | Which form or employer request to file, where, with which attachments; pre-filled form simulation | `forms`, `form_fields`, `leave_requests`, `documents` | form wizard `/wnioski/[taskId]` (`app/lib/forms/`), filled official ZUS PDFs |
 | 7 | **Help** | Warnings, plain-language answers, support organisations in hard situations | `risks`, `faq`, `glossary`, `support_orgs`, `conflicts` | warnings in `leave.ts` (hardcoded) |
 | – | **Admin** | Edit rates, durations and amounts when the law changes | `parameters` | `lib/params.ts` |
@@ -62,9 +62,9 @@ Every AI feature must be listed under "Funkcje AI" in `README.md`.
 | Where | Gap | Data |
 |---|---|---|
 | [pregnancy.ts:27](../app/lib/calc/pregnancy.ts#L27) | Assumes every employer pays the benefit itself (>20 insured). Employers with ≤20 send the case to ZUS, which changes the documents and who pays. | `enums.payer_size`, scenarios S1–S4 |
-| [family-timeline.ts:97](../app/lib/family-timeline.ts#L97), [:123](../app/lib/family-timeline.ts#L123) | 7 and 21 days are hardcoded, which breaks the "parameters in one place" rule. Links are hardcoded too. | `deadlines.json`, `sources.json` |
 | [variants.ts](../app/lib/calc/variants.ts) | Varies only the leave split. | Add the 81.5% option, part-time work and paternity timing (table above). |
-| Whole engine | No eligibility check (waiting period, insured on the birth day, self-employed debt), no task list for non-standard situations, no document checklist. | `benefits.eligibility`, `scenarios`, `forms.attachment_rules` |
+| Whole engine | No eligibility check (waiting period, insured on the birth day, self-employed debt). Untagged scenarios have no tasks yet: the mother handing leave to the father after 14 weeks, unlawful dismissal, several insurance titles, a child's death after 8 weeks. | `benefits.eligibility`, `scenarios`, `forms.attachment_rules` |
+| [family-timeline.ts](../app/lib/family-timeline.ts) | Birth registration at the USC (21 days) is still in code: `knowledge/` has no civil registry law. | add a deadline and a source for Prawo o aktach stanu cywilnego |
 
 ## Files
 
@@ -96,7 +96,7 @@ In the app, use only `status: current` records valid on the relevant date. Show 
   - sickness after insurance ends, rehabilitation;
   - combining leave with work, the 81.5% choice, multiple births, several insurance titles;
   - parental allowance, funeral grant.
-- **In the app:** the main source for the plan. Match the profile to scenarios, then turn the steps into tasks. Hard situations (S8, S14–S19) also show the matching support organisations.
+- **In the app:** the main source for the plan. `lib/journey.ts` matches each parent to scenarios and turns steps with a `task` tag into to-dos (see the zus-knowledge skill). Hard situations (S8, S14–S19) also show the matching support organisations.
 - **When:** steps 4–5, and again after each new event.
 
 ### `deadlines.json`: date rules (36)

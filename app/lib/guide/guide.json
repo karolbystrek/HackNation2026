@@ -1,5 +1,5 @@
 {
-  "$comment": "Guide questionnaire. Each question is shown when its showIf predicate holds; when several are visible and unanswered, the lowest priority is asked first. A predicate may only read answers to questions with a lower priority (checked in tests). Topics whose `when` holds are the result; their steps become timeline entries. Rates and durations live in lib/params.ts, steps name them with lengthParam.",
+  "$comment": "Guide questionnaire. Each question is shown when its showIf predicate holds; when several are visible and unanswered, the lowest priority is asked first. A predicate may only read answers to questions with a lower priority (checked in tests). Topics whose `when` holds are the result (benefits, choices, scenarios, risks, support). The timeline comes from knowledge/scenarios.json through lib/guide/persona.ts and lib/journey.ts.",
   "version": 1,
   "predicates": {
     "voluntaryOnly": {
@@ -708,132 +708,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "sick-ezla",
-          "kind": "document",
-          "who": "mother",
-          "anchor": "today",
-          "title": "e-ZLA z kodem B",
-          "description": "Przy niezdolności do pracy lekarz wystawia e-ZLA z kodem „B”. Zasiłek wynosi 100% podstawy, maksymalnie przez 270 dni. Zasiłek wypłaca ZUS od pierwszego dnia.",
-          "dateNote": "Gdy lekarz stwierdzi niezdolność do pracy",
-          "when": {
-            "not": {
-              "has": [
-                "insurance",
-                "employment"
-              ]
-            }
-          }
-        },
-        {
-          "id": "sick-ezla",
-          "kind": "document",
-          "who": "mother",
-          "anchor": "today",
-          "title": "e-ZLA z kodem B",
-          "description": "Przy niezdolności do pracy lekarz wystawia e-ZLA z kodem „B”. Zasiłek wynosi 100% podstawy, maksymalnie przez 270 dni. Pierwsze 33 dni zwolnienia w roku opłaca pracodawca jako wynagrodzenie chorobowe, potem zasiłek.",
-          "dateNote": "Gdy lekarz stwierdzi niezdolność do pracy",
-          "when": {
-            "all": [
-              {
-                "has": [
-                  "insurance",
-                  "employment"
-                ]
-              },
-              {
-                "not": {
-                  "eq": [
-                    "over50",
-                    true
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "id": "sick-ezla",
-          "kind": "document",
-          "who": "mother",
-          "anchor": "today",
-          "title": "e-ZLA z kodem B",
-          "description": "Przy niezdolności do pracy lekarz wystawia e-ZLA z kodem „B”. Zasiłek wynosi 100% podstawy, maksymalnie przez 270 dni. Pierwsze 14 dni zwolnienia w roku opłaca pracodawca jako wynagrodzenie chorobowe (po 50. roku życia), potem zasiłek.",
-          "dateNote": "Gdy lekarz stwierdzi niezdolność do pracy",
-          "when": {
-            "all": [
-              {
-                "has": [
-                  "insurance",
-                  "employment"
-                ]
-              },
-              {
-                "eq": [
-                  "over50",
-                  true
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "id": "sick-claim-zas53",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "today",
-          "requires": [
-            "sick-ezla"
-          ],
-          "title": "ZAS-53 · wniosek o zasiłek chorobowy",
-          "description": "Przy działalności gospodarczej składasz wniosek sama.",
-          "recipient": "ZUS",
-          "guide": "https://www.zus.pl/-/zaswiadczenie-zas-53",
-          "when": {
-            "all": [
-              {
-                "has": [
-                  "insurance",
-                  "business"
-                ]
-              },
-              {
-                "not": {
-                  "has": [
-                    "insurance",
-                    [
-                      "employment",
-                      "mandate"
-                    ]
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "id": "sick-claim-payer",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "today",
-          "requires": [
-            "sick-ezla"
-          ],
-          "title": "Poinformuj płatnika o nieobecności",
-          "description": "e-ZLA trafia do płatnika automatycznie. Jeśli płatnik nie wypłaca zasiłku sam, wysyła do ZUS Z-3 (umowa o pracę) albo Z-3a (zlecenie).",
-          "recipient": "Płatnik składek",
-          "when": {
-            "has": [
-              "insurance",
-              [
-                "employment",
-                "mandate"
-              ]
-            ]
-          }
-        }
-      ],
       "benefitIds": [
         "benefit.sickness_pregnancy",
         "benefit.sick_pay_employer"
@@ -943,17 +817,6 @@
           "jobLostInPregnancy"
         ]
       },
-      "steps": [
-        {
-          "id": "equivalent-claim",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "today",
-          "title": "Wniosek o zasiłek w wysokości zasiłku macierzyńskiego",
-          "description": "Przysługuje do dnia porodu, w wysokości 100% podstawy.",
-          "recipient": "ZUS"
-        }
-      ],
       "benefitIds": [
         "benefit.maternity_equivalent"
       ],
@@ -985,95 +848,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "birth",
-          "kind": "event",
-          "who": "both",
-          "anchor": "birth",
-          "title": "Poród",
-          "description": "Od tej daty liczą się terminy wniosków."
-        },
-        {
-          "id": "pre-birth-leave",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "birth",
-          "offsetDays": -42,
-          "title": "Wniosek o urlop macierzyński przed porodem",
-          "description": "Opcjonalnie: do 6 tygodni przed przewidywaną datą porodu. Dołącz zaświadczenie lekarskie o przewidywanej dacie porodu.",
-          "recipient": "Pracodawca",
-          "when": {
-            "all": [
-              {
-                "eq": [
-                  "situation",
-                  "pregnant"
-                ]
-              },
-              {
-                "ref": "isMother"
-              },
-              {
-                "has": [
-                  "insurance",
-                  "employment"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "id": "maternity-claim",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "birth",
-          "requires": [
-            "birth"
-          ],
-          "title": "Wniosek o zasiłek macierzyński",
-          "description": "Pracownica składa wniosek u pracodawcy, który wypłaca zasiłek albo wysyła Z-3 do ZUS. Pozostałe osoby składają ZAM.",
-          "recipient": "Pracodawca albo ZUS",
-          "guide": "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
-          "when": {
-            "ref": "isMother"
-          }
-        },
-        {
-          "id": "averaged-rate",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "birth",
-          "dueDays": 21,
-          "requires": [
-            "birth"
-          ],
-          "title": "Wniosek o stawkę 81,5%",
-          "description": "Wniosek o cały urlop macierzyński i rodzicielski. Stawka nie obejmuje 9 tygodni drugiego rodzica.",
-          "recipient": "Pracodawca albo ZUS",
-          "when": {
-            "eq": [
-              "wantsAveragedRate",
-              true
-            ]
-          }
-        },
-        {
-          "id": "maternity-period",
-          "kind": "period",
-          "who": "mother",
-          "anchor": "birth",
-          "lengthParam": "maternity",
-          "requires": [
-            "birth"
-          ],
-          "title": "Urlop macierzyński",
-          "description": "Zasiłek 100% podstawy. Pierwsze 14 tygodni matka wykorzystuje sama.",
-          "when": {
-            "ref": "isMother"
-          }
-        }
-      ],
       "benefitIds": [
         "benefit.maternity_leave"
       ],
@@ -1323,33 +1097,7 @@
             }
           }
         ]
-      },
-      "steps": [
-        {
-          "id": "birth-registration",
-          "kind": "application",
-          "who": "both",
-          "anchor": "birth",
-          "dueDays": 21,
-          "title": "Zgłoszenie urodzenia",
-          "description": "Wystarczy zgłoszenie jednego rodzica. Termin liczy się od wystawienia karty urodzenia.",
-          "recipient": "Urząd stanu cywilnego",
-          "guide": "https://www.gov.pl/web/gov/zglos-urodzenie-dziecka"
-        },
-        {
-          "id": "birth-certificate",
-          "kind": "document",
-          "who": "both",
-          "anchor": "birth",
-          "requires": [
-            "birth-registration"
-          ],
-          "title": "Odpis aktu urodzenia",
-          "description": "Skrócony odpis jest potrzebny m.in. do wniosków urlopowych u pracodawcy.",
-          "guide": "https://www.gov.pl/web/cyfryzacja/rejestr-stanu-cywilnego",
-          "dateNote": "Po zgłoszeniu do USC"
-        }
-      ]
+      }
     },
     {
       "id": "supplementary",
@@ -1371,31 +1119,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "supplementary-request",
-          "kind": "application",
-          "who": "me",
-          "anchor": "birth",
-          "title": "Wniosek o uzupełniający urlop macierzyński",
-          "description": "Dla jednego z rodziców, bezpośrednio po macierzyńskim. Dołącz zaświadczenie ze szpitala o pobycie dziecka i oświadczenie drugiego rodzica.",
-          "recipient": "Pracodawca albo ZUS",
-          "dateNote": "Przed końcem urlopu macierzyńskiego"
-        },
-        {
-          "id": "supplementary-period",
-          "kind": "period",
-          "who": "me",
-          "anchor": "birth",
-          "startAfter": "maternity",
-          "lengthParam": "supplementary",
-          "requires": [
-            "supplementary-request"
-          ],
-          "title": "Uzupełniający urlop macierzyński",
-          "description": "Tydzień urlopu za każdy tydzień pobytu dziecka w szpitalu, do 15 tygodni przy porodzie przed 28. tygodniem ciąży lub masie do 1000 g, w innych przypadkach do 8 tygodni. Zasiłek 100% podstawy."
-        }
-      ],
       "benefitIds": [
         "benefit.supplementary_maternity"
       ],
@@ -1430,33 +1153,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "parental-request",
-          "kind": "application",
-          "who": "me",
-          "anchor": "birth",
-          "offsetDays": 140,
-          "dueDays": 119,
-          "title": "Wniosek o urlop rodzicielski",
-          "description": "Co najmniej 21 dni przed rozpoczęciem każdej części. Data zakłada start po 20 tygodniach macierzyńskiego. 9 tygodni przysługuje wyłącznie Tobie.",
-          "recipient": "Pracodawca albo ZUS (ZAM)",
-          "guide": "https://www.gov.pl/web/rodzina/urlop-rodzicielski"
-        },
-        {
-          "id": "parental-period",
-          "kind": "period",
-          "who": "me",
-          "anchor": "birth",
-          "offsetDays": 140,
-          "lengthParam": "parentalOwn",
-          "requires": [
-            "parental-request"
-          ],
-          "title": "Twoja część urlopu rodzicielskiego",
-          "description": "Zasiłek 70% podstawy (albo 81,5% przy wniosku złożonym do 21 dni po porodzie). Do wykorzystania do końca roku, w którym dziecko kończy 6 lat."
-        }
-      ],
       "benefitIds": [
         "benefit.parental"
       ],
@@ -1538,76 +1234,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "paternity-request",
-          "kind": "application",
-          "who": "father",
-          "anchor": "birth",
-          "dueDays": -7,
-          "title": "Wniosek o urlop ojcowski",
-          "description": "Co najmniej 7 dni przed startem. 14 dni, w całości albo w 2 częściach po min. 7 dni, do 12. miesiąca życia dziecka.",
-          "recipient": "Pracodawca",
-          "guide": "https://www.gov.pl/web/rodzina/urlop-ojcowski"
-        },
-        {
-          "id": "paternity-period",
-          "kind": "period",
-          "who": "father",
-          "anchor": "birth",
-          "lengthParam": "paternity",
-          "requires": [
-            "paternity-request"
-          ],
-          "title": "Urlop ojcowski",
-          "description": "Zasiłek 100% podstawy. Może pokrywać się z macierzyńskim.",
-          "when": {
-            "not": {
-              "eq": [
-                "paternityParts",
-                "two"
-              ]
-            }
-          }
-        },
-        {
-          "id": "paternity-part-1",
-          "kind": "period",
-          "who": "father",
-          "anchor": "birth",
-          "lengthParam": "paternityPart",
-          "requires": [
-            "paternity-request"
-          ],
-          "title": "Urlop ojcowski · część 1",
-          "description": "Zasiłek 100% podstawy. Może pokrywać się z macierzyńskim.",
-          "when": {
-            "eq": [
-              "paternityParts",
-              "two"
-            ]
-          }
-        },
-        {
-          "id": "paternity-part-2",
-          "kind": "period",
-          "who": "father",
-          "anchor": "birth",
-          "offsetDays": 7,
-          "requires": [
-            "paternity-request"
-          ],
-          "title": "Urlop ojcowski · część 2",
-          "description": "Drugi tydzień w wybranym terminie, do ukończenia przez dziecko 12 miesięcy. Złóż wniosek co najmniej 7 dni wcześniej.",
-          "dateNote": "Termin do ustalenia, do 12. miesiąca życia dziecka",
-          "when": {
-            "eq": [
-              "paternityParts",
-              "two"
-            ]
-          }
-        }
-      ],
       "benefitIds": [
         "benefit.paternity"
       ],
@@ -1674,41 +1300,6 @@
         ]
       },
       "$comment": "shortcut: foster limit is 7 years, or 10 with deferred schooling, which we don't ask about.",
-      "steps": [
-        {
-          "id": "placement",
-          "kind": "event",
-          "who": "both",
-          "anchor": "placement",
-          "title": "Przyjęcie dziecka na wychowanie",
-          "description": "Od tej daty liczą się terminy."
-        },
-        {
-          "id": "conditions-request",
-          "kind": "application",
-          "who": "me",
-          "anchor": "placement",
-          "dueDays": -7,
-          "requires": [
-            "placement"
-          ],
-          "title": "Wniosek o urlop na warunkach urlopu macierzyńskiego",
-          "description": "Dołącz dokument z sądu o wszczęciu przysposobienia albo o umieszczeniu w rodzinie zastępczej.",
-          "recipient": "Pracodawca albo ZUS (ZAM)"
-        },
-        {
-          "id": "conditions-period",
-          "kind": "period",
-          "who": "me",
-          "anchor": "placement",
-          "lengthParam": "maternity",
-          "requires": [
-            "conditions-request"
-          ],
-          "title": "Urlop na warunkach urlopu macierzyńskiego",
-          "description": "Zasiłek 100% podstawy."
-        }
-      ],
       "benefitIds": [
         "benefit.maternity_conditions"
       ],
@@ -1747,26 +1338,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "stillbirth-claim",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "birth",
-          "title": "Wniosek o zasiłek macierzyński",
-          "description": "8 tygodni po porodzie, nie krócej niż 7 dni od zgonu dziecka. Dołącz zaświadczenie o martwym urodzeniu albo akt zgonu.",
-          "recipient": "Pracodawca albo ZUS (ZAM)"
-        },
-        {
-          "id": "stillbirth-period",
-          "kind": "period",
-          "who": "mother",
-          "anchor": "birth",
-          "lengthParam": "stillbirth",
-          "title": "Okres zasiłku macierzyńskiego",
-          "description": "Zasiłek 100% podstawy."
-        }
-      ],
       "benefitIds": [
         "benefit.maternity_leave",
         "benefit.funeral"
@@ -1809,19 +1380,6 @@
           }
         ]
       },
-      "steps": [
-        {
-          "id": "combine-request",
-          "kind": "application",
-          "who": "me",
-          "anchor": "birth",
-          "offsetDays": 140,
-          "dueDays": 119,
-          "title": "Wniosek o łączenie urlopu rodzicielskiego z pracą",
-          "description": "Praca do połowy etatu. Urlop wydłuża się proporcjonalnie, zasiłek przysługuje za cały okres.",
-          "recipient": "Pracodawca"
-        }
-      ],
       "scenarios": [
         {
           "id": "scenario.combine_parental_work"
@@ -1848,7 +1406,6 @@
       "riskIds": [
         "risk.no_insurance_on_birth_day"
       ],
-      "steps": [],
       "choices": [
         {
           "title": "Dobrowolne ubezpieczenie chorobowe",
@@ -1887,7 +1444,6 @@
           }
         ]
       },
-      "steps": [],
       "riskIds": [
         "risk.sham_contract",
         "risk.base_inflation",
@@ -1945,8 +1501,7 @@
           "insurance",
           "employment"
         ]
-      },
-      "steps": []
+      }
     },
     {
       "id": "charity",
@@ -1965,7 +1520,6 @@
           ]
         ]
       },
-      "steps": [],
       "support": [
         {
           "situation": "prematurity",
@@ -2036,18 +1590,6 @@
           "insuranceEnded"
         ]
       },
-      "steps": [
-        {
-          "id": "after-insurance-claim",
-          "kind": "application",
-          "who": "mother",
-          "anchor": "today",
-          "title": "ZAS-53 i Z-10 · zasiłek po ustaniu ubezpieczenia",
-          "description": "Jeśli niezdolność do pracy zaczęła się w czasie ubezpieczenia albo najpóźniej 14 dni po jego ustaniu, zasiłek wypłaca ZUS, w ciąży do 270 dni. Złóż ZAS-53 i Z-10 z e-ZLA.",
-          "recipient": "ZUS",
-          "dateNote": "Gdy masz e-ZLA"
-        }
-      ],
       "benefitIds": [
         "benefit.sickness_pregnancy"
       ],

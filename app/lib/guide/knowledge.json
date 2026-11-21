@@ -241,6 +241,18 @@
         {
           "order": 5,
           "actor": "insured",
+          "action_pl": "Kolejne okresy (rodzicielski, części) – ZAM u zleceniodawcy przed rozpoczęciem okresu.",
+          "recipient": "payer",
+          "form_ids": [
+            "form.zam"
+          ],
+          "document_ids": [
+            "doc.parental_history_statement"
+          ]
+        },
+        {
+          "order": 6,
+          "actor": "insured",
           "action_pl": "Po zakończeniu zasiłku macierzyńskiego – ponowne zgłoszenie do dobrowolnego chorobowego.",
           "recipient": "zus"
         }

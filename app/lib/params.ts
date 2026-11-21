@@ -11,6 +11,8 @@ export const defaultParams = {
   supplementary: { capSevereWeeks: 15, capWeeks: 8, weekLow: 28, weightLow: 1000 },
   // Maternity benefit after stillbirth or death before 8 weeks of life.
   stillbirthWeeks: 8,
+  // Maternity leave may start up to this many weeks before the due date.
+  preBirthMaxWeeks: 6,
   // Paternity leave: shortest part, notice to the employer, and the child's age limit in months.
   paternityMinPartDays: 7,
   paternityRequestDays: 7,

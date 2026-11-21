@@ -27,10 +27,10 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   const returnHref = origin === "wnioski" ? "/wnioski" : origin === "zadania" ? "/zadania" : `/plan#timeline-${taskId}`;
   const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : origin === "zadania" ? "Wróć do zadań" : "Wróć do planu";
   const parentCrumb: [string, string] = origin === "wnioski" ? ["Wnioski", "/wnioski"] : origin === "zadania" ? ["Do zrobienia", "/zadania"] : ["Oś czasu", "/plan"];
-  const { persona, plan, params, today } = useFamily();
+  const { persona, plan, params, journey, today } = useFamily();
   const found = useMemo(
-    () => formContext(persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave),
-    [persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave],
+    () => formContext(persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave),
+    [persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave],
   );
 
   if (!found) {

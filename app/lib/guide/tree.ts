@@ -1,6 +1,6 @@
-// Evaluator for guide.json: which questions to ask, in what order, which topics apply and their timeline steps.
+// Evaluator for guide.json: which questions to ask, in what order, and which topics apply.
+// The plan itself comes from knowledge/scenarios.json: lib/guide/persona.ts turns the answers into a persona for lib/journey.ts.
 // No imports with runtime code here, so `node --test` can load this file directly.
-import type { FamilyTimelineEntry } from "@/lib/family-timeline";
 import type { Params } from "@/lib/params";
 import guide from "./guide.json" with { type: "json" };
 import knowledge from "./knowledge.json" with { type: "json" };
@@ -34,25 +34,6 @@ export type Question = {
   options?: Option[];
   showIf?: Predicate;
 };
-type Anchor = "birth" | "placement" | "today";
-export type Step = {
-  id: string;
-  kind: FamilyTimelineEntry["kind"];
-  who: "mother" | "father" | "both" | "me";
-  anchor: Anchor;
-  offsetDays?: number;
-  dueDays?: number;
-  lengthParam?: "maternity" | "paternity" | "paternityPart" | "parentalOwn" | "stillbirth" | "supplementary";
-  /** Starts the day after this leave ends instead of at the anchor plus offsetDays. */
-  startAfter?: "maternity";
-  title: string;
-  description: string;
-  recipient?: string;
-  guide?: string;
-  dateNote?: string;
-  requires?: string[];
-  when?: Predicate;
-};
 type Ref = { id: string; when?: Predicate };
 export type Choice = { title: string; body: string; when?: Predicate };
 export type Topic = {
@@ -60,7 +41,6 @@ export type Topic = {
   priority: number;
   title: string;
   when: Predicate;
-  steps: Step[];
   benefitIds?: string[];
   scenarios?: Ref[];
   riskIds?: (string | Ref)[];
@@ -111,76 +91,11 @@ export const visibleOptions = (q: Question, a: Answers) => (q.options ?? []).fil
 export const nextQuestion = (a: Answers) => visibleQuestions(a).find((q) => a[q.id] === undefined);
 export const matchedTopics = (a: Answers) => topics.filter((t) => test(t.when, activeAnswers(a)));
 
-function shift(iso: string, days: number) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 /** Supplementary maternity leave: a week per started week in hospital, capped by gestation week and birth weight (art. 180² k.p.). */
 export function supplementaryWeeks(a: Answers, params: Params) {
   const { capSevereWeeks, capWeeks, weekLow, weightLow } = params.supplementary;
   const severe = Number(a.gestationWeek) < weekLow || Number(a.birthWeight) <= weightLow;
   return Math.min(Math.ceil(Number(a.hospitalWeeks) || 0), severe ? capSevereWeeks : capWeeks);
-}
-
-function weeks(step: Step, a: Answers, params: Params) {
-  const children = Math.min(Math.max(Number(a.childrenCount ?? 1), 1), params.maternityWeeks.length);
-  switch (step.lengthParam) {
-    case "maternity": return params.maternityWeeks[children - 1];
-    case "paternity": return params.paternityWeeks;
-    case "paternityPart": return params.paternityWeeks / 2;
-    case "parentalOwn": return params.parentalOwnWeeks;
-    case "stillbirth": return params.stillbirthWeeks;
-    case "supplementary": return supplementaryWeeks(a, params) || undefined;
-    default: return undefined;
-  }
-}
-
-/** Timeline entries for the matched topics. Steps whose anchor date is not known yet are left out. */
-export function buildGuideTimeline(answers: Answers, params: Params, today: string, actualBirth?: string): FamilyTimelineEntry[] {
-  const a = activeAnswers(answers);
-  const anchors: Record<Anchor, string | undefined> = {
-    birth: (actualBirth ?? a.birthDate ?? a.dueDate) as string | undefined,
-    placement: a.placementDate as string | undefined,
-    today,
-  };
-  const me = a.role === "mother" || a.role === "father" ? a.role : "both";
-
-  return matchedTopics(a)
-    .flatMap((t) => t.steps.filter((s) => test(s.when, a)))
-    .flatMap((s): FamilyTimelineEntry[] => {
-      const anchor = anchors[s.anchor];
-      if (!anchor) return [];
-      const date = s.startAfter ? shift(anchor, weeks({ ...s, lengthParam: s.startAfter }, a, params)! * 7) : shift(anchor, s.offsetDays ?? 0);
-      const length = weeks(s, a, params);
-      const due = s.dueDays === undefined ? undefined : shift(anchor, s.dueDays);
-      const status = s.kind === "application" ? (due && due < today ? "late" : "ready") : "planned";
-      const insuredAsEmployee = Array.isArray(a.insurance) && a.insurance.includes("employment");
-      const form = ({
-        "sick-claim-zas53": "ff.zas53",
-        "after-insurance-claim": "ff.zas53",
-        "equivalent-claim": "ff.zas55",
-        "pre-birth-leave": "lr.maternity_pre_birth",
-        "maternity-claim": "ff.zam",
-        "averaged-rate": "ff.zam",
-        "supplementary-request": insuredAsEmployee ? "lr.supplementary_maternity" : "ff.zam",
-        "parental-request": insuredAsEmployee ? "lr.parental" : "ff.zam",
-        "paternity-request": insuredAsEmployee ? "lr.paternity" : "ff.zam",
-        "conditions-request": insuredAsEmployee ? "lr.maternity_conditions" : "ff.zam",
-        "stillbirth-claim": "ff.zam",
-        "combine-request": "lr.combine_parental_with_work",
-      } as Record<string, string>)[s.id];
-      return [{
-        id: s.id, kind: s.kind, who: s.who === "me" ? me : s.who, title: s.title, description: s.description,
-        date, due, end: length ? shift(date, length * 7 - 1) : undefined,
-        estimated: s.anchor === "birth" && !actualBirth && !a.birthDate, dateNote: s.dateNote,
-        recipient: form?.startsWith("lr.") ? "Pracodawca"
-          : form === "ff.zam" ? (insuredAsEmployee ? "Płatnik składek" : "ZUS") : s.recipient,
-        form, guide: s.guide, requires: s.requires, status,
-      }];
-    })
-    .sort((x, y) => (x.due ?? x.date).localeCompare(y.due ?? y.date));
 }
 
 type KStep = { order: number; actor: string; action_pl: string; recipient?: string; form_ids?: string[]; document_ids?: string[]; leave_request_ids?: string[] };

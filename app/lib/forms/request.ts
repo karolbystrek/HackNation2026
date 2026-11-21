@@ -3,6 +3,7 @@ import { parseIso, todayInWarsaw } from "@/lib/dates";
 import type { TimelineEvent } from "@/lib/events";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { loadSpecs } from "@/lib/forms/load";
+import { loadJourney } from "@/lib/knowledge";
 import type { FormSpec, FormValues } from "@/lib/forms/spec";
 import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import { visibleQuestions, type Answers } from "@/lib/guide/tree";
@@ -15,6 +16,7 @@ type Body = {
   events: TimelineEvent[];
   doneTasks: string[];
   values: FormValues;
+  /** Questionnaire answers; the server rebuilds a questionnaire case from them. */
   guideAnswers?: Answers;
   customLeave?: unknown;
 };
@@ -55,7 +57,7 @@ export async function readApplicationRequest(request: Request): Promise<{ spec: 
   const custom = readCustomLeave(customLeave);
   if (chosenVariant === "custom" && !custom) return Response.json({ error: "Invalid saved leave calculation" }, { status: 400 });
   const params = await loadParams();
-  const found = formContext(persona, events, chosenVariant, params, doneTasks, todayInWarsaw(), taskId, guideAnswers, custom);
+  const found = formContext(persona, events, chosenVariant, params, await loadJourney(), doneTasks, todayInWarsaw(), taskId, guideAnswers, custom);
   if (!found) return Response.json({ error: "This task has no application form" }, { status: 404 });
   const spec = (await loadSpecs([found.entry.form!]))[found.entry.form!];
   return { spec, ctx: found.ctx, values };

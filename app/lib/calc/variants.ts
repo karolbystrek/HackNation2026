@@ -47,7 +47,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
     otherWeeks,
     paternity: true,
     paternityStartDate: persona.paternityStart,
-    flatRate: persona.id === "guide" && (persona.wantsAveragedRate ?? false),
+    flatRate: !!persona.wantsAveragedRate,
     workFractions: { mother: 0, father: 0 },
   };
 }

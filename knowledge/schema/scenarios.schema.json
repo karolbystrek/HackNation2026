@@ -31,7 +31,8 @@
                     "leave_request_ids": {"$ref": "common.schema.json#/$defs/idList"},
                     "document_ids": {"$ref": "common.schema.json#/$defs/idList"},
                     "deadline_ids": {"$ref": "common.schema.json#/$defs/idList"},
-                    "channels": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/channel"}}
+                    "channels": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/channel"}},
+                    "task": {"type": "string", "pattern": "^[a-z_]+$", "description": "App task this insured step creates; steps with the same task merge into one to-do."}
                   },
                   "additionalProperties": false
                 }

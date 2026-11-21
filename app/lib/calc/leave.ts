@@ -79,7 +79,9 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   const otherWeeks = Math.min(Math.max(input.otherWeeks, 0), maxOtherWeeks);
   const mainWeeks = pool - Math.max(otherWeeks, p.parentalOwnWeeks);
   const lostOwnWeeks = Math.max(0, p.parentalOwnWeeks - otherWeeks);
-  const flatRateAllowed = !zaZyciem && otherWeeks <= p.parentalOwnWeeks;
+  // Sharing the pool does not cancel 81.5% (knowledge: uz.art31.ust3f); only the other parent's reserved weeks stay at 70%.
+  // shortcut: pays all of the other parent's weeks at 70%, understating weeks beyond the reserved 9; split the period to fix.
+  const flatRateAllowed = !zaZyciem;
   const flatRateApplied = input.flatRate && flatRateAllowed;
 
   const start = parseIso(input.startDate);

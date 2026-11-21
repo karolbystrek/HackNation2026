@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { assertExtraction, caseExtractionSchema, type CaseExtraction } from "@/lib/cases/schema";
-import { records } from "@/lib/forms/load";
+import { records } from "@/lib/knowledge";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const CASE_BUCKET = "zus-cases";
