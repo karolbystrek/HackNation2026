@@ -1,5 +1,6 @@
 import { otherParent } from "@/lib/calc/leave";
-import { addDays, parseIso, toIso } from "@/lib/dates";
+import { addDays, formatDate, parseIso, toIso } from "@/lib/dates";
+import { formatPln } from "@/lib/format";
 import type { FormContext } from "@/lib/forms/context";
 import type { DateRange, FieldValue, FormField, FormSpec, FormValues } from "@/lib/forms/spec";
 
@@ -27,6 +28,19 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   const sickLeave = ctx.events.find((event) => event.type === "sickLeave" && event.who === parent);
   const parental = period(parent, "parental");
   const isParental = taskId.startsWith("parental-");
+  const birth = persona.birthDate ?? persona.dueDate;
+  const shift = (date: string, days: number) => toIso(addDays(parseIso(date)!, days));
+  const maternity = period("mother", "maternity") ?? { from: birth, to: shift(birth, params.maternityWeeks[persona.kids - 1] * 7 - 1) };
+  const child = { name: `${persona.childName ?? "Dziecko"} ${persona.parents.father.lastName}`, birthDate: birth, birthPlace: persona.birthPlace ?? "" };
+  const payerText = `${me.payerName}, NIP ${me.payerNip}`;
+  // Twelve calendar months before the birth month, oldest first, matching monthlyGross.
+  const months = me.monthlyGross.map((gross, i) => {
+    const d = parseIso(birth)!;
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() - me.monthlyGross.length + i);
+    return `${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}: ${formatPln(gross)} brutto`;
+  }).join("\n");
+  const hospital = "Szpital Miejski, Oddział Położniczy";
 
   const known: FormValues = {
     insured_pesel: me.pesel,
@@ -37,7 +51,11 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     insured_data: { name: fullName, pesel: me.pesel },
     payer_nip: me.payerNip,
     payer_name: me.payerName,
-    payer_data: `${me.payerName}, NIP ${me.payerNip}`,
+    payer_data: payerText,
+    payer_ids: payerText,
+    former_payer: payerText,
+    other_parent: { name: `${other.name} ${other.lastName}`, pesel: other.pesel },
+    request_kind: "pierwszorazowy",
     bank_account: me.bankAccount,
     employee_name: fullName,
     basis: "1_urodzenie",
@@ -66,6 +84,47 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     known.scope_parental_part_no = "1";
     known.other_parent_uses = !!period(otherParent(parent), "parental");
   }
+
+  // Demo answers for the employer, doctor and special-situation forms listed as extra timeline steps.
+  const sickPay = me.sickLeaveFrom ? `Od ${formatDate(me.sickLeaveFrom)}, ${params.employerPaidDays} dni w roku` : "Nie wypłacano";
+  const extra: Record<string, FormValues> = {
+    "ff.zas2": {
+      facility_stamp: "Przychodnia Ginekologiczno-Położnicza, ul. Zdrowa 1",
+      expected_birth_date: persona.dueDate,
+      incapacity_in_pregnancy: me.sickLeaveFrom ? { from: me.sickLeaveFrom, to: shift(persona.dueDate, -1) } : { from: "", to: "" },
+    },
+    "ff.z3": {
+      benefit_type_period: ["macierzynski"],
+      employment_fte: `Pełny etat od ${formatDate(me.insuredFrom)}`,
+      sick_pay_periods: sickPay,
+      payer_size: "do_20",
+      salary_monthly: months,
+      granted_leaves: `Urlop macierzyński od ${formatDate(maternity.from)} do ${formatDate(maternity.to)}`,
+    },
+    "ff.z3a": {
+      insurance_title: "Umowa zlecenia",
+      sickness_insurance_periods: `Od ${formatDate(me.insuredFrom)} do nadal`,
+      payer_size: "12",
+      income_monthly: months,
+      benefit_type_period: `Zasiłek macierzyński od ${formatDate(maternity.from)}`,
+    },
+    "ff.zas15": {
+      granted_leave: `Urlop ojcowski od ${formatDate(paternity.from)} do ${formatDate(paternity.to)}`,
+    },
+    "ff.zas24": {
+      recipient_role: "matka",
+      entitled_period_rate: `Od ${formatDate(maternity.from)} do ${formatDate(maternity.to)}, 100%`,
+      paid_period: { from: maternity.from, to: shift(birth, params.motherOnlyWeeks * 7 - 1) },
+    },
+    "ff.zas23": { stop_from: shift(birth, params.motherOnlyWeeks * 7), reason: "powrot_do_pracy_po_14_tyg" },
+    "ff.zas40": { facility_stamp: hospital, admitted_on: birth, discharged_on: shift(birth, 5) },
+    "ff.zas33": { event: "smierc_matki", care_from: birth, children: [child] },
+    "ff.zas26": { intake_date: birth, intake_kind: "rodzina_zastepcza", children: [child] },
+    "ff.zas55": { maternity_equivalent_from: me.sickLeaveFrom ?? persona.dueDate, other_employment: "nie_zapewniono" },
+    "ff.z10": { claim: "zasilek_chorobowy", earning_activity: "Nie prowadzę działalności ani gospodarstwa rolnego." },
+    "ff.znp7": { cause: "ogolny_stan_zdrowia", pension_and_benefits: "Nie pobieram emerytury, renty ani zasiłku dla bezrobotnych." },
+  };
+  Object.assign(known, extra[spec.id]);
 
   return Object.fromEntries(spec.fields.map((field) => [field.key, known[field.key] ?? empty(field)]));
 }

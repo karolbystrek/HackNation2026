@@ -1,16 +1,18 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CalculatorSteps } from "@/components/calculator/calculator-steps";
+import { cn } from "cn";
+import { buttonVariants } from "@/components/ui/button";
 import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageTitle, RadioGroup, WarningBox } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { prefill } from "@/lib/forms/prefill";
 import { fieldState, formSteps, isFilled, requiredAttachments, validate, type Issue } from "@/lib/forms/rules";
 import {
-  ATTACHMENTS_STEP, attachmentKey, type Child, type DateRange, type FieldValue, type FormField, type FormSpec,
+  ATTACHMENTS_STEP, ZUS_TEMPLATES, attachmentKey, type Child, type DateRange, type FieldValue, type FormField, type FormSpec,
   type FormValues, type Person,
 } from "@/lib/forms/spec";
 import { submitApplication, type Submission } from "@/lib/plan-store";
@@ -51,7 +53,7 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
         {found.entry.title}
       </PageTitle>
       {submission
-        ? <Submitted spec={spec} ctx={found.ctx} submission={submission} />
+        ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} />
         : <Wizard key={taskId} spec={spec} ctx={found.ctx} doneTasks={plan.doneTasks} />}
     </main>
   );
@@ -179,7 +181,9 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
           )}
           <WarningBox items={warnings} />
           <Summary spec={spec} ctx={ctx} values={values} onEdit={goTo} />
-          {errors.length === 0 && <PrintButton spec={spec} ctx={ctx} values={values} date={ctx.today} />}
+          {errors.length === 0 && (spec.id in ZUS_TEMPLATES
+            ? <ZusPdf specId={spec.id} ctx={ctx} values={values} doneTasks={doneTasks} />
+            : <PrintButton spec={spec} ctx={ctx} values={values} date={ctx.today} />)}
           <Button className="self-start" disabled={sending} onClick={send}>
             {sending ? "Wysyłanie…" : ctx.recipient === "zus" ? "Wyślij do ZUS" : "Wyślij do pracodawcy"}
           </Button>
@@ -189,7 +193,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
   );
 }
 
-function Submitted({ spec, ctx, submission }: { spec: FormSpec; ctx: FormContext; submission: Submission }) {
+function Submitted({ spec, ctx, submission, doneTasks }: { spec: FormSpec; ctx: FormContext; submission: Submission; doneTasks: string[] }) {
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <Notice role="status">
@@ -204,13 +208,61 @@ function Submitted({ spec, ctx, submission }: { spec: FormSpec; ctx: FormContext
       </Notice>
       <div className="flex flex-wrap items-start gap-3">
         <ButtonLink href={`/plan#timeline-${ctx.taskId}`}>Wróć do planu</ButtonLink>
-        <PrintButton spec={spec} ctx={ctx} values={submission.values} date={submission.sentAt.slice(0, 10)} number={submission.number} />
+        {!(spec.id in ZUS_TEMPLATES) && <PrintButton spec={spec} ctx={ctx} values={submission.values} date={submission.sentAt.slice(0, 10)} number={submission.number} />}
       </div>
+      {spec.id in ZUS_TEMPLATES && <ZusPdf specId={spec.id} ctx={ctx} values={submission.values} doneTasks={doneTasks} />}
       <section aria-labelledby="sent-title" className="flex min-w-0 flex-col gap-3">
         <h2 id="sent-title" className="text-2xl font-bold">Wysłany wniosek</h2>
         <Summary spec={spec} ctx={ctx} values={submission.values} />
       </section>
     </div>
+  );
+}
+
+/** The official ZUS form filled by the server, shown in the browser's PDF viewer where fields stay editable. */
+function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormContext; values: FormValues; doneTasks: string[] }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+  const fileName = `${ZUS_TEMPLATES[specId].toUpperCase()}-${ctx.persona.parents[ctx.parent].lastName}.pdf`;
+
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+
+  async function load() {
+    setState("loading");
+    try {
+      const response = await fetch("/api/applications/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, doneTasks, values }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      setUrl(URL.createObjectURL(await response.blob()));
+      setState("idle");
+    } catch {
+      setState("error");
+    }
+  }
+
+  if (!url) {
+    return (
+      <div className="flex flex-col gap-1">
+        <Button variant="outline" className="self-start" disabled={state === "loading"} onClick={load}>
+          {state === "loading" ? "Wypełniamy formularz…" : "Pokaż wypełniony formularz ZUS (PDF)"}
+        </Button>
+        <p className="text-sm text-muted-foreground">Oryginalny wzór z zus.pl z Twoimi danymi. Pola możesz jeszcze poprawić w podglądzie.</p>
+        {state === "error" && <FieldError message="Nie udało się przygotować formularza. Spróbuj ponownie." />}
+      </div>
+    );
+  }
+  return (
+    <section aria-label="Formularz ZUS" className="flex min-w-0 flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <a href={url} download={fileName} className={cn(buttonVariants({ variant: "outline" }))}>Pobierz PDF</a>
+        <a href={url} target="_blank" rel="noreferrer" className="text-link">Otwórz w nowej karcie</a>
+      </div>
+      {/* Mobile browsers do not render PDFs inline, so phones get the download and new-tab links only. */}
+      <iframe src={url} title="Wypełniony formularz ZUS" className="hidden h-[80vh] w-full rounded-sm border border-border sm:block" />
+    </section>
   );
 }
 
@@ -251,7 +303,7 @@ function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormS
           {fields.map((field) => (
             <tr key={field.key} className="break-inside-avoid border-b border-black/30 align-top">
               <th scope="row" className="w-1/2 py-1.5 pr-4 text-left font-normal">{field.label}</th>
-              <td className="py-1.5 font-bold">{formatValue(field, values[field.key])}</td>
+              <td className="py-1.5 font-bold whitespace-pre-line">{formatValue(field, values[field.key])}</td>
             </tr>
           ))}
         </tbody>
@@ -306,7 +358,7 @@ function Summary({ spec, ctx, values, onEdit }: { spec: FormSpec; ctx: FormConte
               <div key={a.id}><dt className="font-bold">{a.title}</dt><dd>{values[attachmentKey(a.id)] === true ? "Dołączono" : "Brak"}</dd></div>
             ))}
             {step.fields.map((field) => (
-              <div key={field.key}><dt className="font-bold">{field.label}</dt><dd className="break-words">{formatValue(field, values[field.key])}</dd></div>
+              <div key={field.key}><dt className="font-bold">{field.label}</dt><dd className="break-words whitespace-pre-line">{formatValue(field, values[field.key])}</dd></div>
             ))}
           </dl>
         </section>

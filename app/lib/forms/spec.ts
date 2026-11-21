@@ -46,9 +46,18 @@ export function stepOf(field: FormField): string {
   const { section } = field;
   if (field.type === "signature") return ATTACHMENTS_STEP;
   if (/^\d/.test(section) || section === "Wnioskuję o zasiłek w związku z") return "Podstawa wniosku";
-  if (section === "Oświadczenie" || section === "Informacja") return "Oświadczenia";
+  if (section.startsWith("Oświadczenie") || section === "Informacja") return "Oświadczenia";
   if (section.startsWith("Rachunek")) return "Wypłata zasiłku";
-  return section;
+  if (section === "Nagłówek") return "Informacje ogólne";
+  // Sub-parts such as "Składniki wynagrodzenia pkt 5" or "Część II – wypłacone świadczenia" stay in their part's step.
+  const part = section.split(" – ")[0];
+  return /^Pkt \d/.test(part) ? part : part.replace(/ pkt \d+$/, "");
 }
+
+/** Specs whose official interactive ZUS PDF (app/assets/zus-forms) the app can fill. */
+export const ZUS_TEMPLATES: Record<string, string> = {
+  "ff.zam": "zam", "ff.zas53": "zas53", "ff.z3": "z3", "ff.z3a": "z3a",
+  "ff.z10": "z10", "ff.znp7": "znp7", "ff.zas55": "zas55", "ff.zas2": "zas2",
+};
 
 export const attachmentKey = (id: string) => `attachment:${id}`;

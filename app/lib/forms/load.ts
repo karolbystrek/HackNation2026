@@ -6,7 +6,10 @@ import type { Condition, FieldType, FormAttachment, FormField, FormSpec } from "
 const KNOWLEDGE_DIR = path.join(process.cwd(), "..", "knowledge");
 
 /** Applications the timeline can open in the form wizard. */
-export const FORM_IDS = ["ff.zam", "ff.zas53", "lr.paternity", "lr.parental"];
+export const FORM_IDS = [
+  "ff.zam", "ff.zas53", "lr.paternity", "lr.parental",
+  "ff.z3", "ff.z3a", "ff.z10", "ff.znp7", "ff.zas55", "ff.zas15", "ff.zas24", "ff.zas23", "ff.zas26", "ff.zas33", "ff.zas40", "ff.zas2",
+];
 
 // Polish labels for the coded options of the forms above; unknown codes fall back to the code itself.
 const OPTION_LABELS: Record<string, string> = {
@@ -36,6 +39,33 @@ const OPTION_LABELS: Record<string, string> = {
   dziecka: "Wypis dziecka ze szpitala",
   w_okresie_ubezpieczenia: "W czasie ubezpieczenia",
   po_ustaniu: "Po ustaniu tytułu ubezpieczenia",
+  pierwszorazowy: "Wniosek pierwszorazowy",
+  kontynuacja: "Wniosek o kontynuację",
+  chorobowy: "Zasiłek chorobowy",
+  opiekunczy: "Zasiłek opiekuńczy",
+  macierzynski: "Zasiłek macierzyński",
+  w_wysokosci_macierzynskiego: "Zasiłek w wysokości zasiłku macierzyńskiego",
+  wyrownawczy: "Zasiłek wyrównawczy",
+  rehabilitacyjne: "Świadczenie rehabilitacyjne",
+  do_20: "Do 20 osób",
+  powyzej_20: "Powyżej 20 osób",
+  zasilek_chorobowy: "Zasiłek chorobowy",
+  swiadczenie_rehabilitacyjne: "Świadczenie rehabilitacyjne",
+  ogolny_stan_zdrowia: "Ogólny stan zdrowia",
+  wypadek_przy_pracy: "Wypadek przy pracy",
+  choroba_zawodowa: "Choroba zawodowa",
+  nie_zapewniono: "Nie zapewniono mi innego zatrudnienia",
+  zapewniono: "Zapewniono mi inne zatrudnienie",
+  matka: "Matce dziecka",
+  ojciec_lub_czlonek_rodziny: "Ojcu lub innemu członkowi rodziny",
+  powrot_do_pracy_po_14_tyg: "Powrót do pracy po 14 tygodniach",
+  moj_pobyt_w_szpitalu_po_8_tyg: "Mój pobyt w szpitalu (po 8 tygodniach)",
+  pobyt_dziecka_w_szpitalu_po_8_tyg: "Pobyt dziecka w szpitalu (po 8 tygodniach)",
+  orzeczenie_po_8_tyg: "Orzeczenie o niezdolności do samodzielnej egzystencji (po 8 tygodniach)",
+  oddanie_dziecka_do_przysposobienia: "Oddanie dziecka do przysposobienia",
+  powrot_ojca_po_wypisie_matki: "Powrót ojca do pracy po wypisie matki ze szpitala",
+  rodzina_zastepcza: "Jako rodzina zastępcza",
+  przysposobienie: "Wystąpienie do sądu o przysposobienie",
 };
 
 // knowledge/ marks these "conditional" with the rule only in prose; spell it out so the wizard can apply it.

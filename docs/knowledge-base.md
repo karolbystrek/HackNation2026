@@ -18,7 +18,7 @@ The app then walks them through seven steps. The file descriptions below refer t
 | 3 | **Amounts** | Benefit base, monthly amounts, durations, totals | `parameters`, `benefits.base_calculation_steps_pl` | `lib/calc/basis.ts`, `leave.ts` |
 | 4 | **Variants** | Comparison of options: best money-wise, longest at home, earliest return | `parameters`, `scenarios` (S10, S23, S24), `risks` | `lib/calc/variants.ts` |
 | 5 | **Plan** | Dated to-do list and calendar for the chosen variant | `scenarios.steps`, `deadlines` | `lib/calc/tasks.ts`, `lib/ics.ts` |
-| 6 | **Paperwork** | Which form or employer request to file, where, with which attachments; pre-filled form simulation | `forms`, `form_fields`, `leave_requests`, `documents` | form wizard `/wnioski/[taskId]` (`app/lib/forms/`) |
+| 6 | **Paperwork** | Which form or employer request to file, where, with which attachments; pre-filled form simulation | `forms`, `form_fields`, `leave_requests`, `documents` | form wizard `/wnioski/[taskId]` (`app/lib/forms/`), filled official ZUS PDFs |
 | 7 | **Help** | Warnings, plain-language answers, support organisations in hard situations | `risks`, `faq`, `glossary`, `support_orgs`, `conflicts` | warnings in `leave.ts` (hardcoded) |
 | – | **Admin** | Edit rates, durations and amounts when the law changes | `parameters` | `lib/params.ts` |
 

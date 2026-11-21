@@ -4,6 +4,8 @@ export const defaultParams = {
   maternityWeeks: [20, 31, 33, 35, 37],
   parentalPoolWeeks: { single: 41, multiple: 43, zaZyciemSingle: 65, zaZyciemMultiple: 67 },
   parentalOwnWeeks: 9,
+  // Maternity weeks after birth only the mother can use; the father may take over the rest.
+  motherOnlyWeeks: 14,
   paternityWeeks: 2,
   // Paternity leave: shortest part, notice to the employer, and the child's age limit in months.
   paternityMinPartDays: 7,

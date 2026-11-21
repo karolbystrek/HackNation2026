@@ -14,11 +14,13 @@ export default function Tasks() {
   const { persona, params, chosen, plan, names, today } = useFamily();
 
   const tasks = buildTasks(persona, plan.events, chosen, params, plan.doneTasks, today);
-  const remaining = tasks.filter((task) => !task.done);
-  const completed = tasks.filter((task) => task.done);
+  const main = tasks.filter((task) => !task.extra);
+  const remaining = main.filter((task) => !task.done);
+  const completed = main.filter((task) => task.done);
+  const extras = tasks.filter((task) => task.extra);
 
   function downloadCalendar() {
-    const url = URL.createObjectURL(new Blob([tasksToIcs(tasks)], { type: "text/calendar" }));
+    const url = URL.createObjectURL(new Blob([tasksToIcs(main)], { type: "text/calendar" }));
     const link = Object.assign(document.createElement("a"), { href: url, download: "przewodnik-rodzica.ics" });
     link.click();
     URL.revokeObjectURL(url);
@@ -87,12 +89,21 @@ export default function Tasks() {
         </Button>
       </div>
 
-      <Progress label={`Ukończono ${completed.length} z ${tasks.length} zadań`} value={completed.length} total={tasks.length} />
+      <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
 
       <section aria-labelledby="pozostale-zadania">
         <h2 id="pozostale-zadania" tabIndex={-1} className="mb-3 text-xl font-bold">Pozostałe zadania ({remaining.length})</h2>
         {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}
       </section>
+
+      {extras.length > 0 && (
+        <Disclosure className="border-y" label={
+          <span><span className="block font-bold">Inne formularze ZUS ({extras.length})</span>
+            <span className="text-muted-foreground">Wypełnia pracodawca lub lekarz albo są potrzebne tylko w szczególnej sytuacji.</span></span>
+        }>
+          <ul role="list">{extras.map(renderTask)}</ul>
+        </Disclosure>
+      )}
 
       {completed.length > 0 && (
         <Disclosure className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>

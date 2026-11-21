@@ -26,6 +26,8 @@ type Entry = {
   guide?: string;
   /** Knowledge-base spec of the application the user can fill in (form_fields or leave_requests id). */
   form?: string;
+  /** Situational or third-party form, listed for completeness; it never counts as an open task. */
+  extra?: boolean;
 };
 
 export type FamilyTimelineEntry = Entry & { status: Status };
@@ -148,6 +150,28 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
         date: period.from, end: shift(period.to, -1), requires: [id], estimated: provisional,
       },
     );
+  }
+
+  // Other ZUS forms: filled by the employer, a doctor, or only in special situations.
+  const payerOfBenefit = parents.mother.contract === "uop" && parents.mother.payer.includes("ponad 20") ? "Płatnik składek" : "ZUS";
+  const afterMandatoryWeeks = shift(birth, params.motherOnlyWeeks * 7);
+  const situational = "Tylko w szczególnej sytuacji";
+  const extras: [form: string, who: EventWho, title: string, description: string, date: string, recipient: string, dateNote?: string][] = [
+    ["ff.zas2", "mother", "Zaświadczenie lekarskie w związku z ciążą (ZAS-2)", "Wystawia lekarz prowadzący ciążę. Potwierdza przewidywaną datę porodu i niezdolność do pracy w ciąży.", shift(persona.dueDate, -42), "ZUS"],
+    ["ff.z3", "mother", "Zaświadczenie płatnika składek (Z-3)", "Wypełnia pracodawca, który zgłasza do 20 osób. ZUS wylicza z niego zasiłek pracownika.", birth, "ZUS"],
+    ["ff.z3a", "mother", "Zaświadczenie płatnika składek (Z-3a)", "Wypełnia zleceniodawca, który zgłasza do 20 osób, gdy zasiłek dostaje zleceniobiorca.", birth, "ZUS"],
+    ["ff.zas15", "father", "Zaświadczenie płatnika o urlopie (ZAS-15)", "Pracodawca potwierdza udzielony urlop macierzyński, rodzicielski albo ojcowski.", persona.paternityStart, "ZUS"],
+    ["ff.zas24", "mother", "Zaświadczenie o okresach zasiłku macierzyńskiego (ZAS-24)", "Wydaje płatnik zasiłku. Drugi rodzic dołącza je do swojego wniosku.", afterMandatoryWeeks, "ZUS"],
+    ["ff.zas23", "mother", "Wniosek o skrócenie wypłaty zasiłku macierzyńskiego (ZAS-23)", "Gdy mama po 14 tygodniach wraca do pracy, a resztę zasiłku przejmuje tata.", afterMandatoryWeeks, payerOfBenefit, situational],
+    ["ff.zas40", "mother", "Zaświadczenie o pobycie matki w szpitalu (ZAS-40)", "Wystawia szpital, gdy mama jest w szpitalu i opiekę nad dzieckiem przejmuje tata.", birth, payerOfBenefit, situational],
+    ["ff.zas33", "father", "Oświadczenie o porzuceniu dziecka przez matkę lub o śmierci matki (ZAS-33)", "Tata składa je, gdy przejmuje zasiłek macierzyński po mamie.", birth, payerOfBenefit, situational],
+    ["ff.zas26", "mother", "Oświadczenie o przyjęciu dziecka na wychowanie (ZAS-26)", "Przy adopcji albo przyjęciu dziecka jako rodzina zastępcza.", birth, payerOfBenefit, situational],
+    ["ff.zas55", "mother", "Wniosek o zasiłek w wysokości zasiłku macierzyńskiego (ZAS-55)", "Gdy pracodawca ogłosi upadłość albo likwidację w czasie ciąży.", birth, "ZUS", situational],
+    ["ff.z10", "mother", "Oświadczenie do zasiłku po ustaniu ubezpieczenia (Z-10)", "Gdy umowa skończyła się, a zwolnienie lekarskie trwa dalej.", birth, "ZUS", situational],
+    ["ff.znp7", "mother", "Wniosek o świadczenie rehabilitacyjne (ZNp-7)", "Gdy po wyczerpaniu zasiłku chorobowego potrzebne jest dalsze leczenie.", birth, "ZUS", situational],
+  ];
+  for (const [form, who, title, description, date, recipient, dateNote] of extras) {
+    entries.push({ id: `form-${form.slice(3)}`, kind: "application", who, title, description, date, recipient, dateNote, form, extra: true });
   }
 
   const completed = new Set(entries.filter((entry) =>
