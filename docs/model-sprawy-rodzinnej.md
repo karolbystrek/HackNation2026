@@ -6,21 +6,22 @@ Jedna sprawa rodzinna łączy oś zdarzeń, ocenę uprawnień i graf zależnych 
 
 | Encja | Rola |
 | --- | --- |
-| Sprawa rodzinna | Łączy opiekunów i dzieci w związku z ciążą, porodem, przysposobieniem lub pieczą zastępczą. Każde dziecko ma własne dane i zdarzenia. |
-| Rodzic lub opiekun | Ma rolę w sprawie, historię zatrudnienia i ubezpieczenia oraz indywidualną podstawę wymiaru świadczenia. Z zatrudnieniem wiąże się płatnik składek. |
-| Zdarzenie | Ma typ, datę lub okres oraz wskazuje osobę, dziecko lub sprawę, której dotyczy. Źródło informacji i status faktu lub założenia symulacji to osobne cechy. |
-| Uprawnienie | Określa, kto i pod jakimi warunkami może skorzystać z urlopu lub świadczenia. Ocena uwzględnia stan na datę właściwą dla danego uprawnienia. |
-| Pula i okres wykorzystania | Pula określa limit rodzinny lub indywidualny. Okres wskazuje osobę, daty, rodzaj uprawnienia, wykorzystanie puli i kwotę świadczenia. Dwa równoległe tygodnie rodzicielskiego zajmują tydzień w kalendarzu i dwa tygodnie z łącznej puli. |
-| Wariant planu | Łączy założenia i wybory, np. daty rozpoczęcia, podział urlopu i wymiar pracy podczas rodzicielskiego. Kilka wariantów można porównać na podstawie tych samych faktów. |
-| Krok i dokument | Krok ma wykonawcę, ewentualnych uczestników, adresata, warunki rozpoczęcia i ukończenia, najwcześniejszą datę i termin końcowy. Może zawierać podkroki. Dokument uzyskany w jednym kroku może być wymagany w kilku kolejnych. |
+| Sprawa rodzinna | Grupuje osoby, fakty, warianty i formalności związane z ciążą, porodem, przysposobieniem lub pieczą zastępczą. |
+| Osoba i relacja | Ta sama osoba może uczestniczyć w kilku sprawach. Rola określa jej udział w sprawie, a relacja łączy konkretne osoby i może mieć okres obowiązywania. |
+| Fakt i okres | Fakt opisuje zdarzenie, np. poród dziecka lub złożenie wniosku. Okres opisuje np. ubezpieczenie, zatrudnienie lub hospitalizację. Oba wskazują daty, podmiot i źródło informacji. Z zatrudnieniem wiąże się płatnik składek. |
+| Wariant planu | Zawiera założenia i decyzje, np. przewidywaną datę porodu, podział urlopu i wymiar pracy w jego trakcie. Różne warianty można oceniać na podstawie tych samych faktów. |
+| Ocena uprawnienia | Wynik oceny dla osoby lub sprawy. Obejmuje rozstrzygnięcie, uzasadnienie, istotne daty, braki danych oraz przysługujący wymiar i kwotę, jeśli można je ustalić. Podstawa wymiaru jest indywidualna. |
+| Pula i okres wykorzystania | Pula określa łączny limit i części zarezerwowane dla poszczególnych osób. Okres wskazuje osobę, daty, zużycie puli i powiązane świadczenie. Planowane wykorzystanie należy do wariantu, a faktyczne do historii sprawy. Tydzień równoległego rodzicielskiego obojga zajmuje tydzień w kalendarzu i dwa tygodnie z łącznej puli. |
+| Formalność, krok i dokument | Formalność grupuje działania służące jednemu celowi. Krok ma wykonawcę, ewentualnego adresata, wymagania, warunki ukończenia i okno czasowe. Dokument powstały w jednym kroku może być wymagany w innych. |
 
 ## Przebieg sprawy
 
-1. Rodzic wprowadza dane lub korzysta z danych pochodzących z symulowanego pobrania z ZUS. Stan sprawy na dany dzień wynika z faktów i wybranego wariantu.
-2. Ocena wskazuje, czy uprawnienie przysługuje, nie przysługuje lub wymaga uzupełnienia danych. Pokazuje przyczynę, okresy, kwoty i ryzyka.
-3. Rodzice porównują warianty i wybierają plan. Przewidywana data porodu daje terminy orientacyjne. Podanie faktycznej daty aktualizuje kroki zależne od porodu.
-4. Zależności wyznaczają dostępność kroków, a daty porządkują je na osi czasu. Maszyna stanowa opisuje pojedynczy krok, np. oczekiwanie na dokument, gotowość do złożenia i złożenie wniosku. Upływ terminu może wymagać ponownej oceny dalszej ścieżki.
-5. Widoki matki, ojca i wspólny korzystają z tej samej sprawy. Wspólny widok pokazuje podział opieki i kroki wymagające współpracy. Zmiana planu aktualizuje przyszłe kroki, a dotychczasowe działania, np. data złożenia wniosku, pozostają faktami.
+1. Dane pochodzą od rodziców lub z symulowanego pobrania z ZUS. Reguły oceniają uprawnienia i ryzyka na podstawie faktów oraz założeń wariantu na właściwe daty.
+2. Rodzice porównują okresy, kwoty i terminy. Wybór wariantu określa, które formalności mają zastosowanie i kto jest zaangażowany.
+3. Zależności wyznaczają dostępność kroków, a terminy ich kolejność. Każdy krok ma własny stan, np. czeka na dokument, jest gotowy lub wykonany. Przygotowanie dokumentu, złożenie wniosku i potwierdzenie jego przyjęcia mogą stanowić osobne zdarzenia. Kolejny krok zależy od tego, którego zdarzenia potrzebuje.
+4. Nowy fakt lub zmiana planu aktualizuje ocenę i przyszłe kroki. Wykonane czynności pozostają w historii razem z datą i zakresem. Jeśli zmiana wpływa na złożony wniosek, sprawa wskazuje formalność wymagającą ponownego uzgodnienia.
+
+Odpowiedzialność przypisujemy do kroku, a uczestnictwo do formalności. Przy przejęciu części macierzyńskiego jedna decyzja określa wspólną datę przekazania opieki. Formalność łączy wniosek ojca i rezygnację matki, każdy z własnym wykonawcą i terminem. Przesunięcie daty przelicza przyszłe terminy. Jeśli jeden z wniosków już złożono, jego zapis pozwala ustalić, czy nadal odpowiada planowi.
 
 ## Typowa oś wniosków
 
