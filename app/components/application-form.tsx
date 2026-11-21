@@ -26,7 +26,6 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   const origin = useSearchParams().get("z");
   const returnHref = origin === "wnioski" ? "/wnioski" : origin === "zadania" ? "/zadania" : `/plan#timeline-${taskId}`;
   const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : origin === "zadania" ? "Wróć do zadań" : "Wróć do planu";
-  const parentCrumb: [string, string] = origin === "wnioski" ? ["Wnioski", "/wnioski"] : origin === "zadania" ? ["Do zrobienia", "/zadania"] : ["Oś czasu", "/plan"];
   const { persona, plan, params, journey, today } = useFamily();
   const found = useMemo(
     () => formContext(persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave),
@@ -36,7 +35,7 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   if (!found) {
     return (
       <main id="main-content" tabIndex={-1} className="flex flex-col">
-        <PageBand crumbs={[["Strona główna", "/"], parentCrumb, ["Wniosek"]]} title="Nie znaleziono wniosku" lead="Ten krok planu nie ma wniosku do wypełnienia." />
+        <PageBand title="Nie znaleziono wniosku" lead="Ten krok planu nie ma wniosku do wypełnienia." />
         <div className="page"><BackLink href={returnHref}>{returnLabel}</BackLink></div>
       </main>
     );
@@ -47,7 +46,6 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        crumbs={[["Strona główna", "/"], parentCrumb, [found.entry.title]]}
         title={found.entry.title}
         lead={<>
           <span className="block">Formularz: {spec.title}</span>

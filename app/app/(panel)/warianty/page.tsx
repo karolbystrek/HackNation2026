@@ -24,7 +24,6 @@ function Variants() {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Warianty urlopu"]]}
         title="Narodziny dziecka: kto idzie na urlop?"
         lead="Porównaj podział urlopu i kwoty zasiłków. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem."
       />

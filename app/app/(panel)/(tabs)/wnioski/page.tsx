@@ -30,7 +30,6 @@ export default function Applications() {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Wnioski"]]}
         title="Wnioski"
         lead="Wypełnij wnioski do ZUS, pracodawcy i urzędu stanu cywilnego albo sprawdź dokumenty, które już masz."
       />

@@ -76,7 +76,6 @@ export default function Tasks() {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Do zrobienia"]]}
         title="Do zrobienia"
         lead="Wnioski i formalności z Waszego planu, w kolejności terminów."
       />

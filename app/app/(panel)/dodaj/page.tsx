@@ -37,7 +37,7 @@ export default function AddEvent() {
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <PageBand crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Dodaj wydarzenie"]]} title="Dodaj wydarzenie" />
+      <PageBand title="Dodaj wydarzenie" />
       <div className="page">
       <div className="flex w-full max-w-3xl flex-col gap-6">
       <BackLink href="/plan">Wróć do osi czasu</BackLink>

@@ -4,9 +4,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { TermText } from "@/components/term-text";
-import { AlertCircle } from "lucide-react";
-import { BackLink, Breadcrumbs, Button, Checkbox, Field, RadioOption } from "@/components/ui";
-import { Progress } from "@/components/ui/progress";
+import { AlertCircle, ChevronLeft } from "lucide-react";
+import { BackLink, Button, Checkbox, Field, RadioOption } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
 import { GUIDE_ID } from "@/lib/guide/persona";
@@ -15,16 +14,17 @@ import { updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
 const heading = "text-2xl leading-tight font-bold sm:text-3xl";
 const STAGES = ["Odpowiedz na pytania", "Sprawdź odpowiedzi", "Zobacz swoją oś czasu"];
 
-/** Page frame: green band with breadcrumbs and progress, the task on the left, the stages on the right. */
-function Frame({ stage, band, children }: { stage: number; band: ReactNode; children: ReactNode }) {
+/** Page frame: optional green band, the task on the left, the stages on the right. */
+function Frame({ stage, band, children }: { stage: number; band?: ReactNode; children: ReactNode }) {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <div className="bg-primary-soft">
-        <div className="shell flex flex-col gap-4 py-6 sm:py-8">
-          <Breadcrumbs items={[["Strona główna", "/"], ["Nowa oś czasu"]]} />
-          {band}
+      {band && (
+        <div className="bg-primary-soft">
+          <div className="shell flex flex-col gap-4 py-6 sm:py-8">
+            {band}
+          </div>
         </div>
-      </div>
+      )}
       <div className="shell grid gap-10 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex max-w-[70ch] min-w-0 flex-col gap-6">{children}</div>
         <aside aria-labelledby="stages-title" className="self-start border-t-4 border-t-brand bg-secondary p-5">
@@ -104,14 +104,13 @@ export default function NewTimeline() {
   };
 
   return (
-    <Frame stage={0} band={<>
-      <p className="text-lg font-bold before:mb-3 before:block before:h-1 before:w-12 before:bg-brand">Nowa oś czasu</p>
-      <Progress label={`Pytanie ${index + 1} z ${visible.length}`} value={index + 1} total={visible.length} />
-    </>}>
-      {previous
-        ? <Button variant="link" className="self-start p-0 font-bold" onClick={() => setEditing({ id: previous.id, fromSummary: false })}><span aria-hidden="true">← </span>Wstecz</Button>
-        : <BackLink href="/">Strona główna</BackLink>}
-      <QuestionForm key={question.id} question={question} answers={answers} onSave={save} />
+    <Frame stage={0}>
+      <div className="flex flex-col gap-2">
+        {previous
+          ? <Button variant="link" className="h-auto min-h-11 gap-1 self-start p-0 font-bold" onClick={() => setEditing({ id: previous.id, fromSummary: false })}><ChevronLeft aria-hidden className="size-5 shrink-0" />Wstecz</Button>
+          : <BackLink href="/">Strona główna</BackLink>}
+        <QuestionForm key={question.id} question={question} answers={answers} onSave={save} />
+      </div>
     </Frame>
   );
 }

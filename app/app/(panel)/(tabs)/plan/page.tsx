@@ -13,7 +13,6 @@ export default function Timeline() {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        crumbs={[["Strona główna", "/"], ["Oś czasu"]]}
         title={fromGuide ? "Twój plan" : "Plan rodziny"}
         lead={fromGuide ? "Na podstawie Twoich odpowiedzi. Daty przed porodem są szacunkowe." : persona.birthDate
           ? <span className="flex flex-wrap items-baseline gap-x-3">

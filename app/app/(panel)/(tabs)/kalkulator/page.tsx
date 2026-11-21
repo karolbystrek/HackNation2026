@@ -103,7 +103,6 @@ function Calculators({ event }: { event?: TimelineEvent }) {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Kalkulatory"]]}
         title={basisRequest ? "Oblicz podstawę zasiłku" : MODES.find(([key]) => key === mode)?.[1] ?? "Kalkulatory zasiłków"}
         lead={mode === null ? "Uzupełniliśmy dane z profilu. Możesz je zmienić w każdym kroku." : undefined}
       />

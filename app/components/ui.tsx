@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
@@ -12,30 +12,13 @@ export function ButtonLink({ variant, className, ...props }: ComponentProps<type
   return <Link className={cn(buttonVariants({ variant }), className)} {...props} />;
 }
 
-/** gov.pl-style trail; the last item is the current page. */
-export function Breadcrumbs({ items }: { items: [label: string, href?: string][] }) {
-  return (
-    <nav aria-label="Ścieżka nawigacji" className="text-sm">
-      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        {items.map(([label, href], i) => (
-          <li key={label} className="flex items-center gap-2">
-            {i > 0 && <ChevronRight aria-hidden className="size-4 text-muted-foreground" />}
-            {href ? <Link href={href} className="text-link">{label}</Link> : <span aria-current="page">{label}</span>}
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
-}
-
-/** Light-green band that opens every panel page: breadcrumbs, H1, lead and page-level actions. */
-export function PageBand({ crumbs, title, lead, actions, children }: {
-  crumbs: [label: string, href?: string][]; title: ReactNode; lead?: ReactNode; actions?: ReactNode; children?: ReactNode;
+/** Light-green band that opens every panel page: H1, lead and page-level actions. */
+export function PageBand({ title, lead, actions, children }: {
+  title: ReactNode; lead?: ReactNode; actions?: ReactNode; children?: ReactNode;
 }) {
   return (
     <div className="bg-primary-soft">
       <div className="shell flex flex-col gap-4 py-6 sm:py-8">
-        <Breadcrumbs items={crumbs} />
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="max-w-[70ch]">
             <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{title}</h1>
@@ -75,8 +58,8 @@ export function LinkList({ links }: { links: { label: string; href: string; meta
 
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="text-link min-h-11 content-center self-start font-bold">
-      <span aria-hidden="true">← </span>{children}
+    <Link href={href} className="text-link inline-flex min-h-11 items-center gap-1 self-start font-bold">
+      <ChevronLeft aria-hidden className="size-5 shrink-0" />{children}
     </Link>
   );
 }

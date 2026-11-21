@@ -14,7 +14,7 @@ export default function Benefits() {
   if (!fromGuide) {
     return (
       <main id="main-content" tabIndex={-1} className="flex flex-col">
-        <PageBand crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Świadczenia"]]} title="Świadczenia" />
+        <PageBand title="Świadczenia" />
         <div className="page">
         <Notice className="flex flex-col items-start gap-2">
           <p>Sprawdź symulowane ubezpieczenie i dostępne formalności dla rodziny {persona.label}.</p>
@@ -38,7 +38,7 @@ export default function Benefits() {
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <PageBand crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Świadczenia"]]} title="Świadczenia" lead="Na podstawie Twoich odpowiedzi. O prawie do zasiłku decyduje ZUS lub płatnik składek." />
+      <PageBand title="Świadczenia" lead="Na podstawie Twoich odpowiedzi. O prawie do zasiłku decyduje ZUS lub płatnik składek." />
       <div className="page gap-12">
 
       <section aria-labelledby="przysluguje" className="flex flex-col gap-3">

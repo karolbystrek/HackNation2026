@@ -1,6 +1,6 @@
 ---
 name: zus-gov-ui
-description: Visual style for this project's UI - ZUS colour theming combined with the page structure of gov.pl and other Polish government portals (service tiles, breadcrumbs, full-width bands, "Ważne" notices, dark footer). Use when designing, building or reviewing any screen, component or theme token. Overrides the visual direction in polish-public-ui.
+description: Visual style for this project's UI - ZUS colour theming combined with the page structure of gov.pl and other Polish government portals (service tiles, full-width bands, "Ważne" notices, dark footer). Use when designing, building or reviewing any screen, component or theme token. Overrides the visual direction in polish-public-ui.
 ---
 
 # ZUS × gov.pl interface style
@@ -8,7 +8,7 @@ description: Visual style for this project's UI - ZUS colour theming combined wi
 Our app should look like it belongs to the Polish public-service family:
 **ZUS colours** (institutional green, amber action, deep navy) laid out with
 the **gov.pl page grammar** (flat white page, full-width bands, service tiles,
-breadcrumbs, step lists, a dark footer). It must still read as an independent
+step lists, a dark footer). It must still read as an independent
 hackathon project.
 
 This skill **replaces the "Visual direction" and "Starting theme" sections of
@@ -81,9 +81,9 @@ Build pages from full-width **bands**, each with a `shell` inside:
 2. **Header** – white, `border-t-4 border-t-brand border-b`; left: square
    green mark (`size-10 bg-primary` with white initials "ZP") + product name in
    bold; right: account links. Compact, no mega-menu.
-3. **Breadcrumbs** on every sub-page: `nav aria-label="Ścieżka nawigacji"`,
-   `text-sm`, items separated by `ChevronRight` (aria-hidden), last item
-   `aria-current="page"` not a link.
+3. **No breadcrumbs.** The project decided against them; panel pages rely on
+   the tab bar and a "Wróć do…" link. Each sub-page opens with `PageBand`
+   (`components/ui.tsx`): light-green band with H1, lead and page actions.
 4. **Hero band** (home and section landing pages only) – `bg-primary-soft`,
    H1 + lead + one amber action + one outline action. Optional right column
    "Na skróty" list. No illustrations, no carousel.
@@ -137,4 +137,4 @@ Copy its bands and tile/step/list patterns rather than inventing new ones.
 
 - [zus.pl](https://www.zus.pl/) – colour and tone reference.
 - [gov.pl](https://www.gov.pl/) – page structure reference (bands, tiles,
-  breadcrumbs, footer). Neither is an authority for this app's identity.
+  footer). Neither is an authority for this app's identity.
