@@ -1,3 +1,4 @@
+import type { TimelineEvent } from "@/lib/events";
 import type { ContractType } from "@/lib/calc/pregnancy";
 import { shiftIso, todayInWarsaw } from "@/lib/dates";
 import { activeAnswers, nextQuestion, type Answers } from "@/lib/guide/tree";
@@ -37,6 +38,7 @@ export function personaFromAnswers(answers: Answers): Persona {
     dueDate,
     birthDate,
     paternityStart: anchor,
+    zaZyciem: Array.isArray(a.special) && a.special.includes("zaZyciem"),
     wantsAveragedRate: a.wantsAveragedRate === true,
     kids: Math.max(Number(a.childrenCount) || 1, 1),
     parents: isFather ? { mother: other, father: me } : { mother: me, father: other },
@@ -48,7 +50,15 @@ export function personaFromAnswers(answers: Answers): Persona {
 }
 
 /** The logged-in persona: the questionnaire once it is complete, otherwise a demo profile. */
-export function currentPersona(plan: { personaId: string | null; guideAnswers: Answers }): Persona | null {
-  if (plan.personaId !== GUIDE_ID) return findPersona(plan.personaId);
-  return nextQuestion(plan.guideAnswers) ? null : personaFromAnswers(plan.guideAnswers);
+export function currentPersona(plan: { personaId: string | null; guideAnswers: Answers; events?: TimelineEvent[] }): Persona | null {
+  const persona = plan.personaId === GUIDE_ID
+    ? nextQuestion(plan.guideAnswers) ? null : personaFromAnswers(plan.guideAnswers)
+    : findPersona(plan.personaId);
+  const birth = plan.events?.slice().reverse().find((event) => event.source === "new" && event.type === "birth");
+  if (!persona || !birth) return persona;
+  return {
+    ...persona, birthDate: birth.date,
+    events: [...persona.events.filter((event) => event.type !== "birth"), birth],
+    paternityStart: persona.paternityStart < birth.date ? birth.date : persona.paternityStart,
+  };
 }

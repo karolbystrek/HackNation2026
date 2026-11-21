@@ -1,7 +1,7 @@
 import { analyzeCase } from "@/lib/cases/analyze";
 import { ExtractionUnavailable, extractCase } from "@/lib/cases/extract";
 import { downloadSample } from "@/lib/cases/samples";
-import { defaultParams } from "@/lib/params";
+import { loadParams } from "@/lib/server-params";
 
 // Reading a long scan with the model can take a minute or two.
 export const maxDuration = 300;
@@ -29,8 +29,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { extraction, cached } = await extractCase(bytes);
-    return Response.json({ extraction, cached, analysis: analyzeCase(extraction, defaultParams) });
+    const [params, { extraction, cached }] = await Promise.all([loadParams(), extractCase(bytes)]);
+    return Response.json({ extraction, cached, analysis: analyzeCase(extraction, params) });
   } catch (error) {
     if (error instanceof ExtractionUnavailable) return Response.json({ error: error.message }, { status: 503 });
     console.error(error);

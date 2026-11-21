@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CalculatorSteps } from "@/components/calculator/calculator-steps";
@@ -15,7 +15,7 @@ import {
   ATTACHMENTS_STEP, ZUS_TEMPLATES, attachmentKey, type Child, type DateRange, type FieldValue, type FormField, type FormSpec,
   type FormValues, type Person,
 } from "@/lib/forms/spec";
-import { submitApplication, type Submission } from "@/lib/plan-store";
+import { submitApplication, usePlanDraft, type Submission } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 const inputClass = "min-h-11 w-full min-w-0 rounded-sm border border-input bg-background px-3 py-2 aria-invalid:border-destructive";
@@ -23,16 +23,19 @@ const sentFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeSty
 
 export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) {
   const { taskId } = useParams<{ taskId: string }>();
+  const origin = useSearchParams().get("z");
+  const returnHref = origin === "wnioski" ? "/wnioski" : origin === "zadania" ? "/zadania" : `/plan#timeline-${taskId}`;
+  const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : origin === "zadania" ? "Wróć do zadań" : "Wróć do planu";
   const { persona, plan, params, today } = useFamily();
   const found = useMemo(
-    () => formContext(persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId),
-    [persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId],
+    () => formContext(persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave),
+    [persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave],
   );
 
   if (!found) {
     return (
       <main id="main-content" tabIndex={-1} className="page">
-        <BackLink href="/plan">Wróć do planu</BackLink>
+        <BackLink href={returnHref}>{returnLabel}</BackLink>
         <PageTitle lead="Ten krok planu nie ma wniosku do wypełnienia.">Nie znaleziono wniosku</PageTitle>
       </main>
     );
@@ -42,26 +45,26 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   const submission = plan.submissions[taskId];
   return (
     <main id="main-content" tabIndex={-1} className="page">
-      <BackLink href={`/plan#timeline-${taskId}`}>Wróć do planu</BackLink>
+      <BackLink href={returnHref}>{returnLabel}</BackLink>
       <PageTitle lead={
         <>
           <span className="block">Formularz: {spec.title}</span>
           <span className="block">Adresat: {found.ctx.recipientName}</span>
-          {!submission && <span className="mt-2 block">Dane z mObywatela i z Waszego planu są już wpisane. Sprawdź je i uzupełnij brakujące.</span>}
+          {!submission && <span className="mt-2 block">Sprawdź dane przeniesione do formularza z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
         </>
       }>
         {found.entry.title}
       </PageTitle>
       {submission
-        ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} />
-        : <Wizard key={taskId} spec={spec} ctx={found.ctx} doneTasks={plan.doneTasks} />}
+        ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />
+        : <Wizard key={taskId} spec={spec} ctx={found.ctx} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
     </main>
   );
 }
 
-function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; doneTasks: string[] }) {
+function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormSpec; ctx: FormContext; doneTasks: string[]; returnHref: string; returnLabel: string }) {
   const router = useRouter();
-  const [values, setValues] = useState(() => prefill(spec, ctx));
+  const [values, setValues] = usePlanDraft(`wniosek/${ctx.taskId}/${spec.id}`, prefill(spec, ctx));
   const [step, setStep] = useState(0);
   const [navigated, setNavigated] = useState(false);
   const [checkedSteps, setCheckedSteps] = useState<number[]>([]);
@@ -104,7 +107,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null,
-          events: ctx.events, doneTasks, values,
+          events: ctx.events, guideAnswers: ctx.guideAnswers, customLeave: ctx.customLeave, doneTasks, values,
         }),
       });
       const data = await response.json();
@@ -129,9 +132,9 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
       onStepSubmit={checkStep}
       active={navigated}
       calculate="Sprawdź wniosek"
-      resultTitle="Sprawdź i wyślij"
-      backFromResult="Wróć do planu"
-      onBack={() => router.push(`/plan#timeline-${ctx.taskId}`)}
+      resultTitle="Sprawdź przed symulacją"
+      backFromResult={returnLabel}
+      onBack={() => router.push(returnHref)}
       steps={steps.map((s, i) => ({
         title: s.title,
         content: (
@@ -177,7 +180,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
               </ul>
             </div>
           ) : (
-            <Notice><p className="font-bold">Wniosek jest kompletny.</p><p>Sprawdź dane poniżej i wyślij wniosek. Adresat: {ctx.recipientName}</p></Notice>
+            <Notice><p className="font-bold">Wniosek jest kompletny.</p><p>Sprawdź dane poniżej. W symulacji adresatem jest: {ctx.recipientName}</p></Notice>
           )}
           <WarningBox items={warnings} />
           <Summary spec={spec} ctx={ctx} values={values} onEdit={goTo} />
@@ -185,7 +188,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
             ? <ZusPdf specId={spec.id} ctx={ctx} values={values} doneTasks={doneTasks} />
             : <PrintButton spec={spec} ctx={ctx} values={values} date={ctx.today} />)}
           <Button className="self-start" disabled={sending} onClick={send}>
-            {sending ? "Wysyłanie…" : SEND_LABELS[ctx.recipient]}
+            {sending ? "Trwa symulacja…" : "Symuluj wysłanie"}
           </Button>
         </div>
       }
@@ -193,26 +196,26 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
   );
 }
 
-function Submitted({ spec, ctx, submission, doneTasks }: { spec: FormSpec; ctx: FormContext; submission: Submission; doneTasks: string[] }) {
+function Submitted({ spec, ctx, submission, doneTasks, returnHref, returnLabel }: { spec: FormSpec; ctx: FormContext; submission: Submission; doneTasks: string[]; returnHref: string; returnLabel: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <Notice role="status">
-        <p className="text-xl font-bold">Wniosek został wysłany</p>
+        <p className="text-xl font-bold">Zakończono symulację wysłania</p>
         <dl className="mt-3 grid gap-x-4 gap-y-1 sm:grid-cols-[14rem_minmax(0,1fr)] [&_dt]:font-bold">
           <dt>Adresat</dt><dd>{submission.recipient}</dd>
           <dt>Sposób wysłania</dt><dd>{submission.channel}</dd>
-          <dt>Numer potwierdzenia</dt><dd className="font-mono">{submission.number}</dd>
-          <dt>Wysłano</dt><dd>{sentFormat.format(new Date(submission.sentAt))}</dd>
+          <dt>Numer potwierdzenia symulacji</dt><dd className="font-mono">{submission.number}</dd>
+          <dt>Data symulacji</dt><dd>{sentFormat.format(new Date(submission.sentAt))}</dd>
         </dl>
         <p className="mt-3">Zadanie jest oznaczone w planie jako zakończone.</p>
       </Notice>
       <div className="flex flex-wrap items-start gap-3">
-        <ButtonLink href={`/plan#timeline-${ctx.taskId}`}>Wróć do planu</ButtonLink>
+        <ButtonLink href={returnHref}>{returnLabel}</ButtonLink>
         {!(spec.id in ZUS_TEMPLATES) && <PrintButton spec={spec} ctx={ctx} values={submission.values} date={submission.sentAt.slice(0, 10)} number={submission.number} />}
       </div>
       {spec.id in ZUS_TEMPLATES && <ZusPdf specId={spec.id} ctx={ctx} values={submission.values} doneTasks={doneTasks} />}
       <section aria-labelledby="sent-title" className="flex min-w-0 flex-col gap-3">
-        <h2 id="sent-title" className="text-2xl font-bold">Wysłany wniosek</h2>
+        <h2 id="sent-title" className="text-2xl font-bold">Wniosek z symulacji</h2>
         <Summary spec={spec} ctx={ctx} values={submission.values} />
       </section>
     </div>
@@ -233,7 +236,7 @@ function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormC
       const response = await fetch("/api/applications/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, doneTasks, values }),
+        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, guideAnswers: ctx.guideAnswers, customLeave: ctx.customLeave, doneTasks, values }),
       });
       if (!response.ok) throw new Error(String(response.status));
       setUrl(URL.createObjectURL(await response.blob()));
@@ -276,7 +279,6 @@ function PrintButton(props: { spec: FormSpec; ctx: FormContext; values: FormValu
   );
 }
 
-const SEND_LABELS: Record<FormContext["recipient"], string> = { zus: "Wyślij do ZUS", employer: "Wyślij do pracodawcy", usc: "Wyślij do urzędu stanu cywilnego" };
 
 /** Letter-style copy of the application, shown only when printing (see `.print-document` in globals.css). */
 function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormSpec; ctx: FormContext; values: FormValues; date: string; number?: string }) {

@@ -55,7 +55,7 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
-          <ApplicationAction task={task} submission={submission} />
+          <ApplicationAction origin="zadania" task={task} submission={submission} />
           {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja składania wniosku</a>}
           {task.waitingFor.length > 0 && !task.done && (
             <div id={`${inputId}-waiting`} className="text-sm text-muted-foreground">

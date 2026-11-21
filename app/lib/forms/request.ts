@@ -1,11 +1,12 @@
-import type { VariantKey } from "@/lib/calc/variants";
-import { todayInWarsaw } from "@/lib/dates";
+import { readCustomLeave, type VariantKey } from "@/lib/calc/variants";
+import { parseIso, todayInWarsaw } from "@/lib/dates";
 import type { TimelineEvent } from "@/lib/events";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { loadSpecs } from "@/lib/forms/load";
 import type { FormSpec, FormValues } from "@/lib/forms/spec";
-import { findPersona } from "@/lib/mock/personas";
-import { defaultParams } from "@/lib/params";
+import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
+import { visibleQuestions, type Answers } from "@/lib/guide/tree";
+import { loadParams } from "@/lib/server-params";
 
 type Body = {
   taskId: string;
@@ -14,6 +15,8 @@ type Body = {
   events: TimelineEvent[];
   doneTasks: string[];
   values: FormValues;
+  guideAnswers?: Answers;
+  customLeave?: unknown;
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -23,14 +26,36 @@ export async function readApplicationRequest(request: Request): Promise<{ spec: 
   const body: unknown = await request.json().catch(() => null);
   if (!isObject(body) || typeof body.taskId !== "string" || typeof body.personaId !== "string" ||
     !Array.isArray(body.events) || !Array.isArray(body.doneTasks) || !isObject(body.values) ||
-    !(body.chosenVariant === null || ["A", "B", "C"].includes(body.chosenVariant as string))) {
+    !(body.chosenVariant === null || ["A", "B", "C", "custom"].includes(body.chosenVariant as string))) {
     return Response.json({ error: "Expected taskId, personaId, chosenVariant, events, doneTasks and values" }, { status: 400 });
   }
-  const { taskId, personaId, chosenVariant, events, doneTasks, values } = body as Body;
-  const persona = findPersona(personaId);
+  const { taskId, personaId, chosenVariant, events, doneTasks, values, guideAnswers = {}, customLeave } = body as Body;
+  if (personaId === GUIDE_ID && (!isObject(guideAnswers) || Object.values(guideAnswers).some((answer) =>
+    !["string", "number", "boolean"].includes(typeof answer) &&
+    !(Array.isArray(answer) && answer.every((value) => typeof value === "string"))))) {
+    return Response.json({ error: "Invalid questionnaire answers" }, { status: 400 });
+  }
+  if (personaId === GUIDE_ID && visibleQuestions(guideAnswers).some((question) => {
+    const answer = guideAnswers[question.id];
+    if (answer === undefined || (question.optional && Array.isArray(answer) && answer.length === 0)) return false;
+    if (question.type === "number") return typeof answer !== "number" || !Number.isFinite(answer) ||
+      answer < (question.min ?? -Infinity) || answer > (question.max ?? Infinity);
+    if (question.type === "date") return typeof answer !== "string" || !parseIso(answer);
+    if (question.type === "boolean") return typeof answer !== "boolean";
+    if (question.type === "multi") return !Array.isArray(answer);
+    return typeof answer !== "string";
+  })) return Response.json({ error: "Invalid questionnaire answers" }, { status: 400 });
+  if (events.some((event) => !isObject(event) || typeof event.id !== "string" ||
+    typeof event.date !== "string" || !parseIso(event.date) || typeof event.type !== "string")) {
+    return Response.json({ error: "Invalid events" }, { status: 400 });
+  }
+  const persona = currentPersona({ personaId, guideAnswers, events });
   if (!persona) return Response.json({ error: "Unknown persona" }, { status: 404 });
 
-  const found = formContext(persona, events, chosenVariant, defaultParams, doneTasks, todayInWarsaw(), taskId);
+  const custom = readCustomLeave(customLeave);
+  if (chosenVariant === "custom" && !custom) return Response.json({ error: "Invalid saved leave calculation" }, { status: 400 });
+  const params = await loadParams();
+  const found = formContext(persona, events, chosenVariant, params, doneTasks, todayInWarsaw(), taskId, guideAnswers, custom);
   if (!found) return Response.json({ error: "This task has no application form" }, { status: 404 });
   const spec = (await loadSpecs([found.entry.form!]))[found.entry.form!];
   return { spec, ctx: found.ctx, values };

@@ -1,5 +1,5 @@
 import { formatDate, shiftIso } from "@/lib/dates";
-import type { EventWho, TimelineEvent } from "@/lib/events";
+import { CIRCUMSTANCES, type EventWho, type TimelineEvent } from "@/lib/events";
 import type { Variant } from "@/lib/calc/variants";
 import type { Persona } from "@/lib/mock/personas";
 import type { Params } from "@/lib/params";
@@ -28,6 +28,8 @@ type Entry = {
   form?: string;
   /** Situational or third-party form, listed for completeness; it never counts as an open task. */
   extra?: boolean;
+  /** Event that caused this form to appear. */
+  trigger?: TimelineEvent;
 };
 
 export type FamilyTimelineEntry = Entry & { status: Status };
@@ -38,8 +40,8 @@ export function timelineDate(entry: FamilyTimelineEntry) {
 
 export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[], today: string): FamilyTimelineEntry[] {
   const birth = persona.birthDate ?? persona.dueDate;
-  const birthEvent = persona.events.find((event) => event.type === "birth")!;
-  const birthId = `event-${birthEvent.id}`;
+  const birthEvent = persona.events.find((event) => event.type === "birth");
+  const birthId = `event-${birthEvent?.id ?? "birth"}`;
   const provisional = !persona.birthDate;
   const { birthCardDate, birthRegistrationDate, birthCertificateDate, parents } = persona;
   const cardDate = birthCardDate ?? birth;
@@ -50,7 +52,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     id: `event-${event.id}`,
     kind: "event",
     end: event.endDate === undefined && event.type === "sickLeave" ? null : event.endDate,
-    estimated: event.id === birthEvent.id && provisional,
+    estimated: event.id === birthEvent?.id && provisional,
   }));
 
   entries.push(
@@ -103,7 +105,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     });
   }
 
-  entries.push(
+  if (chosen?.input.paternity !== false) entries.push(
     {
       id: "paternity", kind: "application", who: "father", title: "Wniosek o urlop ojcowski",
       description: `Złóż co najmniej ${params.paternityRequestDays} dni przed planowanym startem (${formatDate(persona.paternityStart)}).`,
@@ -164,41 +166,61 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
   // Other ZUS forms: filled by the employer, a doctor, or only in special situations.
   const payerOfBenefit = parents.mother.contract === "uop" && parents.mother.payer.includes("ponad 20") ? "Płatnik składek" : "ZUS";
   const afterMandatoryWeeks = shiftIso(birth, params.motherOnlyWeeks * 7);
-  const situational = "Tylko w szczególnej sytuacji";
-  const extras: [form: string, who: EventWho, title: string, description: string, date: string, recipient: string, dateNote?: string][] = [
+  const extras: [form: string, who: EventWho, title: string, description: string, date: string, recipient: string][] = [
     ["ff.zas2", "mother", "Zaświadczenie lekarskie w związku z ciążą (ZAS-2)", "Wystawia lekarz prowadzący ciążę. Potwierdza przewidywaną datę porodu i niezdolność do pracy w ciąży.", shiftIso(persona.dueDate, -42), "ZUS"],
     ["ff.z3", "mother", "Zaświadczenie płatnika składek (Z-3)", "Wypełnia pracodawca, który zgłasza do 20 osób. ZUS wylicza z niego zasiłek pracownika.", birth, "ZUS"],
     ["ff.z3a", "mother", "Zaświadczenie płatnika składek (Z-3a)", "Wypełnia zleceniodawca, który zgłasza do 20 osób, gdy zasiłek dostaje zleceniobiorca.", birth, "ZUS"],
     ["ff.zas15", "father", "Zaświadczenie płatnika o urlopie (ZAS-15)", "Pracodawca potwierdza udzielony urlop macierzyński, rodzicielski albo ojcowski.", persona.paternityStart, "ZUS"],
     ["ff.zas24", "mother", "Zaświadczenie o okresach zasiłku macierzyńskiego (ZAS-24)", "Wydaje płatnik zasiłku. Drugi rodzic dołącza je do swojego wniosku.", afterMandatoryWeeks, "ZUS"],
-    ["ff.zas23", "mother", "Wniosek o skrócenie wypłaty zasiłku macierzyńskiego (ZAS-23)", "Gdy mama po 14 tygodniach wraca do pracy, a resztę zasiłku przejmuje tata.", afterMandatoryWeeks, payerOfBenefit, situational],
-    ["ff.zas40", "mother", "Zaświadczenie o pobycie matki w szpitalu (ZAS-40)", "Wystawia szpital, gdy mama jest w szpitalu i opiekę nad dzieckiem przejmuje tata.", birth, payerOfBenefit, situational],
-    ["ff.zas33", "father", "Oświadczenie o porzuceniu dziecka przez matkę lub o śmierci matki (ZAS-33)", "Tata składa je, gdy przejmuje zasiłek macierzyński po mamie.", birth, payerOfBenefit, situational],
-    ["ff.zas26", "mother", "Oświadczenie o przyjęciu dziecka na wychowanie (ZAS-26)", "Przy adopcji albo przyjęciu dziecka jako rodzina zastępcza.", birth, payerOfBenefit, situational],
-    ["ff.zas55", "mother", "Wniosek o zasiłek w wysokości zasiłku macierzyńskiego (ZAS-55)", "Gdy pracodawca ogłosi upadłość albo likwidację w czasie ciąży.", birth, "ZUS", situational],
-    ["ff.z10", "mother", "Oświadczenie do zasiłku po ustaniu ubezpieczenia (Z-10)", "Gdy umowa skończyła się, a zwolnienie lekarskie trwa dalej.", birth, "ZUS", situational],
-    ["ff.znp7", "mother", "Wniosek o świadczenie rehabilitacyjne (ZNp-7)", "Gdy po wyczerpaniu zasiłku chorobowego potrzebne jest dalsze leczenie.", birth, "ZUS", situational],
+    ["ff.zas23", "mother", "Wniosek o skrócenie wypłaty zasiłku macierzyńskiego (ZAS-23)", "Gdy mama po 14 tygodniach wraca do pracy, a resztę zasiłku przejmuje tata.", afterMandatoryWeeks, payerOfBenefit],
+    ["ff.zas40", "mother", "Zaświadczenie o pobycie matki w szpitalu (ZAS-40)", "Wystawia szpital, gdy mama jest w szpitalu i opiekę nad dzieckiem przejmuje tata.", birth, payerOfBenefit],
+    ["ff.zas33", "father", "Oświadczenie o porzuceniu dziecka przez matkę lub o śmierci matki (ZAS-33)", "Tata składa je, gdy przejmuje zasiłek macierzyński po mamie.", birth, payerOfBenefit],
+    ["ff.zas26", "mother", "Oświadczenie o przyjęciu dziecka na wychowanie (ZAS-26)", "Przy adopcji albo przyjęciu dziecka jako rodzina zastępcza.", birth, payerOfBenefit],
+    ["ff.zas55", "mother", "Wniosek o zasiłek w wysokości zasiłku macierzyńskiego (ZAS-55)", "Gdy pracodawca ogłosi upadłość albo likwidację w czasie ciąży.", birth, "ZUS"],
+    ["ff.z10", "mother", "Oświadczenie do zasiłku po ustaniu ubezpieczenia (Z-10)", "Gdy umowa skończyła się, a zwolnienie lekarskie trwa dalej.", birth, "ZUS"],
+    ["ff.znp7", "mother", "Wniosek o świadczenie rehabilitacyjne (ZNp-7)", "Gdy po wyczerpaniu zasiłku chorobowego potrzebne jest dalsze leczenie.", birth, "ZUS"],
     // Leave requests to the employer for special situations (rozporządzenie MRiPS z 11.03.2025).
-    ["lr.maternity_pre_birth", "mother", "Wniosek o część urlopu macierzyńskiego przed porodem", "Do 6 tygodni urlopu przed przewidywaną datą porodu.", shiftIso(persona.dueDate, -42), "Pracodawca", situational],
-    ["lr.maternity_resign_14w", "mother", "Wniosek o rezygnację z części urlopu macierzyńskiego", "Po wykorzystaniu 14 tygodni mama wraca do pracy, a resztę urlopu bierze tata.", afterMandatoryWeeks, "Pracodawca", situational],
-    ["lr.maternity_takeover", "father", "Wniosek ojca o pozostałą część urlopu macierzyńskiego", "Tata przejmuje urlop, z którego zrezygnowała mama.", afterMandatoryWeeks, "Pracodawca", situational],
-    ["lr.maternity_resign_incapacity", "mother", "Wniosek o rezygnację z urlopu macierzyńskiego z powodu niezdolności do samodzielnej egzystencji", "Po 8 tygodniach, gdy mama ma orzeczenie o niezdolności do samodzielnej egzystencji.", shiftIso(birth, 56), "Pracodawca", situational],
-    ["lr.maternity_mother_hospital", "father", "Wniosek ojca o urlop macierzyński na czas pobytu mamy w szpitalu", "Gdy mama przerywa urlop, bo leży w szpitalu.", birth, "Pracodawca", situational],
-    ["lr.maternity_mother_death", "father", "Wniosek ojca o urlop macierzyński po śmierci mamy", "Tata przejmuje pozostałą część urlopu macierzyńskiego.", birth, "Pracodawca", situational],
-    ["lr.maternity_abandonment", "father", "Wniosek ojca o urlop macierzyński po porzuceniu dziecka przez matkę", "Tata przejmuje pozostałą część urlopu macierzyńskiego.", birth, "Pracodawca", situational],
-    ["lr.maternity_uninsured_mother_incapacity", "father", "Wniosek ojca o urlop macierzyński, gdy mama nie jest ubezpieczona i nie może opiekować się dzieckiem", "Mama bez ubezpieczenia ma orzeczenie o niezdolności do samodzielnej egzystencji.", birth, "Pracodawca", situational],
-    ["lr.maternity_uninsured_mother_works", "father", "Wniosek ojca o urlop macierzyński, gdy nieubezpieczona mama podejmuje pracę", "Mama bez tytułu do ubezpieczenia zaczyna pracę na co najmniej pół etatu.", afterMandatoryWeeks, "Pracodawca", situational],
-    ["lr.supplementary_maternity", "mother", "Wniosek o uzupełniający urlop macierzyński", "Gdy dziecko urodziło się przedwcześnie albo po porodzie długo było w szpitalu.", birth, "Pracodawca", situational],
-    ["lr.maternity_conditions", "mother", "Wniosek o urlop na warunkach urlopu macierzyńskiego", "Przy przyjęciu dziecka do adopcji albo do rodziny zastępczej niezawodowej.", birth, "Pracodawca", situational],
-    ["lr.combine_parental_with_work", "mother", "Wniosek o łączenie urlopu rodzicielskiego z pracą", "Do połowy etatu w czasie urlopu rodzicielskiego. Termin: 21 dni przed podjęciem pracy.", afterMandatoryWeeks, "Pracodawca", situational],
+    ["lr.maternity_pre_birth", "mother", "Wniosek o część urlopu macierzyńskiego przed porodem", "Do 6 tygodni urlopu przed przewidywaną datą porodu.", shiftIso(persona.dueDate, -42), "Pracodawca"],
+    ["lr.maternity_resign_14w", "mother", "Wniosek o rezygnację z części urlopu macierzyńskiego", "Po wykorzystaniu 14 tygodni mama wraca do pracy, a resztę urlopu bierze tata.", afterMandatoryWeeks, "Pracodawca"],
+    ["lr.maternity_takeover", "father", "Wniosek ojca o pozostałą część urlopu macierzyńskiego", "Tata przejmuje urlop, z którego zrezygnowała mama.", afterMandatoryWeeks, "Pracodawca"],
+    ["lr.maternity_resign_incapacity", "mother", "Wniosek o rezygnację z urlopu macierzyńskiego z powodu niezdolności do samodzielnej egzystencji", "Po 8 tygodniach, gdy mama ma orzeczenie o niezdolności do samodzielnej egzystencji.", shiftIso(birth, 56), "Pracodawca"],
+    ["lr.maternity_mother_hospital", "father", "Wniosek ojca o urlop macierzyński na czas pobytu mamy w szpitalu", "Gdy mama przerywa urlop, bo leży w szpitalu.", birth, "Pracodawca"],
+    ["lr.maternity_mother_death", "father", "Wniosek ojca o urlop macierzyński po śmierci mamy", "Tata przejmuje pozostałą część urlopu macierzyńskiego.", birth, "Pracodawca"],
+    ["lr.maternity_abandonment", "father", "Wniosek ojca o urlop macierzyński po porzuceniu dziecka przez matkę", "Tata przejmuje pozostałą część urlopu macierzyńskiego.", birth, "Pracodawca"],
+    ["lr.maternity_uninsured_mother_incapacity", "father", "Wniosek ojca o urlop macierzyński, gdy mama nie jest ubezpieczona i nie może opiekować się dzieckiem", "Mama bez ubezpieczenia ma orzeczenie o niezdolności do samodzielnej egzystencji.", birth, "Pracodawca"],
+    ["lr.maternity_uninsured_mother_works", "father", "Wniosek ojca o urlop macierzyński, gdy nieubezpieczona mama podejmuje pracę", "Mama bez tytułu do ubezpieczenia zaczyna pracę na co najmniej pół etatu.", afterMandatoryWeeks, "Pracodawca"],
+    ["lr.supplementary_maternity", "mother", "Wniosek o uzupełniający urlop macierzyński", "Gdy dziecko urodziło się przedwcześnie albo po porodzie długo było w szpitalu.", birth, "Pracodawca"],
+    ["lr.maternity_conditions", "mother", "Wniosek o urlop na warunkach urlopu macierzyńskiego", "Przy przyjęciu dziecka do adopcji albo do rodziny zastępczej niezawodowej.", birth, "Pracodawca"],
   ];
-  for (const [form, who, title, description, date, recipient, dateNote] of extras) {
-    // A request already on the plan for this family (e.g. combining work in the chosen variant) is not repeated.
+  const recentEvents = [...events].reverse();
+
+  for (const [form, who, title, description, date, recipient] of extras) {
     if (entries.some((entry) => entry.form === form)) continue;
-    entries.push({ id: `form-${form.slice(3)}`, kind: "application", who, title, description, date, recipient, dateNote, form, extra: true });
+    const trigger = recentEvents.find((event) => {
+      if (event.type === "adoption" && ["ff.zas26", "lr.maternity_conditions"].includes(form)) return true;
+      const forms: readonly string[] | undefined = event.circumstance && Object.hasOwn(CIRCUMSTANCES, event.circumstance)
+        ? CIRCUMSTANCES[event.circumstance].forms : undefined;
+      return event.type === "circumstance" && forms?.includes(form);
+    });
+    // Employer forms depend on the parent's recorded contract and who pays the benefit.
+    if (form.startsWith("lr.") && who !== "both" && parents[who].contract !== "uop") continue;
+    const payerDocument = (form === "ff.z3" && parents.mother.contract === "uop" ||
+      form === "ff.z3a" && parents.mother.contract === "zlec") && payerOfBenefit === "ZUS" && parents.mother.payer === "ZUS";
+    const paternityCertificate = form === "ff.zas15" && chosen?.input.paternity && parents.father.contract === "uop" && parents.father.payer === "ZUS";
+    if (!trigger && !payerDocument && !paternityCertificate) continue;
+    const extra = ["ff.z3", "ff.z3a", "ff.zas15", "ff.zas24", "ff.zas40", "ff.zas2"].includes(form);
+    entries.push({
+      id: `form-${form.slice(3)}${trigger ? `-${trigger.id}` : ""}`, kind: "application", who, title, description,
+      date: trigger?.date ?? date,
+      recipient, form, extra, trigger,
+    });
   }
 
   return applyProgress(entries, doneTasks, today, persona.completedSteps);
+}
+
+export function canConfirmDocument(id: string) {
+  return ["birth-card", "birth-certificate", "sick-ezla"].includes(id);
 }
 
 /** Statuses from what is done: blocked until required entries are done, late after the deadline, active while a period runs. */
@@ -206,7 +228,7 @@ export function applyProgress(entries: Entry[], doneTasks: string[], today: stri
   const completed = new Set(entries.filter((entry) =>
     entry.completedOn || (completedSteps[entry.id] && !entry.review) ||
     (entry.kind === "event" && !entry.estimated && entry.date <= today) ||
-    ((entry.kind === "application" || entry.id === "birth-certificate") && doneTasks.includes(entry.id))
+    ((entry.kind === "application" || canConfirmDocument(entry.id)) && doneTasks.includes(entry.id))
   ).map((entry) => entry.id));
   // Guide steps may require an entry that this case leaves out; only present entries can block.
   const present = new Set(entries.map((entry) => entry.id));

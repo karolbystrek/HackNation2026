@@ -1,6 +1,8 @@
 "use client";
 
-import { usePlanDraft } from "@/lib/plan-store";
+import { useRouter } from "next/navigation";
+import { readCustomLeave } from "@/lib/calc/variants";
+import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { LeaveLanes } from "@/components/leave-lanes";
 import { amountHint, amountPattern, CalculatorDetails, UrlCalculatorSteps } from "./calculator-steps";
 import { Button, Card, Checkbox, Field, RadioGroup, ResultSummary, WarningBox } from "@/components/ui";
@@ -22,20 +24,21 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   draftKey: string;
   event?: TimelineEvent;
 }) {
-  const { persona, params, names, chosen } = useFamily();
+  const router = useRouter();
+  const { persona, params, names, chosen, plan, fromGuide } = useFamily();
   const [form, setForm] = usePlanDraft(draftKey, {
     startDate: mode === "birth"
       ? (event?.type === "birth" ? event.date : persona.birthDate ?? persona.dueDate)
-      : event?.date ?? "2027-06-01",
-    kids: mode === "birth" ? persona.kids : 1,
-    zaZyciem: false,
-    adoptionType: "adoption" as LeaveInput["adoptionType"],
-    childBirthDate: event?.type === "adoption" ? "" : "2023-02-10",
+      : event?.date ?? (typeof plan.guideAnswers.placementDate === "string" && fromGuide ? plan.guideAnswers.placementDate : persona.dueDate),
+    kids: fromGuide || mode === "birth" ? persona.kids : 1,
+    zaZyciem: fromGuide && Array.isArray(plan.guideAnswers.special) && plan.guideAnswers.special.includes("zaZyciem"),
+    adoptionType: (fromGuide && plan.guideAnswers.situation === "foster" ? "foster" : "adoption") as LeaveInput["adoptionType"],
+    childBirthDate: "",
     schoolDeferred: false,
     main: (event?.type === "adoption" && event.who === "father" ? "father" : "mother") as ParentKey,
     otherWeeks: event?.type === "returnToWork" ? chosen?.result.otherWeeks ?? params.parentalOwnWeeks : params.parentalOwnWeeks,
     paternity: true,
-    flatRate: false,
+    flatRate: persona.wantsAveragedRate ?? false,
     workFractions: { mother: 0, father: 0 },
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
@@ -48,6 +51,8 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   };
   const r = planLeave(input, params);
   const adoption = mode === "adoption";
+  const customLeave = !adoption && r.start === (persona.birthDate ?? persona.dueDate) &&
+    !(fromGuide && plan.guideAnswers.placementDate) ? readCustomLeave(input) : undefined;
   const main = adoption ? form.main : "mother";
   const other = otherParent(main);
   const showPaternity = !adoption || form.adoptionType === "adoption";
@@ -226,6 +231,10 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             </div>
           ))}
         </CalculatorDetails>
+        {customLeave && <Button className="self-start" onClick={() => {
+          updatePlan((state) => ({ ...state, customLeave, chosenVariant: "custom" }));
+          router.push("/zadania");
+        }}>Zapisz podział urlopu w planie</Button>}
       </>
     } />
   );

@@ -1,17 +1,20 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { BackLink, Card, Chip, PageTitle } from "@/components/ui";
+import { Suspense, useState } from "react";
+import { BackLink, Button, Card, Chip, PageTitle } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import { PARENTS } from "@/lib/calc/leave";
 import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
+import { Disclosure } from "@/components/ui/disclosure";
 import { useFamily } from "@/lib/use-family";
 
 const returnPages = new Map([
   ["/plan", "Wróć do osi czasu"],
   ["/kalkulator", "Wróć do kalkulatora"],
+  ["/wnioski", "Wróć do wniosków"],
+  ["/swiadczenia", "Wróć do świadczeń"],
   ["/zadania", "Wróć do zadań"],
   ["/warianty", "Wróć do wariantów"],
   ["/dodaj", "Wróć do dodawania wydarzenia"],
@@ -22,14 +25,16 @@ export default function FamilyPage() {
 }
 
 function FamilyData() {
-  const { persona, params } = useFamily();
+  const { persona, fromGuide, params } = useFamily();
   const from = useSearchParams().get("z") ?? "";
   const returnLabel = returnPages.get(from.split("?")[0]);
+  const [question, setQuestion] = useState("insurance");
+  const [reply, setReply] = useState<string | null>(null);
 
   return (
     <main id="main-content" tabIndex={-1} className="page">
       <BackLink href={returnLabel ? from : "/plan"}>{returnLabel ?? "Wróć do osi czasu"}</BackLink>
-      <PageTitle lead={`Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`}>Wasze dane</PageTitle>
+      <PageTitle lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`}>Wasze dane</PageTitle>
       <Card>
         <h2 className="text-xl font-bold">Dane sprawy użyte na osi czasu</h2>
         <dl className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -82,11 +87,30 @@ function FamilyData() {
           );
         })}
       </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <a href="https://www.zus.pl/ezus/logowanie" target="_blank" rel="noreferrer" className="text-link font-bold">
-          Coś się nie zgadza? Zapytaj przez PUE/eZUS
-        </a>
-      </div>
+      <Disclosure className="border-y" label={<strong>Sprawdź stan składek w symulacji eZUS</strong>}>
+        <div className="grid gap-3 px-3 pb-4">
+          <p>Przykładowe zaświadczenie o zadłużeniu na dzień {formatDate(persona.birthDate ?? persona.dueDate)}.</p>
+          <dl>{PARENTS.map((key) => <div key={key} className="flex gap-2">
+            <dt>{persona.parents[key].name}</dt>
+            <dd>{!fromGuide && persona.parents[key].contributions.includes("brak zaległości") ? formatPln(0, 2) : "Brak danych w symulacji"}</dd>
+          </div>)}</dl>
+          <form className="flex flex-col items-start gap-2" onSubmit={(event) => {
+            event.preventDefault();
+            setReply(question === "insurance" ? "Ubezpieczenie każdego rodzica znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Zwolnienia każdego rodzica znajdziesz w sekcji „Zwolnienia e-ZLA”.");
+          }}>
+            <label className="grid gap-1 font-bold">O co chcesz zapytać w symulacji?
+              <select className="min-h-11 rounded-sm border border-input bg-background px-3 font-normal" value={question}
+                onChange={(event) => { setQuestion(event.target.value); setReply(null); }}>
+                <option value="insurance">Stan ubezpieczenia chorobowego</option>
+                <option value="e-zla">Zwolnienia lekarskie e-ZLA</option>
+              </select>
+            </label>
+            <Button type="submit" variant="outline">Sprawdź w symulacji</Button>
+            {reply && <p role="status">{reply}</p>}
+          </form>
+          <a href="https://www.zus.pl/ezus/logowanie" className="text-link">Otwórz oficjalny serwis eZUS</a>
+        </div>
+      </Disclosure>
     </main>
   );
 }

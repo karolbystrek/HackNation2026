@@ -138,10 +138,10 @@ function weeks(step: Step, a: Answers, params: Params) {
 }
 
 /** Timeline entries for the matched topics. Steps whose anchor date is not known yet are left out. */
-export function buildGuideTimeline(answers: Answers, params: Params, today: string): FamilyTimelineEntry[] {
+export function buildGuideTimeline(answers: Answers, params: Params, today: string, actualBirth?: string): FamilyTimelineEntry[] {
   const a = activeAnswers(answers);
   const anchors: Record<Anchor, string | undefined> = {
-    birth: (a.birthDate ?? a.dueDate) as string | undefined,
+    birth: (actualBirth ?? a.birthDate ?? a.dueDate) as string | undefined,
     placement: a.placementDate as string | undefined,
     today,
   };
@@ -156,11 +156,28 @@ export function buildGuideTimeline(answers: Answers, params: Params, today: stri
       const length = weeks(s, a, params);
       const due = s.dueDays === undefined ? undefined : shift(anchor, s.dueDays);
       const status = s.kind === "application" ? (due && due < today ? "late" : "ready") : "planned";
+      const insuredAsEmployee = Array.isArray(a.insurance) && a.insurance.includes("employment");
+      const form = ({
+        "sick-claim-zas53": "ff.zas53",
+        "after-insurance-claim": "ff.zas53",
+        "equivalent-claim": "ff.zas55",
+        "pre-birth-leave": "lr.maternity_pre_birth",
+        "maternity-claim": "ff.zam",
+        "averaged-rate": "ff.zam",
+        "supplementary-request": insuredAsEmployee ? "lr.supplementary_maternity" : "ff.zam",
+        "parental-request": insuredAsEmployee ? "lr.parental" : "ff.zam",
+        "paternity-request": insuredAsEmployee ? "lr.paternity" : "ff.zam",
+        "conditions-request": insuredAsEmployee ? "lr.maternity_conditions" : "ff.zam",
+        "stillbirth-claim": "ff.zam",
+        "combine-request": "lr.combine_parental_with_work",
+      } as Record<string, string>)[s.id];
       return [{
         id: s.id, kind: s.kind, who: s.who === "me" ? me : s.who, title: s.title, description: s.description,
         date, due, end: length ? shift(date, length * 7 - 1) : undefined,
-        estimated: s.anchor === "birth" && !a.birthDate, dateNote: s.dateNote,
-        recipient: s.recipient, guide: s.guide, requires: s.requires, status,
+        estimated: s.anchor === "birth" && !actualBirth && !a.birthDate, dateNote: s.dateNote,
+        recipient: form?.startsWith("lr.") ? "Pracodawca"
+          : form === "ff.zam" ? (insuredAsEmployee ? "Płatnik składek" : "ZUS") : s.recipient,
+        form, guide: s.guide, requires: s.requires, status,
       }];
     })
     .sort((x, y) => (x.due ?? x.date).localeCompare(y.due ?? y.date));

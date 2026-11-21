@@ -2,7 +2,7 @@
 
 // GOV.UK-style questionnaire: one question per page, then "check your answers", then the login simulation and the panel.
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { TermText } from "@/components/term-text";
 import { BackLink, Button, Checkbox, Field, PageTitle, RadioOption } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
@@ -74,13 +74,15 @@ export default function NewTimeline() {
       {previous
         ? <Button variant="link" className="self-start p-0 font-bold" onClick={() => setEditing({ id: previous.id, fromSummary: false })}><span aria-hidden="true">← </span>Wstecz</Button>
         : <BackLink href="/">Strona główna</BackLink>}
-      <QuestionForm key={question.id} question={question} answers={answers} onSave={save} />
+      <QuestionForm key={question.id} progress={`Pytanie ${index + 1}`} question={question} answers={answers} onSave={save} />
     </main>
   );
 }
 
-function QuestionForm({ question: q, answers, onSave }: { question: Question; answers: Answers; onSave: (v: Answer) => void }) {
-  const [value, setValue] = useState<Answer | undefined>(answers[q.id] ?? (q.type === "multi" ? [] : undefined));
+function QuestionForm({ question: q, answers, onSave, progress }: { question: Question; answers: Answers; onSave: (v: Answer) => void; progress: string }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { titleRef.current?.focus(); }, []);
+  const [value, setValue] = useState<Answer | undefined>(Array.isArray(answers[q.id]) && q.type !== "multi" ? undefined : answers[q.id] ?? (q.type === "multi" ? [] : undefined));
   const [error, setError] = useState<string | null>(null);
   const options = q.type === "boolean"
     ? [{ value: "true", label: "Tak" }, { value: "false", label: "Nie" }]
@@ -99,10 +101,12 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col items-start gap-5">
+      <p className="text-sm text-muted-foreground">{progress}</p>
+      <h1 ref={titleRef} tabIndex={-1} className={heading}>{plainText(q.label)}</h1>
       {q.type === "date" || q.type === "number" ? (
         <div className="flex w-full flex-col gap-2">
           <Field
-            label={<span className={heading}><TermText text={q.label} /></span>}
+            label={<span className="sr-only">{plainText(q.label)}</span>}
             hint={q.hint && <TermText text={q.hint} />}
             type={q.type}
             min={q.min}
@@ -117,7 +121,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
         </div>
       ) : (
         <fieldset className="w-full min-w-0" aria-describedby={error ? `${q.id}-error` : undefined}>
-          <legend className={`${heading} mb-2`}><TermText text={q.label} /></legend>
+          <legend className="sr-only">{plainText(q.label)}</legend>
           {q.hint && <p className="mb-3 text-muted-foreground"><TermText text={q.hint} /></p>}
           {errorText}
           <div className="mt-2 grid gap-2">
@@ -127,7 +131,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
                 const checked = list.includes(o.value);
                 const exclusive = new Set(options.filter((x) => x.exclusive).map((x) => x.value));
                 const ticked = o.exclusive ? [o.value] : [...list.filter((v) => !exclusive.has(v)), o.value];
-                return <Checkbox key={o.value} title={<TermText text={o.label} />} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />;
+                return <Checkbox key={o.value} title={plainText(o.label)} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />;
               })
               : options.map((o) => (
                 <RadioOption
@@ -136,7 +140,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
                   checked={String(value) === o.value}
                   onChange={() => setValue(q.type === "boolean" ? o.value === "true" : o.value)}
                 >
-                  <TermText text={o.label} />
+                  {plainText(o.label)}
                 </RadioOption>
               ))}
           </div>

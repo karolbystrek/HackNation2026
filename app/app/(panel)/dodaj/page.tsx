@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BackLink, Button, ButtonLink, Field, Notice, PageTitle, RadioGroup } from "@/components/ui";
-import { EVENT_TYPES, type EventType, type EventWho } from "@/lib/events";
+import { CIRCUMSTANCES, EVENT_TYPES, type Circumstance, type EventType, type EventWho } from "@/lib/events";
 import { formatPln, parseAmount } from "@/lib/format";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
@@ -11,25 +11,26 @@ import { useFamily } from "@/lib/use-family";
 export default function AddEvent() {
   const { names } = useFamily();
   const router = useRouter();
-  const initialDraft = { type: "contract" as EventType, selectedWho: "father" as EventWho, date: "", amount: "" };
+  const initialDraft = { type: "contract" as EventType, selectedWho: "father" as EventWho, date: "", amount: "", circumstance: "" as Circumstance | "" };
   const [draft, setDraft] = usePlanDraft("dodaj", initialDraft);
-  const { type, selectedWho, date, amount } = draft;
+  const { type, selectedWho, date, amount, circumstance } = draft;
   const [error, setError] = useState("");
-  const who = type === "sickLeave" ? "mother" : selectedWho;
+  const who = type === "sickLeave" ? "mother" : type === "circumstance" ? "both" : selectedWho;
   const def = EVENT_TYPES.find((t) => t.type === type)!;
 
   function add() {
+    if (type === "circumstance" && !circumstance) return;
     if (!date) {
       setError("Wybierzcie datę wydarzenia.");
       return;
     }
     const whoName = who === "both" ? "" : ` – ${names[who]}`;
-    const title = type === "salary" && amount ? `Zmiana pensji${whoName}: ${formatPln(parseAmount(amount))} brutto` : `${def.label}${whoName}`;
+    const title = type === "salary" && amount ? `Zmiana pensji${whoName}: ${formatPln(parseAmount(amount))} brutto` : type === "circumstance" && circumstance ? CIRCUMSTANCES[circumstance].label : `${def.label}${whoName}`;
     const id = crypto.randomUUID();
     updatePlan((s) => ({
       ...s,
       drafts: { ...s.drafts, dodaj: initialDraft },
-      events: [...s.events, { id, type, who, date, source: "new", title, description: def.effect, decision: type === "birth" }],
+      events: [...s.events, { id, type, who, date, circumstance: type === "circumstance" && circumstance ? circumstance : undefined, source: "new", title, description: def.effect, decision: type === "birth" }],
     }));
     router.replace(`/plan#timeline-event-${id}`);
   }
@@ -46,7 +47,18 @@ export default function AddEvent() {
         options={EVENT_TYPES.map((event) => [event.type, event.label])}
       />
 
-      {type !== "sickLeave" && (
+      {type === "circumstance" && (
+        <label className="flex flex-col gap-2">
+          <span className="font-bold">Która sytuacja Was dotyczy?</span>
+          <select className="min-h-11 rounded-sm border border-input bg-background px-3" value={circumstance ?? ""}
+            onChange={(event) => setDraft({ ...draft, circumstance: event.target.value as Circumstance | "" })}>
+            <option value="">Wybierz sytuację</option>
+            {Object.entries(CIRCUMSTANCES).map(([key, { label }]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+        </label>
+      )}
+
+      {type !== "sickLeave" && type !== "circumstance" && (
         <RadioGroup
           label="Kogo dotyczy?"
           value={who}
@@ -77,7 +89,7 @@ export default function AddEvent() {
       </Notice>
 
       <div className="flex flex-wrap gap-3">
-        <Button onClick={add} className="min-h-[52px]">
+        <Button disabled={type === "circumstance" && !circumstance} onClick={add} className="min-h-[52px]">
           Dodaj do osi czasu
         </Button>
         <ButtonLink href="/plan" variant="outline" className="min-h-[52px]">

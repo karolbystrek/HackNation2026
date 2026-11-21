@@ -23,7 +23,7 @@ export default function Applications() {
         <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
         {task.extra && <p className="text-muted-foreground">{task.description}</p>}
       </div>
-      <div className="shrink-0 sm:max-w-xs"><ApplicationAction task={task} submission={plan.submissions[task.id]} /></div>
+      <div className="shrink-0 sm:max-w-xs"><ApplicationAction origin="wnioski" task={task} submission={plan.submissions[task.id]} /></div>
     </li>
   );
 

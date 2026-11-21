@@ -43,6 +43,7 @@ export type Persona = {
   paternityStart: string;
   initialVariant?: VariantKey;
   wantsAveragedRate?: boolean;
+  zaZyciem?: boolean;
   completedSteps?: Record<string, string>;
   kids: number;
   parents: Record<ParentKey, ParentProfile>;

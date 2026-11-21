@@ -18,7 +18,7 @@ export type AnalyzedPeriod = CasePeriod & { days: number; rate: number; daily: n
 export type Comparison = { label: string; ours: string; zus: string; match: boolean };
 
 export type CaseAnalysis = {
-  eligible: boolean;
+  eligible: boolean | null;
   eligibility: string;
   basis: { months: number; value: number; floored: boolean; capped: boolean } | null;
   monthly: number | null;
@@ -35,15 +35,21 @@ const MATERNITY_KINDS: PeriodKind[] = ["maternity", "supplementary", "parental",
 /** Insured days in the sickness-insurance chain that covers `day`; breaks of up to `gap` days do not interrupt it. */
 function insuredDaysUntil(periods: CaseExtraction["sickInsurance"], day: Date, gap: number): number {
   const sorted = [...periods].sort((a, b) => a.from.localeCompare(b.from));
-  let chain: { start: Date; end: Date } | undefined;
+  let chain: { end: Date; days: number } | undefined;
   for (const p of sorted) {
     const from = parseIso(p.from)!;
-    const to = parseIso(p.to) ?? day;
+    const end = p.to === null ? day : parseIso(p.to);
     if (from > day) break;
-    if (!chain || diffDays(chain.end, from) > gap + 1) chain = { start: from, end: to };
-    else if (to > chain.end) chain.end = to;
+    if (!end || end < from) continue;
+    const to = end > day ? day : end;
+    if (!chain || diffDays(chain.end, from) > gap + 1) {
+      chain = { end: to, days: diffDays(from, to) + 1 };
+    } else if (to > chain.end) {
+      chain.days += Math.min(diffDays(chain.end, to), diffDays(from, to) + 1);
+      chain.end = to;
+    }
   }
-  return chain && chain.end >= day ? diffDays(chain.start, day) : 0;
+  return chain && chain.end >= day ? chain.days - 1 : 0;
 }
 
 function rateFor(kind: PeriodKind, c: CaseExtraction, p: Params): number {
@@ -79,29 +85,42 @@ export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
   const start = c.benefit === "sickness_pregnancy"
     ? requested.find((r) => r.kind === "sickness")?.from ?? c.event.date
     : c.benefit === "equal_maternity"
-      ? c.insuranceEnd.date && toIso(addDays(parseIso(c.insuranceEnd.date)!, 1))
+      ? parseIso(c.insuranceEnd.date) && toIso(addDays(parseIso(c.insuranceEnd.date)!, 1))
       // The right arises when this person's benefit starts (birth for the mother, later for a father's parental leave).
       : [...requested].sort((a, b) => a.from.localeCompare(b.from))[0]?.from ?? c.event.date;
   const day = parseIso(start);
 
   // Insurance on the day the right arises.
-  let eligible = false;
+  let eligible: boolean | null = false;
   let eligibility: string;
-  const voluntary = c.sickInsurance.some((s) => s.voluntary);
-  if (!day) {
+  const coveredPeriods = c.sickInsurance.filter((s) => start && s.from <= start && (s.to === null || (parseIso(s.to) && s.to >= start)));
+  if (c.benefit === "other") {
+    eligible = null;
+    eligibility = "Wybierz obsługiwany rodzaj zasiłku.";
+  } else if (!day) {
+    eligible = null;
     eligibility = "Brak daty zdarzenia, nie można sprawdzić ubezpieczenia.";
   } else if (c.benefit === "equal_maternity") {
     eligible = c.insuranceEnd.reason === "employer_insolvency";
     eligibility = eligible
       ? `Umowa ustała ${formatDate(c.insuranceEnd.date)} z powodu upadłości, likwidacji lub śmierci pracodawcy: zasiłek w wysokości macierzyńskiego do dnia porodu.`
       : "Zasiłek w wysokości macierzyńskiego przysługuje tylko, gdy umowa ustała z powodu upadłości, likwidacji lub śmierci pracodawcy.";
+  } else if (c.benefit === "maternity" && c.claimant === "mother" && c.contract === "uop" &&
+    c.insuranceEnd.reason === "unlawful_dismissal" && c.event.kind === "birth" &&
+    c.event.date && parseIso(c.event.date) && c.insuranceEnd.date && parseIso(c.insuranceEnd.date) &&
+    c.insuranceEnd.date < c.event.date && toIso(day) >= c.event.date) {
+    eligible = true;
+    eligibility = "Zasiłek macierzyński po urodzeniu dziecka przysługuje przy rozwiązaniu umowy w ciąży z naruszeniem prawa potwierdzonym prawomocnym wyrokiem (art. 30 ust. 1 pkt 2).";
   } else {
     const insuredDays = insuredDaysUntil(c.sickInsurance, day, 30);
-    const covered = insuredDays > 0 || c.sickInsurance.some((s) => s.from <= start! && (s.to === null || s.to >= start!));
-    if (!covered) {
+    const covered = coveredPeriods.length > 0;
+    if (!covered && c.uncertain.some((key) => key.startsWith("sickInsurance"))) {
+      eligible = null;
+      eligibility = "Odczyt okresów ubezpieczenia jest niepewny. Sprawdź dokument i uzupełnij okresy.";
+    } else if (!covered) {
       eligibility = `W dniu ${formatDate(start)} osoba nie podlegała ubezpieczeniu chorobowemu, więc zasiłek nie przysługuje.`;
     } else if (c.benefit === "sickness_pregnancy") {
-      const waiting = voluntary ? 90 : 30;
+      const waiting = coveredPeriods.some((s) => !s.voluntary) ? p.waitingDays.uop : p.waitingDays.jdg;
       eligible = insuredDays >= waiting;
       eligibility = eligible
         ? `Ubezpieczenie chorobowe w dniu ${formatDate(start)}, okres wyczekiwania ${waiting} dni spełniony (${insuredDays} dni).`
@@ -116,7 +135,7 @@ export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
   // Benefit basis: the 12 calendar months before the month the right arises.
   let basis: CaseAnalysis["basis"] = null;
   const eventMonth = start?.slice(0, 7);
-  const months = c.basisMonths.filter((m) => !eventMonth || m.month < eventMonth).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
+  const months = c.basisMonths.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m.month) && m.amount > 0 && (!eventMonth || m.month < eventMonth)).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
   if (months.length) {
     const capped = c.contract === "jdg" && months.some((m) => m.amount > p.maxVoluntaryBasis);
     const amounts = months.map((m) => (c.contract === "jdg" ? Math.min(m.amount, p.maxVoluntaryBasis) : m.amount));
@@ -129,7 +148,7 @@ export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
   }
 
   // Periods and amounts.
-  const periods: AnalyzedPeriod[] = requested.map((r) => {
+  const periods: AnalyzedPeriod[] = (eligible === null ? [] : requested).map((r) => {
     const rate = rateFor(r.kind, c, p);
     const n = days(r);
     let daily = basis ? round2((basis.value * rate) / 30) : 0;
@@ -154,18 +173,18 @@ export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
   }
 
   const mainRate = periods[0]?.rate ?? (c.benefit === "sickness_pregnancy" ? p.rates.full : null);
-  const monthly = basis && mainRate !== null ? round2(Math.max(basis.value * mainRate, MATERNITY_KINDS.includes(periods[0]?.kind ?? "sickness") ? p.parentalAllowanceMonthly : 0)) : null;
+  const monthly = eligible && basis && mainRate !== null ? round2(Math.max(basis.value * mainRate, MATERNITY_KINDS.includes(periods[0]?.kind ?? "sickness") ? p.parentalAllowanceMonthly : 0)) : null;
   const total = round2(periods.reduce((sum, x) => sum + x.total, 0));
 
   return { eligible, eligibility, basis, monthly, periods, total, notes, comparison: compare(c, eligible, basis?.value ?? null, monthly, mainRate, periods) };
 }
 
-function compare(c: CaseExtraction, eligible: boolean, basis: number | null, monthly: number | null, rate: number | null, periods: AnalyzedPeriod[]): Comparison[] {
+function compare(c: CaseExtraction, eligible: boolean | null, basis: number | null, monthly: number | null, rate: number | null, periods: AnalyzedPeriod[]): Comparison[] {
   const d = c.decision;
   if (!d.present) return [];
   const rows: Comparison[] = [];
   const yes = (x: boolean) => (x ? "przysługuje" : "nie przysługuje");
-  if (d.granted !== null) rows.push({ label: "Prawo do zasiłku", ours: yes(eligible), zus: yes(d.granted), match: eligible === d.granted });
+  if (d.granted !== null && eligible !== null) rows.push({ label: "Prawo do zasiłku", ours: yes(eligible), zus: yes(d.granted), match: eligible === d.granted });
   if (d.basis !== null && basis !== null) rows.push({ label: "Podstawa wymiaru", ours: formatPln(basis, 2), zus: formatPln(d.basis, 2), match: Math.abs(basis - d.basis) < 1 });
   if (d.ratePercent !== null && rate !== null) rows.push({ label: "Stawka", ours: `${round2(rate * 100)}%`, zus: `${d.ratePercent}%`, match: Math.abs(rate * 100 - d.ratePercent) < 0.1 });
   if (d.monthlyAmount !== null && monthly !== null) rows.push({ label: "Kwota miesięczna", ours: formatPln(monthly, 2), zus: formatPln(d.monthlyAmount, 2), match: Math.abs(monthly - d.monthlyAmount) < 1 });

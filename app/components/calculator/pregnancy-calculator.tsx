@@ -54,6 +54,9 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
       content: (
         <>
           <Field required label="Zwolnienie (kod B) od" type="date" value={form.sickLeaveFrom} onChange={(e) => set("sickLeaveFrom", e.target.value)} />
+          {!form.employerInsolvent && <Field label="Zwolnienie ważne do (włącznie)" type="date" min={form.sickLeaveFrom}
+            hint="Pozostaw puste, aby oszacować ciągłe zwolnienie do porodu."
+            value={form.sickLeaveThrough ?? ""} onChange={(e) => set("sickLeaveThrough", e.target.value)} />}
           <Field required label="Termin porodu" type="date" min={sickLeave ? toIso(addDays(sickLeave, 1)) : undefined}
             hint="Po dacie rozpoczęcia zwolnienia" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
         </>

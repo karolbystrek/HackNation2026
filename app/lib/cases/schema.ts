@@ -27,7 +27,7 @@ export type CaseExtraction = {
   requested: CasePeriod[];
   fullLeaveDeclaration: boolean;
   sickInsurance: { from: string; to: string | null; voluntary: boolean }[];
-  insuranceEnd: { date: string | null; reason: "none" | "employer_insolvency" | "other" };
+  insuranceEnd: { date: string | null; reason: "none" | "employer_insolvency" | "unlawful_dismissal" | "other" };
   debtOnDate: boolean | null;
   /** Monthly gross pay (employees, contractors) or declared contribution base (self-employed). */
   basisMonths: { month: string; amount: number }[];
@@ -102,7 +102,7 @@ export const caseExtractionSchema = {
       type: "object",
       properties: {
         date: nullableDate,
-        reason: { type: "string", enum: ["none", "employer_insolvency", "other"], description: "employer_insolvency = upadłość, likwidacja albo śmierć pracodawcy" },
+        reason: { type: "string", enum: ["none", "employer_insolvency", "unlawful_dismissal", "other"], description: "employer_insolvency = upadłość, likwidacja albo śmierć pracodawcy; unlawful_dismissal = rozwiązanie stosunku pracy w ciąży z naruszeniem prawa potwierdzonym prawomocnym wyrokiem" },
       },
       required: ["date", "reason"],
     },

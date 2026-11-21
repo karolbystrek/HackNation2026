@@ -1,3 +1,4 @@
+import { GUIDE_ID } from "@/lib/guide/persona";
 import { otherParent } from "@/lib/calc/leave";
 import { addDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
@@ -19,7 +20,8 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   const { persona, parent, chosen, params, taskId } = ctx;
   const me = persona.parents[parent];
   const other = persona.parents[otherParent(parent)];
-  const fullName = `${me.name} ${me.lastName}`;
+  const guide = persona.id === GUIDE_ID;
+  const fullName = guide ? "" : `${me.name} ${me.lastName}`;
   const period = (who: typeof parent, kind: "maternity" | "parental"): DateRange | undefined => {
     const found = chosen?.result.periods[who].find((p) => p.kind === kind);
     return found && { from: found.from, to: toIso(addDays(parseIso(found.to)!, -1)) };
@@ -30,9 +32,9 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   const isParental = taskId.startsWith("parental-");
   const birth = persona.birthDate ?? persona.dueDate;
   const shift = (date: string, days: number) => toIso(addDays(parseIso(date)!, days));
-  const maternity = period("mother", "maternity") ?? { from: birth, to: shift(birth, params.maternityWeeks[persona.kids - 1] * 7 - 1) };
+  const maternity = period("mother", "maternity") ?? { from: birth, to: shift(birth, params.maternityWeeks[Math.min(persona.kids, params.maternityWeeks.length) - 1] * 7 - 1) };
   const child = { name: `${persona.childName ?? "Dziecko"} ${persona.parents.father.lastName}`, birthDate: birth, birthPlace: persona.birthPlace ?? "" };
-  const payerText = `${me.payerName}, NIP ${me.payerNip}`;
+  const payerText = guide ? "" : `${me.payerName}, NIP ${me.payerNip}`;
   // Twelve calendar months before the birth month, oldest first, matching monthlyGross.
   const months = me.monthlyGross.map((gross, i) => {
     const d = parseIso(birth)!;
@@ -46,7 +48,7 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
 
   const known: FormValues = {
     insured_pesel: me.pesel,
-    insured_first_name: me.name,
+    insured_first_name: guide ? "" : me.name,
     insured_last_name: me.lastName,
     insured_address: me.address,
     insured_phone: me.phone,
@@ -56,25 +58,26 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     payer_data: payerText,
     payer_ids: payerText,
     former_payer: payerText,
-    other_parent: { name: `${other.name} ${other.lastName}`, pesel: other.pesel },
+    other_parent: { name: guide ? "" : `${other.name} ${other.lastName}`, pesel: other.pesel },
     request_kind: "pierwszorazowy",
     bank_account: me.bankAccount,
     employee_name: fullName,
-    basis: "1_urodzenie",
+    basis: ctx.guideAnswers.situation === "foster" ? "1_rodzina_zastepcza"
+      : ctx.guideAnswers.situation === "adoption" ? "1_przysposobienie" : "1_urodzenie",
     self_employed_sickness_insured: me.contract === "jdg",
-    children: persona.birthDate
+    children: persona.birthDate && !ctx.guideAnswers.placementDate
       ? Array.from({ length: persona.kids }, () => ({ name: persona.childName ?? "", birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "" }))
       : [],
-    other_parent_data: { name: `${other.name} ${other.lastName}`, pesel: other.pesel },
+    other_parent_data: { name: guide ? "" : `${other.name} ${other.lastName}`, pesel: other.pesel },
     used_so_far: parent === "mother" ? "Nie korzystałam dotąd z urlopu rodzicielskiego." : "Nie korzystałem dotąd z urlopu rodzicielskiego.",
     period_relation: "w_okresie_ubezpieczenia",
     period_and_certificate: sickLeave ? { from: sickLeave.date, to: sickLeave.endDate ?? "" } : { from: "", to: "" },
   };
-  if (taskId === "maternity-claim") {
+  if (["maternity-claim", "averaged-rate", "stillbirth-claim", "conditions-request"].includes(taskId)) {
     known.scope_maternity = true;
     known.full_leave_declaration = !!persona.wantsAveragedRate;
   }
-  if (taskId === "paternity") {
+  if (taskId === "paternity" || taskId === "paternity-request") {
     known.period = paternity;
     known.scope_paternity = paternity;
     known.scope_paternity_part_no = "1";
@@ -147,7 +150,17 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
       applicant: { name: fullName, pesel: me.pesel }, applicant_address: me.address, legal_interest: "rodzic", delivery: "usc",
     },
   };
-  Object.assign(known, extra[spec.id]);
+  if ((!guide && !ctx.trigger) || spec.id === "civil.birth_certificate") Object.assign(known, extra[spec.id]);
+  if (ctx.trigger) {
+    const { date, circumstance } = ctx.trigger;
+    if (spec.id === "lr.maternity_pre_birth") known.start_date = date;
+    if (spec.id === "lr.maternity_resign_14w" || spec.id === "lr.maternity_resign_incapacity") known.return_date = date;
+    if (spec.id === "lr.maternity_mother_death") known.death_date = date;
+    if (spec.id === "lr.maternity_abandonment") known.abandonment_date = date;
+    if (spec.id === "ff.zas33") known.event = circumstance === "motherDeath" ? "smierc_matki" : "porzucenie";
+    if (spec.id === "ff.zas26") known.intake_date = date;
+    if (spec.id === "ff.zas55") known.maternity_equivalent_from = date;
+  }
 
   return Object.fromEntries(spec.fields.map((field) => [field.key, known[field.key] ?? empty(field)]));
 }

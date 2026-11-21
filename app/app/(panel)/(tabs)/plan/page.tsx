@@ -7,7 +7,7 @@ import { attentionEntries } from "@/lib/timeline-view";
 import { useFamily } from "@/lib/use-family";
 
 export default function Timeline() {
-  const { persona, fromGuide, chosen, names, entries, today } = useFamily();
+  const { persona, plan, fromGuide, chosen, names, entries, today } = useFamily();
   const attention = attentionEntries(entries, today);
 
   return (
@@ -24,13 +24,18 @@ export default function Timeline() {
         </PageTitle>
         {fromGuide
           ? <ButtonLink href="/nowa-os" variant="link">Zmień odpowiedzi</ButtonLink>
-          : <ButtonLink href="/dodaj" variant="link">Dodaj wydarzenie</ButtonLink>}
+          : null}
+        <ButtonLink href="/dodaj" variant="link">Dodaj wydarzenie</ButtonLink>
       </div>
 
       <FamilyTimeline profileEvents={fromGuide ? [] : persona.events} entries={entries} names={names} today={today} actions={<>
         <ButtonLink href="/zadania" variant={attention.length > 0 ? "primary" : "outline"}>Lista zadań</ButtonLink>
-        {!fromGuide && <ButtonLink href="/warianty" variant={attention.length > 0 || chosen ? "link" : "primary"}>
+        {(!fromGuide || plan.customLeave) && <ButtonLink href="/warianty" variant={attention.length > 0 || chosen ? "link" : "primary"}>
           {chosen ? "Porównaj warianty urlopu" : "Zaplanuj podział urlopu"}
+        </ButtonLink>}
+        {fromGuide && !plan.customLeave && <ButtonLink
+          href={`/kalkulator?tryb=${plan.guideAnswers.placementDate ? "adoption" : "birth"}`} variant="outline">
+          Oblicz zasiłek i porównaj podział urlopu
         </ButtonLink>}
       </>} />
     </main>
