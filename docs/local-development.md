@@ -39,3 +39,12 @@ run `make dev` to resume hot reload.
 - Database: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
 See [Supabase guidance](supabase.md) for configuration and migrations.
+
+Run occasional CLI commands directly. For example, from the repository root:
+
+```sh
+npm exec --prefix app --no -- shadcn add input --cwd app
+```
+
+The shadcn CLI runs on the host and updates `app/package.json` and its lockfile.
+After adding components, use `make up` to rebuild the app container with the new dependencies.

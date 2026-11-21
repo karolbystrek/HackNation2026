@@ -16,6 +16,7 @@ We have a few hours, not weeks.
 
 - Next.js 16 App Router with `cacheComponents` enabled. Its APIs differ from older Next versions: before using an API you are not sure about, read the bundled docs in `app/node_modules/next/dist/docs/`.
 - Tailwind CSS 4, React 19, TypeScript.
+- UI component choice: shadcn/ui with a ZUS-inspired light theme. Initialized in `app/components.json` with Base UI (base-nova), Lucide icons and shared CSS variables; add components as screens need them. Follow the `polish-public-ui` skill in `.agents/skills/` for design tokens and interaction guidance.
 - Backend = Next.js Route Handlers in `app/app/api/*` exposing REST (the challenge recommends REST). Benefit calculation logic lives in plain functions in `app/lib/`.
 - Supabase for data (admin parameters, saved cases): `@supabase/supabase-js` + `@supabase/ssr`, SQL migrations in `supabase/migrations/`, keys in `app/.env.local` (never commit it).
 - Everything external is simulated: mObywatel login, ZUS data download, contribution debt, e-ZLA, PUE/eZUS, submitting applications. Use mocks/fixtures, no real integrations.
