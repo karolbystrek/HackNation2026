@@ -51,10 +51,19 @@ export async function extractCase(bytes: Uint8Array): Promise<{ extraction: Case
   if (!apiKey) throw new ExtractionUnavailable("Odczyt dokumentów jest teraz niedostępny. Spróbuj później."); // GEMINI_API_KEY is unset
   const ai = new GoogleGenAI({ apiKey });
   // shortcut: inline PDF only (ZUS sample files are at most ~7 MB); use the Files API for files above 20 MB.
-  const response = await ai.models.generateContent({
+  const instructions = await prompt();
+  const data = Buffer.from(bytes).toString("base64");
+  const generate = () => ai.models.generateContent({
     model: MODEL,
-    contents: [{ role: "user", parts: [{ inlineData: { mimeType: "application/pdf", data: Buffer.from(bytes).toString("base64") } }, { text: await prompt() }] }],
+    contents: [{ role: "user", parts: [{ inlineData: { mimeType: "application/pdf", data } }, { text: instructions }] }],
     config: { responseMimeType: "application/json", responseJsonSchema: caseExtractionSchema, temperature: 0 },
+  });
+  const response = await generate().catch((error: unknown) => {
+    // The PDF has not been sent if opening the connection timed out.
+    if (error instanceof TypeError && (error.cause as { code?: string } | undefined)?.code === "UND_ERR_CONNECT_TIMEOUT") {
+      return generate();
+    }
+    throw error;
   });
   const extraction: unknown = JSON.parse(response.text ?? "null");
   assertExtraction(extraction);
