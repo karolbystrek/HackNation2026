@@ -76,7 +76,7 @@ function statutoryWeeks(kind: PeriodKind, c: CaseExtraction, p: Params): number 
 }
 
 /** Deterministic check of a case read from a ZUS file: insurance, benefit basis, periods, amounts and the ZUS decision. */
-export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
+export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: number): CaseAnalysis {
   const notes: string[] = [];
   // Rows the user is still typing in are skipped until both dates are valid.
   const complete = (x: CasePeriod) => !!parseIso(x.from) && !!parseIso(x.to) && x.from <= x.to;
@@ -136,7 +136,9 @@ export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
   let basis: CaseAnalysis["basis"] = null;
   const eventMonth = start?.slice(0, 7);
   const months = c.basisMonths.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m.month) && m.amount > 0 && (!eventMonth || m.month < eventMonth)).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
-  if (months.length) {
+  if (individualBasis !== undefined && Number.isFinite(individualBasis) && individualBasis > 0) {
+    basis = { months: 0, value: individualBasis, floored: false, capped: false };
+  } else if (months.length) {
     const capped = c.contract === "jdg" && months.some((m) => m.amount > p.maxVoluntaryBasis);
     const amounts = months.map((m) => (c.contract === "jdg" ? Math.min(m.amount, p.maxVoluntaryBasis) : m.amount));
     const r = computeBasis(amounts, p, c.contract === "uop" ? "uop" : c.contract === "jdg" ? "jdg" : "zlec");

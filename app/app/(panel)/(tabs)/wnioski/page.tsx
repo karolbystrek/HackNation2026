@@ -39,7 +39,7 @@ export default function Applications() {
         <div>
           <h2 id="teczka" className="text-2xl font-bold">Sprawdź swoje dokumenty z ZUS</h2>
           <p className="max-w-[70ch] text-muted-foreground">
-            Wgraj skan, a sprawdzimy, czy zasiłek Ci przysługuje, ile wynosi i czy zgadza się z decyzją ZUS. Dokumenty odczytuje sztuczna inteligencja, więc pod wynikiem możesz poprawić odczytane dane.
+            Wgraj PDF lub wpisz dane ręcznie. Kalkulator pokaże, czy zasiłek przysługuje i ile może wynieść.
           </p>
         </div>
         <CaseCheck params={params} />
