@@ -1,35 +1,23 @@
-# Supabase configuration and database changes
+# Supabase
 
-Read this when changing authentication, environment configuration, migrations
-or database access. See [local development](local-development.md) for commands
-and service endpoints.
+The CLI manages PostgreSQL, Auth, the Data API, Studio and the email inbox.
+Unused services are disabled in `supabase/config.toml`; restart after changing it.
+Email confirmation is disabled locally. OAuth providers require configuration.
 
-## Configuration and clients
+Browser clients use `NEXT_PUBLIC_SUPABASE_URL`. Docker server code uses
+`SUPABASE_INTERNAL_URL` to reach the same API through `host.docker.internal`.
+Both clients share a cookie name. There is no local auth bypass.
 
-The browser uses the local API URL. Inside Docker, server code uses
-`SUPABASE_INTERNAL_URL=http://host.docker.internal:54321`. The Supabase clients
-share an explicit cookie name so both hosts use the same session. Keep local
-and hosted code paths aligned; there is no local auth bypass or separate
-direct-PostgreSQL code path.
+The Makefile exports only the local API URL and publishable key. Host
+`app/.env*` files are excluded from Docker builds and sync; Vercel configuration
+is separate. Never commit credentials or expose secret/service-role keys in
+`NEXT_PUBLIC_*` variables.
 
-Host `app/.env*`, `node_modules` and `.next` are excluded from image builds and
-file sync. Compose injects the CLI-generated `.env.supabase.local`, which
-contains only the local API URL and publishable key. Hosted Supabase settings
-in `app/.env.local` or Vercel are not overwritten.
-Never expose secret API keys, service-role keys or database passwords through
-`NEXT_PUBLIC_*`. Do not commit local environment files or CLI state.
+Create SQL migrations with `npx supabase migration new <name>` under
+`supabase/migrations/`. Enable RLS and appropriate policies on exposed tables.
+Generate database types when adding the application schema.
+`make down`, `make restart` and `make clean` preserve database data;
+`supabase stop --no-backup` and database resets delete it.
 
-Client entry points and session behavior are described in
-[the application README](../app/README.md#supabase-clients).
-
-## Schema changes and data
-
-Create migrations with `npx supabase migration new <name>` and commit SQL under
-`supabase/migrations/`. Enable RLS with appropriate policies on exposed tables;
-authentication alone does not authorize data access. Generate database types
-when introducing or changing the application schema.
-
-Use `npx supabase <command> --help` before unfamiliar CLI operations. Local
-development does not require `supabase link` or a cloud database reset.
-Avoid `supabase stop --no-backup` and database resets unless deletion is intended.
-`make down`, `make restart` and `make clean` preserve database data.
+See [local commands](local-development.md) and
+[client entry points](../app/README.md#supabase-clients).

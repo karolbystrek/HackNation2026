@@ -7,6 +7,7 @@ project. Load the `zus-domena` skill before changing benefit logic, forms or sco
 
 - Run project commands from the repository root through the [Makefile](Makefile).
   `make help` lists the interface; use `make setup` and `make dev` to get started.
+  Keep simple local orchestration there instead of adding wrapper scripts.
 - Next.js source and its npm lockfile live in `app/`. Root npm files pin the
   Supabase CLI. Docker Compose manages Next.js; the CLI manages local Supabase.
 - Read the relevant guidance below before working in that area. Read

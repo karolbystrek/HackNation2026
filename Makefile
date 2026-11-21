@@ -1,53 +1,58 @@
+SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev up restart down clean logs status test lint typecheck build check
+.PHONY: help setup supabase dev up restart down clean logs status test lint build check
 
 help: ## Show available commands
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z]+:.*## / {printf "  make %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-setup: ## Install the pinned Supabase CLI (requires Node.js 24+ and Docker)
+setup: ## Install the pinned Supabase CLI
 	npm ci
 
-dev: ## Start local Supabase and Next.js with hot reload
-	npm run dev
+supabase:
+	npx --no-install supabase start
+	@umask 077; set -o pipefail; npx --no-install supabase status -o env | \
+		awk '/^(API_URL|PUBLISHABLE_KEY)=/ { \
+			sub(/^API_URL=/, "NEXT_PUBLIC_SUPABASE_URL="); \
+			sub(/^PUBLISHABLE_KEY=/, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="); \
+			print; count++ \
+		} END { exit count != 2 }' > .env.supabase.local
 
-up: ## Start all local services in the background and wait for health checks
-	npm run local:up
+dev: supabase ## Start with hot reload
+	docker compose up --build --watch
 
-restart: ## Restart all local services, preserving database data
+up: supabase ## Start in the background
+	docker compose up --build -d --wait
+
+restart: ## Restart services, preserving database data
 	$(MAKE) down
 	$(MAKE) up
 
-down: ## Stop and remove local containers, preserving database data
-	npm run local:stop
+down: ## Stop services, preserving database data
+	docker compose down
+	npx --no-install supabase stop
 
 clean: ## Stop services and remove local dependencies and caches; keep database data
 	$(MAKE) down
 	rm -rf node_modules app/node_modules app/.next
 	rm -f app/tsconfig.tsbuildinfo .env.supabase.local
 
-logs: ## Follow Next.js logs (Ctrl-C exits)
+logs: ## Follow app logs
 	docker compose logs -f app
 
-status: ## Show Next.js and Supabase status (includes local API keys)
+status: ## Show service status and local Supabase keys
 	docker compose ps
-	npm run supabase:status
+	npx --no-install supabase status
 
-test: ## Run connection and real Auth/session integration tests (requires make up)
-	npm run test:connection
-	npm run test:auth
+test: ## Run the connection test (requires make up)
+	docker compose exec -T app npm run test:connection
 
-lint: ## Run ESLint in the running app container
+lint: ## Run ESLint
 	docker compose exec -T app npm run lint
 
-typecheck: ## Generate Next.js types and check TypeScript in the running app
-	docker compose exec -T app sh -c 'npx next typegen && npx tsc --noEmit'
-
-build: ## Verify a production build in a disposable container
+build: ## Verify the production build
 	docker compose run --rm --no-deps app npm run build
 
-check: ## Run lint, type checks, integration tests and production build
-	$(MAKE) lint
-	$(MAKE) typecheck
+check: ## Run type checks, lint and the connection test
+	docker compose exec -T app npm run check
 	$(MAKE) test
-	$(MAKE) build

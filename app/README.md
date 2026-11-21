@@ -25,12 +25,6 @@ Local Docker server code uses `SUPABASE_INTERNAL_URL` to reach the host's Supaba
 
 `GET /api/health` checks Supabase Auth using the public API key. It returns 200 when connected and 503 on missing configuration, rejected credentials, timeout or upstream failure. Responses are never cached and contain no upstream details.
 
-## Hosted Supabase development outside Docker
-
-From this directory, install dependencies and copy `.env.example` to `.env.local`.
-Fill in the hosted project URL and publishable key from Supabase, then run `npm run dev`.
-The root local workflow does not modify this file or Vercel settings.
-
 Only public configuration belongs in `NEXT_PUBLIC_*` variables. Never put secret API keys, service-role keys or database passwords there. Commit schema changes as migrations under the root `supabase/migrations/`, enable RLS on exposed tables, and generate database types after introducing the application schema.
 
 Setup follows the [Supabase local development guide](https://supabase.com/docs/guides/local-development) and [Next.js SSR guide](https://supabase.com/docs/guides/auth/server-side/nextjs).
