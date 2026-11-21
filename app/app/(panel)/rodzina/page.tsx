@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { BackLink, Button, Card, Chip, PageTitle } from "@/components/ui";
+import { BackLink, Button, Card, Chip, PageBand } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import { PARENTS } from "@/lib/calc/leave";
 import { formatDate } from "@/lib/dates";
@@ -32,9 +32,10 @@ function FamilyData() {
   const [reply, setReply] = useState<string | null>(null);
 
   return (
-    <main id="main-content" tabIndex={-1} className="page">
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <PageBand crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Wasze dane"]]} title="Wasze dane" lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`} />
+      <div className="page">
       <BackLink href={returnLabel ? from : "/plan"}>{returnLabel ?? "Wróć do osi czasu"}</BackLink>
-      <PageTitle lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`}>Wasze dane</PageTitle>
       <Card>
         <h2 className="text-xl font-bold">Dane sprawy użyte na osi czasu</h2>
         <dl className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -111,6 +112,7 @@ function FamilyData() {
           <a href="https://www.zus.pl/ezus/logowanie" className="text-link">Otwórz oficjalny serwis eZUS</a>
         </div>
       </Disclosure>
+    </div>
     </main>
   );
 }

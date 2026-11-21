@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { CalculatorSteps } from "@/components/calculator/calculator-steps";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
-import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageTitle, RadioGroup, WarningBox } from "@/components/ui";
+import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageBand, RadioGroup, WarningBox } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { prefill } from "@/lib/forms/prefill";
@@ -26,6 +26,7 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   const origin = useSearchParams().get("z");
   const returnHref = origin === "wnioski" ? "/wnioski" : origin === "zadania" ? "/zadania" : `/plan#timeline-${taskId}`;
   const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : origin === "zadania" ? "Wróć do zadań" : "Wróć do planu";
+  const parentCrumb: [string, string] = origin === "wnioski" ? ["Wnioski", "/wnioski"] : origin === "zadania" ? ["Do zrobienia", "/zadania"] : ["Oś czasu", "/plan"];
   const { persona, plan, params, today } = useFamily();
   const found = useMemo(
     () => formContext(persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave),
@@ -34,9 +35,9 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
 
   if (!found) {
     return (
-      <main id="main-content" tabIndex={-1} className="page">
-        <BackLink href={returnHref}>{returnLabel}</BackLink>
-        <PageTitle lead="Ten krok planu nie ma wniosku do wypełnienia.">Nie znaleziono wniosku</PageTitle>
+      <main id="main-content" tabIndex={-1} className="flex flex-col">
+        <PageBand crumbs={[["Strona główna", "/"], parentCrumb, ["Wniosek"]]} title="Nie znaleziono wniosku" lead="Ten krok planu nie ma wniosku do wypełnienia." />
+        <div className="page"><BackLink href={returnHref}>{returnLabel}</BackLink></div>
       </main>
     );
   }
@@ -44,20 +45,22 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   const spec = specs[found.entry.form!];
   const submission = plan.submissions[taskId];
   return (
-    <main id="main-content" tabIndex={-1} className="page">
-      <BackLink href={returnHref}>{returnLabel}</BackLink>
-      <PageTitle lead={
-        <>
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <PageBand
+        crumbs={[["Strona główna", "/"], parentCrumb, [found.entry.title]]}
+        title={found.entry.title}
+        lead={<>
           <span className="block">Formularz: {spec.title}</span>
           <span className="block">Adresat: {found.ctx.recipientName}</span>
-          {!submission && <span className="mt-2 block">Sprawdź dane przeniesione do formularza z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
-        </>
-      }>
-        {found.entry.title}
-      </PageTitle>
+          {!submission && <span className="mt-2 block text-base">Sprawdź dane przeniesione do formularza z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
+        </>}
+      />
+      <div className="page">
+      <BackLink href={returnHref}>{returnLabel}</BackLink>
       {submission
         ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />
         : <Wizard key={taskId} spec={spec} ctx={found.ctx} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
+    </div>
     </main>
   );
 }

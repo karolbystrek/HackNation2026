@@ -28,6 +28,51 @@ export function Breadcrumbs({ items }: { items: [label: string, href?: string][]
   );
 }
 
+/** Light-green band that opens every panel page: breadcrumbs, H1, lead and page-level actions. */
+export function PageBand({ crumbs, title, lead, actions, children }: {
+  crumbs: [label: string, href?: string][]; title: ReactNode; lead?: ReactNode; actions?: ReactNode; children?: ReactNode;
+}) {
+  return (
+    <div className="bg-primary-soft">
+      <div className="shell flex flex-col gap-4 py-6 sm:py-8">
+        <Breadcrumbs items={crumbs} />
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+          <div className="max-w-[70ch]">
+            <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{title}</h1>
+            {lead && <div className="mt-3 text-lg">{lead}</div>}
+          </div>
+          {actions && <div className="flex flex-wrap items-center gap-x-5 gap-y-2">{actions}</div>}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Section heading with the short green bar used across gov.pl. */
+export function SectionTitle({ className, ...props }: ComponentProps<"h2">) {
+  return <h2 className={cn("text-2xl leading-tight font-bold before:mb-3 before:block before:h-1 before:w-12 before:bg-brand sm:text-3xl", className)} {...props} />;
+}
+
+/** Rows of links with a chevron, e.g. official sources. External links say so in their meta text. */
+export function LinkList({ links }: { links: { label: string; href: string; meta?: string }[] }) {
+  return (
+    <ul className="divide-y border-y">
+      {links.map(({ label, href, meta }) => (
+        <li key={href}>
+          <a href={href} className="group flex min-h-11 items-center justify-between gap-3 px-2 py-3 hover:bg-secondary">
+            <span>
+              <span className="font-bold text-primary group-hover:underline">{label}</span>
+              {meta && <span className="block text-sm text-muted-foreground">{meta}</span>}
+            </span>
+            <ChevronRight aria-hidden className="size-5 shrink-0 text-primary" />
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="text-link min-h-11 content-center self-start font-bold">

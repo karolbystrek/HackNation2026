@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ApplicationAction } from "@/components/application-action";
-import { Button, Chip, PageTitle } from "@/components/ui";
+import { Button, Chip, PageBand, SectionTitle } from "@/components/ui";
 import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
@@ -29,7 +29,7 @@ export default function Tasks() {
     const inputId = `task-${task.id}`;
     const submission = plan.submissions[task.id];
     return (
-      <li key={task.id} className="flex items-start gap-3 border-t py-4">
+      <li key={task.id} className="flex items-start gap-3 border-t py-5">
         <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
           <input
             id={inputId}
@@ -73,26 +73,28 @@ export default function Tasks() {
   }
 
   return (
-    <main id="main-content" tabIndex={-1} className="page">
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
-        <div className="grow">
-          <PageTitle>Wasza lista zadań</PageTitle>
-          {!fromGuide && <div className="text-[15px] text-muted-foreground">
-            {chosen && <p>Wariant {chosen.key} <strong className="block text-foreground">{chosen.name}</strong></p>}
-            <Link href="/warianty?z=zadania" className="font-bold text-primary underline">
-              {chosen ? "Zmień wariant" : "Wybierz wariant urlopu"}
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <PageBand
+        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Do zrobienia"]]}
+        title="Do zrobienia"
+        lead="Wnioski i formalności z Waszego planu, w kolejności terminów."
+      />
+
+      <div className="page">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {!fromGuide && (
+            <Link href="/warianty?z=zadania" className="text-link font-bold">
+              {chosen ? `Zmień wariant (${chosen.name})` : "Wybierz wariant urlopu"}
             </Link>
-          </div>}
+          )}
+          <Button variant="outline" onClick={downloadCalendar}>Dodaj terminy do kalendarza</Button>
         </div>
-        <Button variant="outline" onClick={downloadCalendar}>
-          Dodaj terminy do kalendarza
-        </Button>
       </div>
 
-      <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
-
       <section aria-labelledby="pozostale-zadania">
-        <h2 id="pozostale-zadania" tabIndex={-1} className="mb-3 text-xl font-bold">Pozostałe zadania ({remaining.length})</h2>
+        <SectionTitle id="pozostale-zadania" tabIndex={-1} className="mb-3">Pozostałe zadania ({remaining.length})</SectionTitle>
         {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}
         <p className="mt-4 text-muted-foreground">
           Wnioski na szczególne sytuacje i sprawdzanie teczki ZUS znajdziesz w zakładce <Link href="/wnioski" className="text-link">Wnioski</Link>.
@@ -104,6 +106,7 @@ export default function Tasks() {
           <ul role="list">{completed.map(renderTask)}</ul>
         </RememberedDisclosure>
       )}
+      </div>
     </main>
   );
 }

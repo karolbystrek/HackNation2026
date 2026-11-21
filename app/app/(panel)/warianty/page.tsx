@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeaveLanes } from "@/components/leave-lanes";
-import { BackLink, Button, Card, Chip, PageTitle, WarningBox } from "@/components/ui";
+import { BackLink, Button, Card, Chip, PageBand, WarningBox } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import { updatePlan } from "@/lib/plan-store";
@@ -22,13 +22,14 @@ function Variants() {
   const returnHref = fromTasks ? "/zadania" : event ? `/plan#timeline-event-${encodeURIComponent(event.id)}` : "/plan";
 
   return (
-    <main id="main-content" tabIndex={-1} className="page">
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <PageBand
+        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Warianty urlopu"]]}
+        title="Narodziny dziecka: kto idzie na urlop?"
+        lead="Porównaj podział urlopu i kwoty zasiłków. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem."
+      />
+      <div className="page">
       <BackLink href={returnHref}>{fromTasks ? "Wróć do zadań" : event ? "Wróć do wydarzenia" : "Wróć do osi czasu"}</BackLink>
-      <PageTitle
-        lead={`Porównaj podział urlopu i kwoty zasiłków. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem.`}
-      >
-        Narodziny dziecka: kto idzie na urlop?
-      </PageTitle>
 
       {variants.map((v) => {
         const active = plan.chosenVariant === v.key;
@@ -87,6 +88,7 @@ function Variants() {
           `Termin porodu ${formatDate(persona.dueDate)} – daty urlopów przesuną się razem z faktyczną datą urodzenia.`,
         ]}
       />
+    </div>
     </main>
   );
 }

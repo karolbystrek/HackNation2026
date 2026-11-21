@@ -1,9 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, Baby, CalendarDays, ClipboardList, FileText, Footprints, HeartHandshake, Stethoscope, Users } from "lucide-react";
-import { ButtonLink } from "@/components/ui";
+import { ButtonLink, SectionTitle } from "@/components/ui";
 import { formatRate, formatWeeks } from "@/lib/format";
 import { defaultParams as p } from "@/lib/params";
 import photo from "@/public/home/rodzic-laptop.jpg";
@@ -36,14 +35,6 @@ const SOURCES = [
   ["PESEL", "Dane rodziców i dzieci"],
 ];
 
-function SectionHeading({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <h2 id={id} className="text-2xl leading-tight font-bold before:mb-3 before:block before:h-1 before:w-12 before:bg-brand sm:text-3xl">
-      {children}
-    </h2>
-  );
-}
-
 export default function Home() {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
@@ -67,7 +58,7 @@ export default function Home() {
       </section>
 
       <section aria-labelledby="services-title" className="shell py-10 sm:py-14">
-        <SectionHeading id="services-title">Załatw sprawę</SectionHeading>
+        <SectionTitle id="services-title">Załatw sprawę</SectionTitle>
         <p className="mt-2 max-w-[70ch] text-muted-foreground">Wybierz świadczenie, o które chcesz zapytać.</p>
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map(({ icon: Icon, title, description, href }) => (
@@ -89,7 +80,7 @@ export default function Home() {
 
       <section aria-labelledby="steps-title" className="border-t">
         <div className="shell py-10 sm:py-14">
-          <SectionHeading id="steps-title">Jak to działa</SectionHeading>
+          <SectionTitle id="steps-title">Jak to działa</SectionTitle>
           <ol className="mt-6 grid gap-6 md:grid-cols-3">
             {STEPS.map(([title, text], i) => (
               <li key={title} className="flex gap-4">
@@ -106,7 +97,7 @@ export default function Home() {
 
       <section aria-labelledby="figures-title" className="bg-secondary">
         <div className="shell py-10 sm:py-14">
-          <SectionHeading id="figures-title">Najważniejsze liczby</SectionHeading>
+          <SectionTitle id="figures-title">Najważniejsze liczby</SectionTitle>
           <dl className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {FIGURES.map(([value, label]) => (
               <div key={label} className="flex flex-col border-l-4 border-primary bg-background p-5">
@@ -119,7 +110,7 @@ export default function Home() {
       </section>
 
       <section aria-labelledby="sources-title" className="shell py-10 sm:py-14">
-        <SectionHeading id="sources-title">Dane używane w symulacji</SectionHeading>
+        <SectionTitle id="sources-title">Dane używane w symulacji</SectionTitle>
         <p className="mt-2 max-w-[70ch] text-muted-foreground">Wersja demonstracyjna korzysta z przykładowych profili rodzin. Po zalogowaniu pobieramy dane z tych rejestrów.</p>
         <dl className="mt-6 max-w-[70ch] divide-y border-y">
           {SOURCES.map(([source, description]) => (

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { BackLink, Button, ButtonLink, Field, Notice, PageTitle, RadioGroup } from "@/components/ui";
+import { BackLink, Button, ButtonLink, Field, Notice, PageBand, RadioGroup } from "@/components/ui";
 import { CIRCUMSTANCES, EVENT_TYPES, type Circumstance, type EventType, type EventWho } from "@/lib/events";
 import { formatPln, parseAmount } from "@/lib/format";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
@@ -36,9 +36,11 @@ export default function AddEvent() {
   }
 
   return (
-    <main id="main-content" tabIndex={-1} className="page max-w-3xl">
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <PageBand crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Dodaj wydarzenie"]]} title="Dodaj wydarzenie" />
+      <div className="page">
+      <div className="flex w-full max-w-3xl flex-col gap-6">
       <BackLink href="/plan">Wróć do osi czasu</BackLink>
-      <PageTitle>Dodaj wydarzenie</PageTitle>
 
       <RadioGroup
         label="Co się wydarzy?"
@@ -95,6 +97,8 @@ export default function AddEvent() {
         <ButtonLink href="/plan" variant="outline" className="min-h-[52px]">
           Anuluj
         </ButtonLink>
+      </div>
+    </div>
       </div>
     </main>
   );

@@ -5,7 +5,8 @@ import { Suspense, useEffect, useRef } from "react";
 import { BasisCalculator } from "@/components/calculator/basis-calculator";
 import { LeaveCalculator } from "@/components/calculator/leave-calculator";
 import { PregnancyCalculator } from "@/components/calculator/pregnancy-calculator";
-import { BackLink, Button, Notice, PageTitle } from "@/components/ui";
+import { ArrowRight, Baby, Calculator, HeartHandshake, Stethoscope, type LucideIcon } from "lucide-react";
+import { BackLink, Notice, PageBand } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import type { ParentKey } from "@/lib/calc/leave";
 import type { EventType, TimelineEvent } from "@/lib/events";
@@ -19,6 +20,12 @@ const MODES = [
   ["pregnancy", "Zwolnienie w ciąży"],
   ["basis", "Oblicz podstawę zasiłku"],
 ] as const;
+const MODE_TILES: Record<(typeof MODES)[number][0], [LucideIcon, string]> = {
+  birth: [Baby, "Zasiłek macierzyński, podział urlopu i terminy po porodzie."],
+  adoption: [HeartHandshake, "Urlop na warunkach macierzyńskiego i rodzicielski."],
+  pregnancy: [Stethoscope, "Zasiłek chorobowy w ciąży z kodem B."],
+  basis: [Calculator, "Średnie wynagrodzenie z 12 miesięcy po odjęciu składek."],
+};
 type Mode = (typeof MODES)[number][0];
 
 const eventModes: Partial<Record<EventType, Mode>> = {
@@ -94,9 +101,15 @@ function Calculators({ event }: { event?: TimelineEvent }) {
   };
 
   return (
-    <main id="main-content" tabIndex={-1} className="page max-w-3xl">
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <PageBand
+        crumbs={[["Strona główna", "/"], ["Oś czasu", "/plan"], ["Kalkulatory"]]}
+        title={basisRequest ? "Oblicz podstawę zasiłku" : MODES.find(([key]) => key === mode)?.[1] ?? "Kalkulatory zasiłków"}
+        lead={mode === null ? "Uzupełniliśmy dane z profilu. Możesz je zmienić w każdym kroku." : undefined}
+      />
+      <div className="page">
+      <div className="flex w-full max-w-3xl flex-col gap-6">
       {event && <BackLink href={`/plan#timeline-event-${encodeURIComponent(event.id)}`}>Wróć do wydarzenia</BackLink>}
-      <PageTitle>{basisRequest ? "Oblicz podstawę zasiłku" : MODES.find(([key]) => key === mode)?.[1] ?? "Kalkulatory zasiłków"}</PageTitle>
       {event && (
         <Notice>
           <p className="font-bold">{event.title}</p>
@@ -106,16 +119,27 @@ function Calculators({ event }: { event?: TimelineEvent }) {
         </Notice>
       )}
       {mode === null && (
-        <section className="flex flex-col items-start gap-3">
-          <h2 ref={picker} tabIndex={-1} className="text-2xl font-bold">Co chcesz obliczyć?</h2>
-          <p className="text-muted-foreground">Uzupełniliśmy dane z profilu. Możesz je zmienić w każdym kroku.</p>
-          <div className="flex w-full flex-col gap-2">
-            {MODES.map(([key, label]) => (
-              <Button key={key} variant="outline" className="justify-start py-3 text-left" onClick={() => setMode(key)}>
-                {label}
-              </Button>
-            ))}
-          </div>
+        <section aria-labelledby="calc-picker" className="flex flex-col gap-4">
+          <h2 id="calc-picker" ref={picker} tabIndex={-1} className="text-2xl font-bold">Co chcesz obliczyć?</h2>
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {MODES.map(([key, label]) => {
+              const [Icon, description] = MODE_TILES[key];
+              return (
+                <li key={key} className="flex">
+                  <button type="button" onClick={() => setMode(key)} className="group flex w-full cursor-pointer gap-4 border border-t-4 border-border border-t-brand bg-background p-5 text-left hover:border-primary hover:shadow-sm">
+                    <span className="grid size-12 shrink-0 place-items-center bg-primary-soft text-primary">
+                      <Icon aria-hidden strokeWidth={1.75} className="size-6" />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="font-bold group-hover:underline">{label}</span>
+                      <span className="text-muted-foreground">{description}</span>
+                    </span>
+                    <ArrowRight aria-hidden className="size-5 shrink-0 self-center text-primary" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 
@@ -134,6 +158,8 @@ function Calculators({ event }: { event?: TimelineEvent }) {
       {basisRequest && (
         <BasisCalculator key="basis-helper" draftKey={`${draftKey}/${mode}/basis/${basisRequest.parent}/${basisRequest.startMonth}`} request={basisRequest} onUse={useBasis} onBack={closeBasis} />
       )}
+      </div>
+      </div>
     </main>
   );
 }

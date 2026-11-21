@@ -19,7 +19,7 @@ export function PanelNav() {
   ];
 
   return (
-    <div className="border-b bg-secondary">
+    <div className="border-b bg-background">
       <nav aria-label="Panel rodziny" className="shell flex flex-wrap gap-x-4 sm:gap-x-8">
         {tabs.map((tab) => {
           const tabPath = tab.href.split("?")[0];
@@ -30,8 +30,8 @@ export function PanelNav() {
               href={tab.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "min-h-11 content-center border-b-4 border-transparent py-2 font-bold text-primary hover:underline",
-                active && "border-primary text-foreground",
+                "min-h-12 content-center border-b-4 border-transparent py-2 font-bold text-primary hover:border-border hover:underline",
+                active && "border-brand text-foreground hover:border-brand hover:no-underline",
               )}
             >
               {tab.label}
