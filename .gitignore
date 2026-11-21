@@ -1,5 +1,4 @@
-materials/
-CLAUDE.local.md
+ gLAUDE.local.md
 /node_modules/
 /.env*
 .DS_Store
