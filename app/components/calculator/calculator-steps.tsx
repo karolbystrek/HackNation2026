@@ -15,6 +15,10 @@ export function CalculatorSteps({
   onBack,
   active = true,
   backFromResult = "Wybierz inny kalkulator",
+  resultTitle = "Wynik",
+  step: controlledStep,
+  onStepChange,
+  onStepSubmit,
 }: {
   steps: { title: string; content: ReactNode }[];
   result: ReactNode;
@@ -22,8 +26,16 @@ export function CalculatorSteps({
   onBack: () => void;
   active?: boolean;
   backFromResult?: string;
+  resultTitle?: string;
+  /** Optional controlled step, e.g. to jump back to a step from a summary. */
+  step?: number;
+  onStepChange?: (step: number) => void;
+  /** Return false to stay on the step (custom validation). */
+  onStepSubmit?: (step: number) => boolean;
 }) {
-  const [step, setStep] = useState(0);
+  const [innerStep, setInnerStep] = useState(0);
+  const step = controlledStep ?? innerStep;
+  const setStep = onStepChange ?? setInnerStep;
   const heading = useRef<HTMLHeadingElement>(null);
   const current = steps[step];
 
@@ -40,7 +52,7 @@ export function CalculatorSteps({
           total={steps.length}
         />
         <h2 ref={heading} tabIndex={-1} className="mt-3 text-2xl font-bold">
-          {current?.title ?? "Wynik"}
+          {current?.title ?? resultTitle}
         </h2>
       </header>
       {current ? (
@@ -55,6 +67,7 @@ export function CalculatorSteps({
           }}
           onSubmit={(event) => {
             event.preventDefault();
+            if (onStepSubmit?.(step) === false) return;
             setStep(step + 1);
           }}
         >

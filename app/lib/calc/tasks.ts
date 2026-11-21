@@ -13,6 +13,7 @@ export type Task = {
   title: string;
   description: string;
   guide?: string;
+  form?: string;
   done: boolean;
   locked: boolean;
   waitingFor: string[];
@@ -30,6 +31,7 @@ export function buildTasks(persona: Persona, events: TimelineEvent[], chosen: Va
     title: entry.title,
     description: entry.description,
     guide: entry.guide,
+    form: entry.form,
     done: entry.status === "completed",
     locked: !!entry.completedOn || entry.status === "blocked",
     waitingFor: (entry.requires ?? [])

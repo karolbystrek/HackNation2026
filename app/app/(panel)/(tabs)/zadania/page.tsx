@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Chip, PageTitle } from "@/components/ui";
+import { Button, ButtonLink, Chip, PageTitle } from "@/components/ui";
+import { formatDate } from "@/lib/dates";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
@@ -25,6 +26,7 @@ export default function Tasks() {
 
   function renderTask(task: (typeof tasks)[number]) {
     const inputId = `task-${task.id}`;
+    const submission = plan.submissions[task.id];
     return (
       <li key={task.id} className="flex items-start gap-3 border-t py-4">
         <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
@@ -32,7 +34,7 @@ export default function Tasks() {
             id={inputId}
             type="checkbox"
             checked={task.done}
-            disabled={task.locked}
+            disabled={task.locked || !!submission}
             aria-label={task.title}
             onChange={() => {
               updatePlan((state) => ({
@@ -51,6 +53,14 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
+          {submission ? (
+            <p className="text-sm">
+              Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>.{" "}
+              <Link href={`/wnioski/${task.id}`} className="text-link">Zobacz wysłany wniosek</Link>
+            </p>
+          ) : task.form && !task.done && (
+            <ButtonLink href={`/wnioski/${task.id}`} className="self-start">Wypełnij wniosek</ButtonLink>
+          )}
           {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {task.title}</a>}
           {task.waitingFor.length > 0 && !task.done && (
             <p className="text-sm text-muted-foreground">Wymaga: {task.waitingFor.join(", ")}.</p>

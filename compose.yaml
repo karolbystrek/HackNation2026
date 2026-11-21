@@ -1,6 +1,10 @@
 services:
   app:
-    build: ./app
+    build:
+      context: ./app
+      # Domain data read by the form wizard from ../knowledge.
+      additional_contexts:
+        knowledge: ./knowledge
     env_file: .env.supabase.local
     environment:
       SUPABASE_INTERNAL_URL: http://host.docker.internal:54321
@@ -23,6 +27,9 @@ services:
           ignore:
             - package.json
             - package-lock.json
+        - action: sync
+          path: ./knowledge
+          target: /knowledge
         - action: rebuild
           path: ./app/package.json
         - action: rebuild

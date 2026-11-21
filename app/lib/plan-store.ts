@@ -4,6 +4,7 @@
 import { useSyncExternalStore } from "react";
 import type { VariantKey } from "@/lib/calc/variants";
 import type { TimelineEvent } from "@/lib/events";
+import type { FormValues } from "@/lib/forms/spec";
 import { findPersona } from "@/lib/mock/personas";
 
 export type PlanState = {
@@ -11,10 +12,14 @@ export type PlanState = {
   events: TimelineEvent[];
   chosenVariant: VariantKey | null;
   doneTasks: string[];
+  /** Simulated submissions of applications, by timeline task id. */
+  submissions: Record<string, Submission>;
 };
 
+export type Submission = { number: string; sentAt: string; recipient: string; channel: string; values: FormValues };
+
 const KEY = "przewodnik-rodzica-plan";
-const initial: PlanState = { personaId: null, events: [], chosenVariant: null, doneTasks: [] };
+const initial: PlanState = { personaId: null, events: [], chosenVariant: null, doneTasks: [], submissions: {} };
 let state = initial;
 let loaded = false;
 const listeners = new Set<() => void>();
@@ -24,7 +29,7 @@ function read(): PlanState {
     loaded = true;
     try {
       const raw = sessionStorage.getItem(KEY);
-      if (raw) state = JSON.parse(raw);
+      if (raw) state = { ...initial, ...JSON.parse(raw) };
     } catch {
       // Storage unavailable: start with an empty plan.
     }
@@ -53,7 +58,15 @@ export function updatePlan(change: (s: PlanState) => PlanState) {
 
 export function logIn(personaId: string) {
   const persona = findPersona(personaId)!;
-  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [] }));
+  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [], submissions: {} }));
+}
+
+export function submitApplication(taskId: string, submission: Submission) {
+  updatePlan((s) => ({
+    ...s,
+    submissions: { ...s.submissions, [taskId]: submission },
+    doneTasks: s.doneTasks.includes(taskId) ? s.doneTasks : [...s.doneTasks, taskId],
+  }));
 }
 
 export function logOut() {

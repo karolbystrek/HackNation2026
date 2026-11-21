@@ -5,6 +5,12 @@ export const defaultParams = {
   parentalPoolWeeks: { single: 41, multiple: 43, zaZyciemSingle: 65, zaZyciemMultiple: 67 },
   parentalOwnWeeks: 9,
   paternityWeeks: 2,
+  // Paternity leave: shortest part, notice to the employer, and the child's age limit in months.
+  paternityMinPartDays: 7,
+  paternityRequestDays: 7,
+  paternityUntilChildMonths: 12,
+  // Notice to the employer before parental leave starts.
+  parentalRequestDays: 21,
   rates: { full: 1, parental: 0.7, flat: 0.815 },
   flatRateRequestDays: 21,
   employeeContributionRate: 0.1371,

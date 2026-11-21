@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLayoutEffect, type MouseEvent } from "react";
 import { ButtonLink, Chip, PageTitle } from "@/components/ui";
 import { Disclosure } from "@/components/ui/disclosure";
@@ -108,6 +109,7 @@ export default function Timeline() {
     const isPeriod = entry.end !== undefined;
     const required = entries.filter((item) => entry.requires?.includes(item.id));
     const showStatus = entry.kind === "application" && entry.status !== "blocked";
+    const submission = plan.submissions[entry.id];
 
     return (
       <li key={entry.id} className="relative pb-2 pl-4 sm:pl-6">
@@ -129,7 +131,7 @@ export default function Timeline() {
         }>
           <div className="max-w-[70ch] space-y-3 px-3 pb-4 sm:px-4">
             <p>{entry.description}</p>
-            {(entry.end || entry.recipient || entry.review || required.length > 0 || entry.guide || showStatus) && (
+            {(entry.end || entry.recipient || entry.review || required.length > 0 || entry.guide || entry.form || showStatus) && (
               <dl className="divide-y border-y [&>div]:grid [&>div]:gap-1 [&>div]:py-3 [&_dt]:font-bold sm:[&>div]:grid-cols-[10rem_minmax(0,1fr)] sm:[&>div]:gap-4">
                 {entry.end && (
                   <div><dt>{entry.estimated ? "Szacowany okres" : "Okres"}</dt><dd>
@@ -164,6 +166,13 @@ export default function Timeline() {
                       {entry.due && <> Termin według nowego planu: {formatDate(entry.due)}.</>}
                     </dd>
                   </div>
+                )}
+                {entry.form && (submission || entry.status !== "completed") && (
+                  <div><dt>Wniosek</dt><dd>
+                    {submission
+                      ? <>Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>. <Link href={`/wnioski/${entry.id}`} className="text-link">Zobacz wysłany wniosek</Link></>
+                      : <ButtonLink href={`/wnioski/${entry.id}`}>Wypełnij wniosek</ButtonLink>}
+                  </dd></div>
                 )}
                 {entry.guide && <div><dt>Instrukcja</dt><dd><a href={entry.guide} className="text-link">Przeczytaj instrukcję</a></dd></div>}
               </dl>

@@ -8,7 +8,15 @@ export type ParentProfile = {
   name: string;
   /** Genitive form used in Polish copy ("Powrót Anny do pracy"). */
   nameGenitive: string;
+  lastName: string;
   age: number;
+  /** Fictional identity data from the simulated mObywatel profile; checksums are valid. */
+  pesel: string;
+  address: string;
+  phone: string;
+  bankAccount: string;
+  payerName: string;
+  payerNip: string;
   contract: ContractType;
   employment: string;
   payer: string;
@@ -53,7 +61,14 @@ export const personas: Persona[] = [
       mother: {
         name: "Anna",
         nameGenitive: "Anny",
+        lastName: "Kowalska",
         age: 31,
+        pesel: "95041212343",
+        address: "ul. Lipowa 12/4, 00-123 Warszawa",
+        phone: "600 100 200",
+        bankAccount: "PL61 1090 1014 0000 0712 1981 2874",
+        payerName: "Mazowiecka Spółdzielnia Usług Sp. z o.o.",
+        payerNip: "5261048273",
         contract: "uop",
         employment: "Umowa o pracę, czas nieokreślony",
         payer: "Pracodawca (zgłasza ponad 20 osób)",
@@ -66,7 +81,14 @@ export const personas: Persona[] = [
       father: {
         name: "Tomasz",
         nameGenitive: "Tomasza",
+        lastName: "Kowalski",
         age: 33,
+        pesel: "93080345657",
+        address: "ul. Lipowa 12/4, 00-123 Warszawa",
+        phone: "600 300 400",
+        bankAccount: "PL93 1140 2004 0000 3602 7551 2345",
+        payerName: "Transbud Logistyka S.A.",
+        payerNip: "6771234561",
         contract: "uop",
         employment: "Umowa o pracę, czas nieokreślony",
         payer: "Pracodawca (zgłasza ponad 20 osób)",
@@ -131,6 +153,12 @@ personas.push(
         ...employed.mother,
         name: "Maja",
         nameGenitive: "Mai",
+        lastName: "Wiśniewska",
+        pesel: "95092178948",
+        address: "ul. Długa 7/2, 31-147 Kraków",
+        bankAccount: "PL92 1020 4055 0000 1234 5678 9012",
+        payerName: "Maja Wiśniewska Pracownia Projektowa",
+        payerNip: "7792345616",
         contract: "jdg",
         employment: "Jednoosobowa działalność gospodarcza",
         payer: "ZUS",
@@ -138,7 +166,7 @@ personas.push(
         sickLeaveFrom: "2026-11-02",
         monthlyGross: Array(12).fill(6500),
       },
-      father: { ...employed.father, name: "Piotr", nameGenitive: "Piotra" },
+      father: { ...employed.father, name: "Piotr", nameGenitive: "Piotra", lastName: "Wiśniewski", pesel: "93021432156", address: "ul. Długa 7/2, 31-147 Kraków" },
     },
     events: [
       {
@@ -179,8 +207,8 @@ personas.push(
     initialVariant: "B",
     kids: 1,
     parents: {
-      mother: { ...employed.mother, name: "Ola", nameGenitive: "Oli", sickLeaveFrom: null },
-      father: { ...employed.father, name: "Marek", nameGenitive: "Marka" },
+      mother: { ...employed.mother, name: "Ola", nameGenitive: "Oli", lastName: "Zielińska", pesel: "95063065446", address: "ul. Polna 3, 60-535 Poznań", sickLeaveFrom: null },
+      father: { ...employed.father, name: "Marek", nameGenitive: "Marka", lastName: "Zieliński", pesel: "93110598754", address: "ul. Polna 3, 60-535 Poznań", bankAccount: "PL56 2490 0005 0000 4000 1234 5678" },
     },
     events: [{
       id: "birth",

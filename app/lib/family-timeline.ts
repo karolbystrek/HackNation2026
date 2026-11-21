@@ -24,6 +24,8 @@ type Entry = {
   decision?: boolean;
   recipient?: string;
   guide?: string;
+  /** Knowledge-base spec of the application the user can fill in (form_fields or leave_requests id). */
+  form?: string;
 };
 
 export type FamilyTimelineEntry = Entry & { status: Status };
@@ -83,6 +85,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
       date: birth, due: rateDeadline, estimated: provisional, requires: ["birth-certificate"],
       recipient: parents.mother.contract === "jdg" ? "ZUS" : "Płatnik składek",
       guide: "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
+      form: parents.mother.contract === "uop" ? undefined : "ff.zam",
     },
   );
 
@@ -91,17 +94,18 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     if (sickLeave) entries.push({
       id: "sickness-claim", kind: "application", who: "mother", title: "Wniosek o zasiłek chorobowy (ZAS-53)",
       description: "Wniosek dotyczy zwolnienia w ciąży wystawionego przed porodem.",
-      date: sickLeave.date, recipient: "ZUS", guide: "https://www.zus.pl/-/zaswiadczenie-zas-53", requires: [`event-${sickLeave.id}`],
+      date: sickLeave.date, recipient: "ZUS", guide: "https://www.zus.pl/-/zaswiadczenie-zas-53", form: "ff.zas53", requires: [`event-${sickLeave.id}`],
     });
   }
 
   entries.push(
     {
       id: "paternity", kind: "application", who: "father", title: "Wniosek o urlop ojcowski",
-      description: `Złóż co najmniej 7 dni przed planowanym startem (${formatDate(persona.paternityStart)}).`,
-      date: birth, due: shift(persona.paternityStart, -7), estimated: provisional,
+      description: `Złóż co najmniej ${params.paternityRequestDays} dni przed planowanym startem (${formatDate(persona.paternityStart)}).`,
+      date: birth, due: shift(persona.paternityStart, -params.paternityRequestDays), estimated: provisional,
       recipient: "Pracodawca", requires: ["birth-certificate"],
       guide: "https://www.gov.pl/web/rodzina/urlop-ojcowski",
+      form: parents.father.contract === "uop" ? "lr.paternity" : "ff.zam",
     },
     {
       id: "paternity-period", kind: "period", who: "father", title: "Urlop ojcowski",
@@ -125,7 +129,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     if (!period) continue;
     const id = `parental-${parent}`;
     const employee = parents[parent].contract === "uop";
-    const due = shift(period.from, employee ? -21 : -1);
+    const due = shift(period.from, employee ? -params.parentalRequestDays : -1);
     const review = !!persona.completedSteps?.[id] && chosen?.key !== persona.initialVariant;
     entries.push(
       {
@@ -135,6 +139,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
         date: birth, due, recipient: employee ? "Pracodawca" : "ZUS",
         guide: employee ? "https://www.gov.pl/web/rodzina/urlop-rodzicielski" : "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
         requires: ["birth-certificate"], estimated: provisional, review,
+        form: employee ? "lr.parental" : "ff.zam",
       },
       {
         id: `${id}-period`, kind: "period", who: parent,
