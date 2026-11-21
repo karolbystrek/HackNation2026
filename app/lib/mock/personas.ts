@@ -21,7 +21,7 @@ export type ParentProfile = {
   employment: string;
   payer: string;
   /** Insured persons the payer reports (knowledge/enums.json payer_size): gt20 pays benefits itself, le20 leaves it to ZUS, na = no payer. */
-  payerSize: "gt20" | "le20" | "na";
+  payerSize: "gt20" | "le20" | "na" | "unknown";
   /** knowledge/enums.json insured_type when the contract alone does not say it, e.g. "uninsured" or "after_insurance". */
   insuredType?: string;
   /** knowledge/enums.json events that concern only this parent, e.g. "job_loss_liquidation". */
@@ -42,6 +42,7 @@ export type Persona = {
   dueDate: string;
   birthDate?: string;
   birthCardDate?: string;
+  childDeathDate?: string;
   birthRegistrationDate?: string;
   birthCertificateDate?: string;
   birthPlace?: string;
@@ -53,6 +54,10 @@ export type Persona = {
   childEvents?: string[];
   /** Supplementary maternity leave the child's hospital stay gives, in weeks. */
   supplementaryWeeks?: number;
+  adoptionOrderDate?: string;
+  placementParent?: "mother" | "father";
+  adoptedChildBirthDate?: string;
+  supplementaryParent?: "mother" | "father";
   zaZyciem?: boolean;
   completedSteps?: Record<string, string>;
   kids: number;

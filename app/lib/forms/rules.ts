@@ -1,5 +1,5 @@
-import { otherParent } from "@/lib/calc/leave";
-import { addDays, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
+import { otherParent, paternityEndLimit } from "@/lib/calc/leave";
+import { addDays, addYears, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import type { FormContext } from "@/lib/forms/context";
 import { evalCondition, factsFor, isFilled } from "@/lib/journey";
 import {
@@ -92,7 +92,7 @@ function formatIssue(field: FormField, value: FieldValue | undefined): string | 
 }
 
 const requiredMessage: Partial<Record<FormField["type"], string>> = {
-  signature: "Potwierdź wniosek podpisem mObywatel.",
+  signature: "Potwierdź podpis w symulacji.",
   date_range: "Podaj datę początku i końca.",
   child_list: "Dodaj dane dziecka.",
   choice: "Wybierz jedną odpowiedź.",
@@ -114,14 +114,17 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
   const paternity = paternityKey && range(paternityKey);
   if (paternityKey && paternity) {
     const max = params.paternityWeeks * 7;
-    const limit = new Date(parseIso(birth)!);
-    limit.setUTCMonth(limit.getUTCMonth() + params.paternityUntilChildMonths);
-    const lastDay = shift(toIso(limit), -1);
+    const adoption = ctx.guideAnswers.situation === "adoption";
+    const order = adoption ? parseIso(String(ctx.guideAnswers.adoptionOrderDate ?? "")) : parseIso(birth);
+    const childBirth = adoption ? parseIso(String(ctx.guideAnswers.adoptedChildBirthDate ?? "")) : null;
+    const limit = adoption && !childBirth ? null : paternityEndLimit(order, childBirth, params);
+    const lastDay = limit && toIso(addDays(limit, -1));
     const n = days(paternity);
     if (n > max) errors.push({ field: paternityKey, message: `Urlop ojcowski trwa najwyżej ${max} dni, a wybrany okres ma ${n}.` });
     else if (n < params.paternityMinPartDays) errors.push({ field: paternityKey, message: `Część urlopu ojcowskiego trwa co najmniej ${params.paternityMinPartDays} dni.` });
-    if (paternity.from < birth) errors.push({ field: paternityKey, message: `Urlop ojcowski zaczyna się najwcześniej w dniu urodzenia dziecka (${formatDate(birth)}).` });
-    if (paternity.to > lastDay) errors.push({ field: paternityKey, message: `Urlop ojcowski trzeba wykorzystać do ${formatDate(lastDay)}, zanim dziecko skończy ${params.paternityUntilChildMonths} miesięcy.` });
+    if (!lastDay || !order) errors.push({ field: paternityKey, message: "Uzupełnij datę urodzenia dziecka i datę uprawomocnienia się orzeczenia w wywiadzie." });
+    else if (paternity.from < toIso(order) || paternity.to > lastDay)
+      errors.push({ field: paternityKey, message: `Wybierz okres od ${formatDate(order)} do ${formatDate(lastDay)}.` });
     const notice = shift(paternity.from, -params.paternityRequestDays);
     if (employee && today > notice) warnings.push(`Wniosek składasz później niż ${params.paternityRequestDays} dni przed urlopem (termin minął ${formatDate(notice)}). Pracodawca może nie zgodzić się na ten termin.`);
   }
@@ -137,8 +140,8 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
     const weeks = days(parental) / 7;
     const otherName = persona.parents[other].nameGenitive;
     if (weeks > max) errors.push({ field: parentalKey, message: `Możesz wziąć najwyżej ${max} ${plural(max, "tydzień", "tygodnie", "tygodni")} urlopu rodzicielskiego: pula ma ${pool} tygodni, a ${reserved} to część ${otherName}.` });
-    const maternity = chosen?.result.periods[parent].find((p) => p.kind === "maternity");
-    if (maternity && parental.from < maternity.to) errors.push({ field: parentalKey, message: `Urlop rodzicielski zaczyna się po macierzyńskim, najwcześniej ${formatDate(maternity.to)}.` });
+    const priorEnd = chosen?.result.periods[parent].filter((p) => p.kind === "maternity" || p.kind === "supplementary").at(-1)?.to;
+    if (priorEnd && parental.from < priorEnd) errors.push({ field: parentalKey, message: `Urlop rodzicielski zaczyna się po zakończeniu macierzyńskiego i ewentualnego uzupełniającego, najwcześniej ${formatDate(priorEnd)}.` });
     else if (parental.from < birth) errors.push({ field: parentalKey, message: `Urlop rodzicielski zaczyna się najwcześniej w dniu urodzenia dziecka (${formatDate(birth)}).` });
     const lastDay = `${parseIso(birth)!.getUTCFullYear() + params.parentalUntilChildAge}-12-31`;
     if (parental.to > lastDay) errors.push({ field: parentalKey, message: `Urlop rodzicielski trzeba wykorzystać do ${formatDate(lastDay)}, czyli do końca roku, w którym dziecko kończy ${params.parentalUntilChildAge} lat.` });
@@ -176,9 +179,15 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
     if (period && days(period) > max * 7) errors.push({ field: "period", message: `Uzupełniający urlop macierzyński trwa najwyżej ${max} tygodni (${params.supplementary.capWeeks} tygodni, gdy dziecko urodziło się po 28. tygodniu ciąży z masą powyżej 1000 g).` });
   }
   if (spec.id === "lr.maternity_conditions") {
-    const limit = params.adoptionAgeLimit.adoption;
+    const limit = ctx.guideAnswers.situation === "foster"
+      ? ctx.guideAnswers.schoolDeferred === true ? params.adoptionAgeLimit.fosterDeferred : params.adoptionAgeLimit.foster
+      : params.adoptionAgeLimit.adoption;
+    const period = range("period");
+    if (period && period.from > shift(birth, params.parentalRequestDays)) errors.push({
+      field: "period", message: `Wskaż początek urlopu najpóźniej ${formatDate(shift(birth, params.parentalRequestDays))}.`,
+    });
     for (const child of (values.children as Child[] | undefined) ?? []) {
-      if (child.birthDate && diffDays(parseIso(child.birthDate)!, parseIso(today)!) / 365.25 >= limit) {
+      if (parseIso(child.birthDate) && toIso(addYears(parseIso(child.birthDate)!, limit)) <= (period?.from ?? birth)) {
         errors.push({ field: "children", message: `Urlop na warunkach macierzyńskiego przysługuje na dziecko do ${limit}. roku życia.` });
         break;
       }

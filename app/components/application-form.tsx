@@ -50,11 +50,19 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
         lead={<>
           <span className="block">Formularz: {spec.title}</span>
           <span className="block">Adresat: {found.ctx.recipientName}</span>
+          {found.entry.due && <span className="block">Termin: {formatDate(found.entry.due)}{found.entry.estimated ? " (szacunkowo)" : ""}</span>}
+          {found.entry.guide && <a className="text-link" href={found.entry.guide}>Oficjalna instrukcja złożenia</a>}
           {!submission && <span className="mt-2 block text-base">Sprawdź dane przeniesione do formularza z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
         </>}
       />
       <div className="page">
       <BackLink href={returnHref}>{returnLabel}</BackLink>
+      {!submission && found.entry.documents && found.entry.documents.length > 0 && (
+        <details className="border-y py-3">
+          <summary className="cursor-pointer font-bold">Dokumenty do przygotowania</summary>
+          <ul className="list-disc pl-6">{found.entry.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>
+        </details>
+      )}
       {submission
         ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />
         : <Wizard key={taskId} spec={spec} ctx={found.ctx} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
@@ -142,7 +150,7 @@ function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormS
           <>
             {s.title === ATTACHMENTS_STEP && attachments.map((a) => (
               <div key={a.id} data-field={attachmentKey(a.id)}>
-                <Checkbox checked={values[attachmentKey(a.id)] === true} onChange={() => set(attachmentKey(a.id))(values[attachmentKey(a.id)] !== true)} title={`Dołączam: ${a.title}`}>
+                <Checkbox checked={values[attachmentKey(a.id)] === true} onChange={() => set(attachmentKey(a.id))(values[attachmentKey(a.id)] !== true)} title={`Mam dokument do złożenia: ${a.title}`}>
                   {a.note ?? (ctx.recipient === "employer" ? "Dokument przekazujesz pracodawcy razem z wnioskiem." : "Do wniosku elektronicznego dodajesz skan lub zdjęcie dokumentu.")}
                 </Checkbox>
                 <FieldError message={errorFor(attachmentKey(a.id), i)} />
@@ -201,14 +209,15 @@ function Submitted({ spec, ctx, submission, doneTasks, returnHref, returnLabel }
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <Notice role="status">
-        <p className="text-xl font-bold">Zakończono symulację wysłania</p>
+        <p className="text-xl font-bold">Zapisano w symulacji</p>
         <dl className="mt-3 grid gap-x-4 gap-y-1 sm:grid-cols-[14rem_minmax(0,1fr)] [&_dt]:font-bold">
           <dt>Adresat</dt><dd>{submission.recipient}</dd>
-          <dt>Sposób wysłania</dt><dd>{submission.channel}</dd>
+          <dt>Wybrany kanał</dt><dd>{submission.channel}</dd>
           <dt>Numer potwierdzenia symulacji</dt><dd className="font-mono">{submission.number}</dd>
           <dt>Data symulacji</dt><dd>{sentFormat.format(new Date(submission.sentAt))}</dd>
         </dl>
-        <p className="mt-3">Zadanie jest oznaczone w planie jako zakończone.</p>
+        <p className="mt-3">Aby złożyć wniosek, przekaż go do: {ctx.recipientName}. {ctx.recipient === "zus" && <a className="text-link" href="https://www.zus.pl/ezus/logowanie">Przejdź do eZUS</a>}
+          {ctx.recipient === "usc" && <a className="text-link" href="https://www.gov.pl/web/gov/uzyskaj-odpis-aktu-stanu-cywilnego-urodzenia-malzenstwa-zgonu">Zamów odpis na gov.pl</a>}</p>
       </Notice>
       <div className="flex flex-wrap items-start gap-3">
         <ButtonLink href={returnHref}>{returnLabel}</ButtonLink>
@@ -261,7 +270,7 @@ function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormC
   return (
     <section aria-label="Formularz ZUS" className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
-        <a href={url} download={fileName} className={cn(buttonVariants({ variant: "outline" }))}>Pobierz PDF</a>
+        <a href={url} download={fileName} className={cn(buttonVariants({ variant: "outline" }))}>Pobierz roboczy PDF</a>
         <a href={url} target="_blank" rel="noreferrer" className="text-link">Otwórz w nowej karcie</a>
       </div>
       {/* Mobile browsers do not render PDFs inline, so phones get the download and new-tab links only. */}
@@ -289,6 +298,7 @@ function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormS
   const attachments = requiredAttachments(spec, ctx, values);
   return (
     <article className="print-document text-[11pt] leading-normal text-black">
+      <p className="text-center font-bold">Wydruk roboczy z symulacji</p>
       <p className="text-right">{city && `${city}, `}{formatDate(date)}</p>
       <div className="mt-6 grid grid-cols-2 gap-8">
         <div>
@@ -302,7 +312,7 @@ function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormS
         </div>
       </div>
       <h1 className="mt-8 text-center text-[14pt] font-bold">{spec.title}</h1>
-      {number && <p className="text-center">Kopia wniosku wysłanego elektronicznie, nr {number}</p>}
+      {number && <p className="text-center">Numer symulacji: {number}</p>}
       <table className="mt-6 w-full border-collapse">
         <tbody>
           {fields.map((field) => (
@@ -320,7 +330,7 @@ function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormS
         </section>
       )}
       <div className="mt-16 ml-auto w-64 break-inside-avoid text-center">
-        <div className="border-t border-black pt-1 text-[9pt]">{number ? "Podpisano w mObywatelu" : "Data i podpis"}</div>
+        <div className="border-t border-black pt-1 text-[9pt]">{number ? "Podpis symulowany" : "Data i podpis"}</div>
       </div>
       <p className="mt-10 text-[8pt] text-black/60">Wniosek przygotowany w Zasiłkowym Przewodniku Przyszłego Rodzica (projekt demonstracyjny, dane symulowane).</p>
     </article>
@@ -328,7 +338,7 @@ function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormS
 }
 
 function formatValue(field: FormField, value: FieldValue | undefined): ReactNode {
-  if (field.type === "signature") return value === true ? "Podpisano w mObywatelu" : "Brak podpisu";
+  if (field.type === "signature") return value === true ? "Podpis symulowany" : "Brak podpisu";
   if (field.type === "boolean") return value === true ? "Tak" : "Nie";
   if (!isFilled(value)) return <span className="text-muted-foreground">Nie podano</span>;
   switch (field.type) {
@@ -360,7 +370,7 @@ function Summary({ spec, ctx, values, onEdit }: { spec: FormSpec; ctx: FormConte
           </div>
           <dl className="divide-y [&>div]:grid [&>div]:gap-1 [&>div]:py-2 sm:[&>div]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:[&>div]:gap-4">
             {step.title === ATTACHMENTS_STEP && attachments.map((a) => (
-              <div key={a.id}><dt className="font-bold">{a.title}</dt><dd>{values[attachmentKey(a.id)] === true ? "Dołączono" : "Brak"}</dd></div>
+              <div key={a.id}><dt className="font-bold">{a.title}</dt><dd>{values[attachmentKey(a.id)] === true ? "Oznaczono jako przygotowany" : "Brak"}</dd></div>
             ))}
             {step.fields.map((field) => (
               <div key={field.key}><dt className="font-bold">{field.label}</dt><dd className="break-words whitespace-pre-line">{formatValue(field, values[field.key])}</dd></div>
@@ -391,7 +401,7 @@ function FieldInput({ field, value, onChange, required, error }: {
   switch (field.type) {
     case "signature":
       return wrap(
-        <Checkbox checked={value === true} onChange={() => onChange(value !== true)} title="Podpisuję wniosek w mObywatelu">
+        <Checkbox checked={value === true} onChange={() => onChange(value !== true)} title="Potwierdzam podpis w symulacji">
           Potwierdzam, że dane we wniosku są zgodne z prawdą. Podpis jest symulowany.
         </Checkbox>,
       );

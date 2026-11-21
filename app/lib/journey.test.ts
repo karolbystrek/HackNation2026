@@ -41,6 +41,7 @@ test("employee mother at a large payer: no ZAM unless she picks 81.5%", async ()
   assert.equal(claim.form, undefined);
   assert.equal(claim.due, undefined);
   assert.deepEqual(claim.requires, ["birth-certificate"]);
+  assert.equal(get("birth-certificate-copy")?.extra, true);
 
   const averaged = (await timeline({ ...anna, wantsAveragedRate: true })).get("maternity-claim")!;
   assert.equal(averaged.form, "ff.zam");
@@ -100,6 +101,7 @@ test("questionnaire: premature baby gets supplementary leave right after materni
   const { get } = await fromAnswers(a);
   assert.equal(get("supplementary-period")!.date, "2027-03-21");
   assert.equal(get("supplementary-period")!.end, "2027-04-17");
+  assert.equal(get("parental-mother-period")?.date, "2027-04-18");
   assert.equal(get("supplementary-leave")!.form, "lr.supplementary_maternity");
   assert.equal(get("supplementary-leave")!.due, "2027-02-27"); // 21 days before maternity ends
   assert.equal((await fromAnswers({ ...a, hospitalWeeks: 0 })).get("supplementary-leave"), undefined);
@@ -122,13 +124,21 @@ test("questionnaire: stillbirth leaves 8 weeks of maternity benefit and the fune
   const { get, entries } = await fromAnswers({ situation: "born", role: "mother", insurance: ["employment"], birthDate: "2026-11-01", multipleBirth: false, special: ["stillbirth"] });
   assert.equal(get("maternity-period")!.end, "2026-12-26");
   assert.ok(get("funeral-claim"));
+  assert.equal(get("birth-registration")?.due, undefined);
+  assert.match(get("birth-registration")?.dateNote ?? "", /3 dni/);
+  assert.equal(get("birth-certificate-copy"), undefined);
   assert.ok(!entries.some((e) => e.id === "paternity" || e.id.startsWith("parental-")));
 });
 
 test("questionnaire: insurance ended in pregnancy, sickness benefit claimed with ZAS-53", async () => {
   const { get } = await fromAnswers({ situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", special: ["insuranceEnded"] });
-  assert.equal(get("sickness-claim")!.form, "ff.zas53");
+  assert.equal(get("sickness-claim"), undefined);
+  assert.ok(get("sickness-check"));
   assert.equal(get("maternity-claim"), undefined);
+  const withLeave = await fromAnswers({ situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01",
+    special: ["insuranceEnded"], insuranceEndDate: "2026-11-08", sicknessStartAfterInsurance: "2026-11-10" });
+  assert.equal(withLeave.get("sickness-claim")?.form, "ff.zas53");
+  assert.equal(withLeave.get("sickness-claim")?.date, "2026-11-10");
 });
 
 test("questionnaire: the wizard finds the application, so the ZUS PDF can be filled", async () => {

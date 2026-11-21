@@ -188,6 +188,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                 )}
                 {showStatus && <div><dt>Status</dt><dd>{statuses[entry.status]}</dd></div>}
                 {entry.recipient && <div><dt>Gdzie</dt><dd>{entry.recipient}</dd></div>}
+                {entry.deadlineDetail && <div><dt>Skutek przekroczenia terminu</dt><dd>{entry.deadlineDetail}</dd></div>}
                 {required.length > 0 && (
                   <div>
                     <dt>Co jest potrzebne</dt>
@@ -208,7 +209,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                 {!!entry.documents?.length && (
                   <div>
                     <dt>Dokumenty</dt>
-                    <dd><ul role="list" className="space-y-1">{entry.documents.map((doc) => <li key={doc.id}>{doc.title}</li>)}</ul></dd>
+                    <dd><ul role="list" className="space-y-1">{entry.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-sm text-muted-foreground">{doc.instruction}</span>}</li>)}</ul></dd>
                   </div>
                 )}
                 {entry.review && (

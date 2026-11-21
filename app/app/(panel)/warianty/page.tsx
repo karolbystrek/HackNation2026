@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeaveLanes } from "@/components/leave-lanes";
-import { BackLink, Button, Card, Chip, PageBand, WarningBox } from "@/components/ui";
-import { formatDate } from "@/lib/dates";
-import { formatPln } from "@/lib/format";
+import { BackLink, Button, Card, PageBand, WarningBox } from "@/components/ui";
+import { otherParent, planLeave } from "@/lib/calc/leave";
+import { bestLeaveSplit, readCustomLeave } from "@/lib/calc/variants";
+import { formatPln, formatWeeks } from "@/lib/format";
 import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
@@ -14,80 +15,113 @@ export default function VariantsPage() {
 }
 
 function Variants() {
-  const { persona, params, variants, plan, names } = useFamily();
+  const { persona, params, variants, chosen, plan, names } = useFamily();
   const router = useRouter();
   const query = useSearchParams();
   const fromTasks = query.get("z") === "zadania";
   const event = plan.events.find((item) => item.id === query.get("wydarzenie"));
   const returnHref = fromTasks ? "/zadania" : event ? `/plan#timeline-event-${encodeURIComponent(event.id)}` : "/plan";
 
+  const base = (chosen ?? variants.find((variant) => variant.key === "custom") ?? variants[0]).input;
+  const main = base.main;
+  const other = otherParent(main);
+  const canShare = persona.parents[other].insuredType !== "uninsured" && persona.parents[main].insuredType !== "uninsured";
+  const limit = canShare ? planLeave(base, params).maxOtherWeeks : 0;
+  const [selectedWeeks, setSelectedWeeks] = useState<number>();
+  const best = useMemo(() => {
+    if (!base.bases.mother || (canShare && !base.bases.father)) return null;
+    const result = bestLeaveSplit(base, params, limit);
+    return result.familyTotal > 0 ? result : null;
+  }, [base, canShare, limit, params]);
+  const result = planLeave({
+    ...base,
+    otherWeeks: canShare ? selectedWeeks ?? (chosen || plan.customLeave ? base.otherWeeks : best?.otherWeeks ?? 0) : 0,
+  }, params);
+  const isBest = best?.otherWeeks === result.otherWeeks;
+  const missingBasis = Object.values(result.periods).flat().some((period) => !base.bases[period.parent]);
+  const customLeave = readCustomLeave({
+    ...base,
+    paternityStartDate: base.paternityStartDate || undefined,
+    otherWeeks: result.otherWeeks,
+  });
+
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        title="Narodziny dziecka: kto idzie na urlop?"
-        lead="Porównaj podział urlopu i kwoty zasiłków. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem."
+
+        title="Podzielcie urlop rodzicielski"
+        lead="Sprawdźcie, jak podział urlopu wpływa na szacunkowe kwoty zasiłków brutto."
       />
       <div className="page">
-      <BackLink href={returnHref}>{fromTasks ? "Wróć do zadań" : event ? "Wróć do wydarzenia" : "Wróć do osi czasu"}</BackLink>
+        <BackLink href={returnHref}>{fromTasks ? "Wróć do zadań" : event ? "Wróć do wydarzenia" : "Wróć do osi czasu"}</BackLink>
 
-      {variants.map((v) => {
-        const active = plan.chosenVariant === v.key;
-        return (
-          <Card key={v.key} className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <div className="grow"><p className="text-sm text-muted-foreground">{v.key === "custom" ? "Z kalkulatora" : `Wariant ${v.key}`}</p><h2 className="text-[22px] font-bold">{v.name}</h2></div>
-              <Chip>{v.tag}</Chip>
+        <Card className="flex flex-col gap-4">
+          {limit > 0 ? (
+            <div>
+              <label htmlFor="leave-split" className="font-bold">Tygodnie urlopu rodzicielskiego ({names[other]})</label>
+              <div className="mt-1 flex items-center gap-3">
+                <Button variant="outline" aria-label="Odejmij tydzień" disabled={result.otherWeeks <= 0} onClick={() => setSelectedWeeks(Math.max(0, result.otherWeeks - 1))}>−</Button>
+                <input
+                  id="leave-split"
+                  type="range"
+                  min={0}
+                  max={limit}
+                  step={1}
+                  value={result.otherWeeks}
+                  aria-valuetext={`${names[main]}: ${formatWeeks(result.mainWeeks)}, ${names[other]}: ${formatWeeks(result.otherWeeks)}`}
+                  onChange={(event) => setSelectedWeeks(event.currentTarget.valueAsNumber)}
+                  className="min-h-11 min-w-0 flex-1 cursor-pointer accent-primary"
+                />
+                <Button variant="outline" aria-label="Dodaj tydzień" disabled={result.otherWeeks >= limit} onClick={() => setSelectedWeeks(Math.min(limit, result.otherWeeks + 1))}>+</Button>
+              </div>
             </div>
+          ) : (
+            <p>Podział urlopu jest niedostępny dla tego profilu.</p>
+          )}
+          <dl className="grid gap-3 sm:grid-cols-3">
+            <div><dt>{names[main]}</dt><dd className="font-bold">{formatWeeks(result.mainWeeks)}</dd></div>
+            <div><dt>{names[other]}</dt><dd className="font-bold">{formatWeeks(result.otherWeeks)}</dd></div>
+            <div><dt>Zasiłki brutto łącznie</dt><dd className="font-bold">{missingBasis ? <a href="/kalkulator" className="text-link">Uzupełnij podstawy</a> : formatPln(result.familyTotal)}</dd></div>
+          </dl>
 
-            <LeaveLanes
-              result={v.result}
-              names={names}
-              endLabel={`${names[v.lastReturn.who]} wraca ${formatDate(v.lastReturn.date)}`}
-            />
+          {best && limit > 0 && (isBest ? (
+            <p className="text-sm font-bold text-primary">Ten podział daje najwyższą łączną kwotę zasiłków.</p>
+          ) : (
+            <section className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-primary bg-primary-soft p-4">
+              <div>
+                <h2 className="font-bold">Najwyższa łączna kwota zasiłków brutto</h2>
+                <p>{formatPln(best.familyTotal)} · {names[main]}: {formatWeeks(best.mainWeeks)}, {names[other]}: {formatWeeks(best.otherWeeks)}</p>
+              </div>
+              <Button variant="outline" onClick={() => setSelectedWeeks(best.otherWeeks)}>
+                Ustaw ten podział
+              </Button>
+            </section>
+          ))}
+          {!best && limit > 0 && (!base.bases.mother || !base.bases.father) && (
+            <p className="text-sm text-muted-foreground">Do wyliczenia najlepszego podziału potrzebne są podstawy zasiłku obojga rodziców.</p>
+          )}
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2.5">
-              {[
-                ["Tracicie względem pensji", `ok. ${formatPln(Math.round(v.incomeLoss / 10) * 10)}`],
-                ["Zasiłki łącznie", `ok. ${formatPln(Math.round(v.result.familyTotal / 10) * 10)}`],
-                ["Dziecko pod opieką rodzica", `${v.childcareWeeks} tyg.`],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-sm bg-secondary px-3.5 py-3">
-                  <div className="text-[13px] text-muted-foreground">{label}</div>
-                  <div className="text-xl font-bold sm:text-2xl">{value}</div>
-                </div>
-              ))}
-            </div>
+          <section className="border-y py-3">
+            <h2 className="font-bold">Harmonogram urlopów</h2>
+            <p className="my-2 text-sm">Harmonogram zakłada, że rodzice korzystają z urlopu rodzicielskiego po kolei.</p>
+            <p className="mb-2 text-sm text-muted-foreground">Wybierz odcinek na wykresie, aby sprawdzić daty i kwotę zasiłku.</p>
+            <LeaveLanes result={result} names={names} />
+            <a href="https://www.gov.pl/web/rodzina/urlop-rodzicielski" className="text-link">Zasady urlopu na gov.pl</a>
+          </section>
+          <WarningBox items={result.warnings} />
 
-            <ul className="flex flex-col gap-1.5">
-              {v.points.map((pt) => (
-                <li key={pt.text} className="flex gap-2.5 text-[15px] leading-relaxed">
-                  <span className="w-5 shrink-0 text-center font-bold text-primary">{pt.sign}</span>
-                  <span>{pt.text}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button
-              variant={active ? "primary" : "outline"}
-              className="min-h-[50px] self-start"
-              onClick={() => {
-                updatePlan((s) => ({ ...s, chosenVariant: v.key }));
-                router.push("/zadania");
-              }}
-            >
-              {active ? "Przejdź do zadań" : v.key === "custom" ? "Wybierz plan z kalkulatora" : `Wybierz wariant ${v.key} i przejdź do zadań`}
-            </Button>
-          </Card>
-        );
-      })}
-
-      <WarningBox
-        items={[
-          `Każde z Was ma ${params.parentalOwnWeeks} tygodni urlopu rodzicielskiego tylko dla siebie. Jeśli ich nie wykorzystacie, przepadają – nie można ich przekazać drugiemu rodzicowi.`,
-          `Termin porodu ${formatDate(persona.dueDate)} – daty urlopów przesuną się razem z faktyczną datą urodzenia.`,
-        ]}
-      />
-    </div>
+          <Button
+            className="min-h-[50px] self-start"
+            disabled={!customLeave}
+            onClick={() => {
+              updatePlan((state) => ({ ...state, customLeave, chosenVariant: "custom" }));
+              router.push("/zadania");
+            }}
+          >
+            Zapisz podział i przejdź do zadań
+          </Button>
+        </Card>
+      </div>
     </main>
   );
 }

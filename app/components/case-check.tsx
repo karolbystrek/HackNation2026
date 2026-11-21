@@ -158,7 +158,7 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                 <Field label="Data urodzenia dziecka" type="date" value={c.event.childBirthDate ?? ""} hint={hint("event.childBirthDate")} onChange={(e) => setEvent({ childBirthDate: e.target.value || null })} />
                 <Field label="Liczba dzieci" type="number" min={1} max={10} value={c.event.kids} onChange={(e) => setEvent({ kids: Math.max(1, Number(e.target.value) || 1) })} />
               </div>
-              <Checkbox checked={c.fullLeaveDeclaration} onChange={() => set({ fullLeaveDeclaration: !c.fullLeaveDeclaration })} title="Wniosek o 81,5% za cały okres" />
+              <Checkbox checked={c.fullLeaveDeclaration} onChange={() => set({ fullLeaveDeclaration: !c.fullLeaveDeclaration })} title="Wniosek o stawkę uśrednioną 81,5%" />
             </div>
           </div>
           <div className="border-t pt-4">
@@ -226,8 +226,11 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
           <h4 id="case-calculation" className="mb-2 text-lg font-bold">Wynik kalkulatora</h4>
           <Notice className={analysis.eligible === null ? undefined : analysis.eligible ? "border-primary" : "border-destructive"}>
             <div aria-live="polite" className="flex flex-col gap-2">
-              <p className="text-lg font-bold">{analysis.eligible === null ? "Brakuje danych do oceny" : analysis.eligible ? "Zasiłek przysługuje" : "Zasiłek nie przysługuje"}</p>
+              <p className="text-lg font-bold">{analysis.eligible === null ? "Wymaga sprawdzenia" : analysis.eligible ? "Wstępna ocena: spełniasz sprawdzane warunki" : "Wstępna ocena: warunki wymagają wyjaśnienia"}</p>
               <p>{analysis.eligibility}</p>
+              <a className="text-link" href={c.benefit === "sickness_pregnancy"
+                ? "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/prawo-do-zasilku-i-okres-przyslugiwania"
+                : "https://www.zus.pl/swiadczenia/zasilki/zasilek-macierzynski/niezbedne-dokumenty"}>Sprawdź zasady w ZUS</a>
               {(analysis.basis || analysis.monthly !== null || (hasAmounts && analysis.periods.length > 0)) && <dl className="flex flex-col gap-2 border-t pt-2">
                 {analysis.basis && <div><dt>Podstawa wymiaru</dt><dd className="font-bold">{formatPln(analysis.basis.value, 2)}</dd></div>}
                 {analysis.monthly !== null && <div><dt>Zasiłek miesięcznie</dt><dd className="font-bold">{formatPln(analysis.monthly, 2)}</dd></div>}

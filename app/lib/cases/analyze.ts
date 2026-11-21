@@ -30,7 +30,7 @@ export type CaseAnalysis = {
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
 const days = (p: { from: string; to: string }) => diffDays(parseIso(p.from)!, parseIso(p.to)!) + 1;
-const MATERNITY_KINDS: PeriodKind[] = ["maternity", "supplementary", "parental", "paternity", "maternity_conditions", "equal_maternity"];
+const MATERNITY_KINDS: PeriodKind[] = ["maternity", "supplementary", "parental", "maternity_conditions"];
 
 /** Insured days in the sickness-insurance chain that covers `day`; breaks of up to `gap` days do not interrupt it. */
 function insuredDaysUntil(periods: CaseExtraction["sickInsurance"], day: Date, gap: number): number {
@@ -117,14 +117,17 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
     if (!covered && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
       eligible = null;
       eligibility = "Sprawdź dokument i uzupełnij okresy ubezpieczenia chorobowego, aby ocenić prawo do zasiłku.";
+    } else if (!covered && c.benefit === "sickness_pregnancy") {
+      eligible = null;
+      eligibility = "Wymaga sprawdzenia. Ustal, kiedy rozpoczęła się niezdolność do pracy względem końca ubezpieczenia.";
     } else if (!covered) {
       eligibility = `W dniu ${formatDate(start)} osoba nie podlegała ubezpieczeniu chorobowemu, więc zasiłek nie przysługuje.`;
     } else if (c.benefit === "sickness_pregnancy") {
       const waiting = coveredPeriods.some((s) => !s.voluntary) ? p.waitingDays.uop : p.waitingDays.jdg;
-      eligible = insuredDays >= waiting;
+      eligible = insuredDays >= waiting ? true : null;
       eligibility = eligible
         ? `Ubezpieczenie chorobowe w dniu ${formatDate(start)}, okres wyczekiwania ${waiting} dni spełniony (${insuredDays} dni).`
-        : `Okres wyczekiwania ${waiting} dni nie upłynął (${insuredDays} dni ubezpieczenia przed zwolnieniem).`;
+        : `Wymaga sprawdzenia. Sprawdź okresy zaliczane do wyczekiwania i wyjątki od wymogu ${waiting} dni.`;
     } else {
       eligible = true;
       eligibility = `Ubezpieczenie chorobowe w dniu ${formatDate(start)}. Zasiłek macierzyński nie wymaga okresu wyczekiwania.`;

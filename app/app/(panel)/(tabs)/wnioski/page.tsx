@@ -21,7 +21,14 @@ export default function Applications() {
           <Chip>{names[task.who]}</Chip>
         </div>
         <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
-        {task.extra && <p className="text-muted-foreground">{task.description}</p>}
+        {task.recipient && <p className="text-muted-foreground">{task.recipient}</p>}
+        <details className="text-sm">
+          <summary className="cursor-pointer font-bold">Dokumenty i instrukcja</summary>
+          <p>{task.description}</p>
+          {task.deadlineDetail && <p>{task.deadlineDetail}</p>}
+          {task.documents.length > 0 && <ul className="list-disc pl-5">{task.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>}
+          {task.guide && <a href={task.guide} className="text-link">Oficjalna instrukcja</a>}
+        </details>
       </div>
       <div className="shrink-0 sm:max-w-xs"><ApplicationAction origin="wnioski" task={task} submission={plan.submissions[task.id]} /></div>
     </li>
@@ -34,16 +41,6 @@ export default function Applications() {
         lead="Wypełnij wnioski do ZUS, pracodawcy i urzędu stanu cywilnego albo sprawdź dokumenty, które już masz."
       />
       <div className="page gap-12">
-
-      <section aria-labelledby="teczka" className="flex flex-col gap-4 border border-t-4 border-border border-t-brand p-5 sm:p-6">
-        <div>
-          <h2 id="teczka" className="text-2xl font-bold">Sprawdź swoje dokumenty z ZUS</h2>
-          <p className="max-w-[70ch] text-muted-foreground">
-            Wgraj PDF lub wpisz dane ręcznie. Kalkulator pokaże, czy zasiłek przysługuje i ile może wynieść.
-          </p>
-        </div>
-        <CaseCheck params={params} />
-      </section>
 
       <section aria-labelledby="twoje-wnioski">
         <SectionTitle id="twoje-wnioski" className="mb-1">Twoje wnioski</SectionTitle>
@@ -65,6 +62,10 @@ export default function Applications() {
           <ul role="list">{special.map(row)}</ul>
         </section>
       )}
+      <details className="border-y py-4">
+        <summary className="cursor-pointer text-xl font-bold">Sprawdź decyzję lub dokumenty z ZUS</summary>
+        <div className="mt-3"><CaseCheck params={params} /></div>
+      </details>
       </div>
     </main>
   );

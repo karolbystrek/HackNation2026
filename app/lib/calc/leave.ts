@@ -1,4 +1,4 @@
-import { addDays, addYears, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
+import { addDays, addMonths, addYears, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import { formatPln, formatWeeks } from "@/lib/format";
 import type { Params } from "@/lib/params";
 
@@ -25,6 +25,9 @@ export type LeaveInput = {
   paternity: boolean;
   /** Planned start for the family variant. Calculators may omit it. */
   paternityStartDate?: string;
+  adoptionOrderDate?: string;
+  supplementaryWeeks?: number;
+  supplementaryParent?: ParentKey;
   flatRate: boolean;
   workFractions?: Record<ParentKey, number>;
   /** Legacy REST inputs. */
@@ -35,7 +38,7 @@ export type LeaveInput = {
 export type LeavePeriod = {
   parent: ParentKey;
   label: string;
-  kind: "maternity" | "parental";
+  kind: "maternity" | "parental" | "supplementary" | "paternity";
   from: string;
   /** Exclusive end date. */
   to: string;
@@ -66,6 +69,14 @@ export type LeaveResult = {
   warnings: string[];
 };
 
+/** Exclusive end of the legal paternity window. */
+export function paternityEndLimit(anchor: Date | null, childBirth: Date | null, p: Params): Date | null {
+  if (!anchor) return null;
+  const first = addMonths(anchor, p.paternityUntilChildMonths);
+  const ageLimit = childBirth && addYears(childBirth, p.adoptionAgeLimit.adoption);
+  return ageLimit && ageLimit < first ? ageLimit : first;
+}
+
 export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   const adoption = input.mode === "adoption";
   const main = adoption ? input.main : "mother";
@@ -80,7 +91,6 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   const mainWeeks = pool - Math.max(otherWeeks, p.parentalOwnWeeks);
   const lostOwnWeeks = Math.max(0, p.parentalOwnWeeks - otherWeeks);
   // Sharing the pool does not cancel 81.5% (knowledge: uz.art31.ust3f); only the other parent's reserved weeks stay at 70%.
-  // shortcut: pays all of the other parent's weeks at 70%, understating weeks beyond the reserved 9; split the period to fix.
   const flatRateAllowed = !zaZyciem;
   const flatRateApplied = input.flatRate && flatRateAllowed;
 
@@ -120,7 +130,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
     }
     const base = input.bases[parent];
     // shortcut: compares the gross benefit with the top-up amount; the law compares it after the PIT advance, so the top-up is slightly understated.
-    const monthly = base > 0 ? Math.max(base * rate, p.parentalAllowanceMonthly) : 0;
+    const monthly = base > 0 ? (kind === "paternity" ? base * rate : Math.max(base * rate, p.parentalAllowanceMonthly)) : 0;
     if (monthly > base * rate) toppedUp = true;
     periods[parent].push({
       parent,
@@ -147,18 +157,34 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   };
 
   let end = start;
+  let paternityWarning = "";
   if (start && !noRight) {
     const maternityRate = flatRateApplied ? p.rates.flat : p.rates.full;
     const parentalRate = flatRateApplied ? p.rates.flat : p.rates.parental;
     const maternityLabel = adoption ? "Na warunkach urlopu macierzyńskiego" : "Urlop macierzyński";
     const e1 = add(main, maternityLabel, "maternity", start, p.maternityWeeks[kids - 1], maternityRate, 0);
-    const e2 = add(main, "Urlop rodzicielski", "parental", e1, mainWeeks, parentalRate, work(main));
-    const e3 = add(other, "Urlop rodzicielski", "parental", e2, otherWeeks, p.rates.parental, work(other));
+    const afterSupplement = add(input.supplementaryParent ?? main, "Uzupełniający urlop macierzyński", "supplementary", e1, input.supplementaryWeeks ?? 0, p.rates.full, 0);
+    const e2 = add(main, "Urlop rodzicielski", "parental", afterSupplement, mainWeeks, parentalRate, work(main));
+    const reserved = flatRateApplied ? Math.min(otherWeeks, p.parentalOwnWeeks) : otherWeeks;
+    const sharedStart = add(other, "Urlop rodzicielski", "parental", e2, reserved, p.rates.parental, work(other));
+    const e3 = add(other, "Urlop rodzicielski", "parental", sharedStart, otherWeeks - reserved, parentalRate, work(other));
     const showPaternity = !adoption || input.adoptionType === "adoption";
     if (showPaternity && input.paternity) {
       // Paternity leave right after birth when the father is the "other" parent, else after the parental leave.
-      const paternityStart = parseIso(input.paternityStartDate) ?? (other === "father" ? start : e3 > e2 ? e3 : e2);
-      add("father", "Urlop ojcowski", "maternity", paternityStart, p.paternityWeeks, p.rates.full, 0);
+      const adoptedChildBirth = adoption ? parseIso(input.childBirthDate) : null;
+      const order = adoption ? (adoptedChildBirth ? parseIso(input.adoptionOrderDate) : null) : start;
+      const earliest = order && order > start ? order : start;
+      const paternityStart = parseIso(input.paternityStartDate) ?? (other === "father" ? earliest : e3 > earliest ? e3 : earliest);
+      const limit = paternityEndLimit(order, adoptedChildBirth, p);
+      const remaining = limit && paternityStart >= (order ?? start) ? diffDays(paternityStart, limit) : 0;
+      const days = Math.min(p.paternityWeeks * 7, Math.floor(remaining / p.paternityMinPartDays) * p.paternityMinPartDays);
+      const paternityEnd = addDays(paternityStart, days);
+      const overlaps = periods.father.some((period) => period.from < toIso(paternityEnd) && period.to > toIso(paternityStart));
+      if (days > 0 && !overlaps) add("father", "Urlop ojcowski", "paternity", paternityStart, days / 7, p.rates.full, 0);
+      if (days > 0 && overlaps) paternityWarning = "Zmień termin ojcowskiego. W tym okresie ojciec ma już inny urlop w planie.";
+      else if (days < p.paternityWeeks * 7) paternityWarning = limit
+        ? `Urlop ojcowski można wykorzystać do ${formatDate(addDays(limit, -1))}. Sprawdź liczbę dni dostępnych w wybranym terminie.`
+        : "Do ustalenia terminu ojcowskiego potrzebna jest data prawomocnego orzeczenia o przysposobieniu.";
     }
     for (const parent of PARENTS) {
       for (const period of periods[parent]) {
@@ -183,6 +209,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
       : "";
 
   const warnings: string[] = [];
+  if (paternityWarning) warnings.push(paternityWarning);
   if (!start) warnings.push("Wpiszcie datę.");
   if (noRight) warnings.push(`Dziecko ukończyło ${capYears} lat przed przyjęciem – urlop i zasiłek nie przysługują.`);
   if (lostOwnWeeks > 0)

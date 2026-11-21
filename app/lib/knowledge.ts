@@ -68,9 +68,10 @@ export async function loadJourney(): Promise<Journey> {
       }))
       .filter((s) => s.steps.length > 0),
     deadlines: Object.fromEntries(deadlines.map((d): [string, Deadline] => [d.id, {
-      title: d.title_pl, anchor: d.anchor_event, offset: d.offset, kind: d.kind, appliesTo: d.applies_to ?? null,
+      title: d.title_pl, consequence: d.consequence_pl, anchor: d.anchor_event, offset: d.offset, kind: d.kind, appliesTo: d.applies_to ?? null,
     }])),
     documentTitles: Object.fromEntries(documents.map((d) => [d.id, d.title_pl])),
+    documentInstructions: Object.fromEntries(documents.filter((d) => d.how_to_obtain_pl).map((d) => [d.id, d.how_to_obtain_pl])),
   };
 }
 

@@ -8,6 +8,21 @@ import { estimateAmounts } from "@/lib/guide/estimate";
 import { resolveGuide } from "@/lib/guide/tree";
 import { useFamily } from "@/lib/use-family";
 
+const sicknessSource = "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/prawo-do-zasilku-i-okres-przyslugiwania";
+const maternitySource = "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-macierzynski/wysokosc";
+const benefitSources: Record<string, string> = {
+  "benefit.sick_pay_employer": sicknessSource,
+  "benefit.sickness_pregnancy": sicknessSource,
+  "benefit.parental": "https://www.gov.pl/web/rodzina/urlop-rodzicielski",
+  "benefit.paternity": "https://www.gov.pl/web/rodzina/urlop-ojcowski",
+  "benefit.supplementary_maternity": "https://www.gov.pl/web/rodzina/uzupelniajacy-urlop-macierzynski",
+  "benefit.parental_allowance": "https://www.gov.pl/web/gov/uzyskaj-swiadczenie-rodzicielskie",
+  "benefit.rehabilitation": "https://www.zus.pl/swiadczenia/zasilki/swiadczenie-rehabilitacyjne/z-ubezpieczenia-chorobowego/niezbedne-dokumenty",
+  "benefit.maternity_equivalent": "https://www.zus.pl/swiadczenia/zasilki/zasilek-macierzynski/niezbedne-dokumenty",
+  "benefit.funeral": "https://www.gov.pl/web/gov/uzyskaj-zasilek-pogrzebowy",
+  "benefit.care": "https://www.zus.pl/swiadczenia/zasilki/zasilek-opiekunczy",
+};
+
 export default function Benefits() {
   const { plan, persona, entries, fromGuide, params } = useFamily();
 
@@ -38,21 +53,23 @@ export default function Benefits() {
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <PageBand title="Świadczenia" lead="Na podstawie Twoich odpowiedzi. O prawie do zasiłku decyduje ZUS lub płatnik składek." />
+      <PageBand title="Świadczenia" lead="Sprawdź uprawnienia pasujące do Twoich odpowiedzi. Prawo do zasiłku ustala ZUS lub płatnik składek." />
       <div className="page gap-12">
 
       <section aria-labelledby="przysluguje" className="flex flex-col gap-3">
-        <SectionTitle id="przysluguje">Co Ci przysługuje</SectionTitle>
+        <SectionTitle id="przysluguje">Świadczenia do sprawdzenia</SectionTitle>
         {benefits.length ? (
           <ul className="grid gap-4 md:grid-cols-2">
             {benefits.map((b) => (
               <li key={b.id} className="border border-t-4 border-border border-t-brand p-5">
                 <h3 className="text-lg font-bold">{b.title_pl}</h3>
                 <p className="text-muted-foreground">{b.summary_pl}</p>
+                <a href={benefitSources[b.id] ?? maternitySource} className="text-link mt-2 inline-flex min-h-11 items-center"
+                  aria-label={`Oficjalne zasady: ${b.title_pl}`}>Oficjalne zasady</a>
               </li>
             ))}
           </ul>
-        ) : <Notice>Na podstawie odpowiedzi nie przysługuje Ci zasiłek z ubezpieczenia chorobowego.</Notice>}
+        ) : <Notice>Z odpowiedzi nie wynika obecnie uprawnienie z ubezpieczenia chorobowego. Po urodzeniu lub przyjęciu dziecka sprawdź <a className="text-link" href="https://www.gov.pl/web/gov/uzyskaj-swiadczenie-rodzicielskie">świadczenie rodzicielskie na gov.pl</a>.</Notice>}
       </section>
 
       {estimate && estimate.rows.length > 0 && (
@@ -96,6 +113,7 @@ export default function Benefits() {
           </ul>
         </Disclosure>
       )}
+      <ButtonLink href="/zadania" className="self-start">Zobacz terminy i zadania</ButtonLink>
       <section aria-labelledby="informacje" className="grid gap-2">
         <SectionTitle id="informacje">Oficjalne informacje</SectionTitle>
         <LinkList links={[

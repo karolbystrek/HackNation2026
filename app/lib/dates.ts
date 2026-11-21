@@ -24,8 +24,15 @@ export function diffDays(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86_400_000);
 }
 
+export function addMonths(date: Date, months: number): Date {
+  const first = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
+  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  first.setUTCDate(Math.min(date.getUTCDate(), lastDay));
+  return first;
+}
+
 export function addYears(date: Date, years: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear() + years, date.getUTCMonth(), date.getUTCDate()));
+  return addMonths(date, years * 12);
 }
 
 export function formatDate(value: Date | string | null | undefined): string {

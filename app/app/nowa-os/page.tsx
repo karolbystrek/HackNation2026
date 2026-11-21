@@ -1,6 +1,6 @@
 "use client";
 
-// GOV.UK-style questionnaire: one question per page, then "check your answers", then the login simulation and the panel.
+// GOV.UK-style questionnaire: one question per page, then "check your answers", then the family plan.
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { TermText } from "@/components/term-text";
@@ -9,7 +9,7 @@ import { BackLink, Button, Checkbox, Field, RadioOption } from "@/components/ui"
 import { formatDate } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
 import { GUIDE_ID } from "@/lib/guide/persona";
-import { updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
+import { logIn, updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
 
 const heading = "text-2xl leading-tight font-bold sm:text-3xl";
 const STAGES = ["Odpowiedz na pytania", "Sprawdź odpowiedzi", "Zobacz swoją oś czasu"];
@@ -37,7 +37,7 @@ function Frame({ stage, band, children }: { stage: number; band?: ReactNode; chi
               </li>
             ))}
           </ol>
-          <p className="mt-4 border-t pt-4 text-sm text-muted-foreground">Odpowiedzi zostają w tej przeglądarce. Nie musisz się logować, aby zobaczyć wynik.</p>
+          <p className="mt-4 border-t pt-4 text-sm text-muted-foreground">Odpowiedzi zostają w tej przeglądarce. Wynik otworzysz bez konta.</p>
         </aside>
       </div>
     </main>
@@ -47,6 +47,7 @@ function Frame({ stage, band, children }: { stage: number; band?: ReactNode; chi
 function display(q: Question, a: Answers) {
   const value = a[q.id];
   const label = (v: string) => plainText(q.options?.find((o) => o.value === v)?.label ?? v);
+  if (Array.isArray(value) && q.optional && !value.length) return "Pominięto";
   if (q.type === "boolean") return value ? "Tak" : "Nie";
   if (q.type === "date") return formatDate(value as string);
   if (Array.isArray(value)) return value.length ? value.map(label).join(", ") : "Nic z powyższych";
@@ -86,7 +87,7 @@ export default function NewTimeline() {
         <div className="flex flex-wrap items-center gap-4">
           {plan.personaId === GUIDE_ID
             ? <Button variant="action" onClick={() => router.push("/plan")}>Wróć do planu</Button>
-            : <Button variant="action" onClick={() => router.push("/logowanie")}>Dalej: zaloguj się</Button>}
+            : <Button variant="action" onClick={() => { logIn(GUIDE_ID); router.push("/plan"); }}>Pokaż mój plan</Button>}
           <Button variant="link" onClick={() => updatePlan((s) => ({ ...s, guideAnswers: {} }))}>Zacznij od nowa</Button>
         </div>
       </Frame>

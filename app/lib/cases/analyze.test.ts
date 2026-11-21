@@ -61,9 +61,9 @@ describe("analyzeCase", () => {
     expect(r.notes.some((n) => n.includes("podwyższony"))).toBe(true);
   });
 
-  it("requires the 90-day waiting period for voluntary sickness insurance in pregnancy", () => {
+  it("leaves eligibility open when the voluntary waiting period is short", () => {
     const sick: CaseExtraction = { ...base, benefit: "sickness_pregnancy", event: { ...base.event, kind: "pregnancy", date: null }, sickInsurance: [{ from: "2025-11-01", to: null, voluntary: true }], requested: [{ kind: "sickness", from: "2026-01-05", to: "2026-02-03" }] };
-    expect(analyzeCase(sick, defaultParams).eligible).toBe(false);
+    expect(analyzeCase(sick, defaultParams).eligible).toBeNull();
     expect(analyzeCase({ ...sick, sickInsurance: [{ from: "2025-09-01", to: null, voluntary: true }] }, defaultParams).eligible).toBe(true);
   });
 
@@ -80,7 +80,7 @@ describe("analyzeCase", () => {
       requested: [{ kind: "sickness", from: "2026-03-10", to: "2026-03-15" }],
       sickInsurance: [{ from: "2026-02-02", to: "2026-02-07", voluntary: false }, { from: "2026-02-28", to: null, voluntary: false }],
     }, defaultParams);
-    expect(r.eligible).toBe(false);
+    expect(r.eligible).toBeNull();
   });
 
   it("distinguishes court-confirmed unlawful dismissal after birth from the pre-birth benefit", () => {

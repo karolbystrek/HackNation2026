@@ -54,10 +54,15 @@ export default function Tasks() {
             <Chip>{names[task.who]}</Chip>
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
-          <p className="text-muted-foreground">{task.description}</p>
-          {task.documents.length > 0 && <p className="text-sm">Dokumenty: {task.documents.join(", ")}.</p>}
+          {task.recipient && <p className="text-muted-foreground">{task.recipient}</p>}
           <ApplicationAction origin="zadania" task={task} submission={submission} />
-          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja składania wniosku</a>}
+          <details className="text-sm">
+            <summary className="cursor-pointer font-bold">Dokumenty i termin</summary>
+            <p>{task.description}</p>
+            {task.deadlineDetail && <p>{task.deadlineDetail}</p>}
+            {task.documents.length > 0 && <ul className="list-disc pl-5">{task.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>}
+            {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Oficjalna instrukcja</a>}
+          </details>
           {task.waitingFor.length > 0 && !task.done && (
             <div id={`${inputId}-waiting`} className="text-sm text-muted-foreground">
               <p className="font-bold">Oczekuje na potwierdzenie w Planie</p>
@@ -85,7 +90,7 @@ export default function Tasks() {
         <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <Link href="/warianty?z=zadania" className="text-link font-bold">
-            {chosen ? `Zmień wariant (${chosen.name})` : "Wybierz wariant urlopu"}
+            {chosen ? "Zmień podział urlopu" : "Ustal podział urlopu"}
           </Link>
           <Button variant="outline" onClick={downloadCalendar}>Dodaj terminy do kalendarza</Button>
         </div>

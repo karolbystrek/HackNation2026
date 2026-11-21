@@ -6,6 +6,12 @@ import { Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle
 import { TERM } from "@/lib/guide/tree";
 import knowledge from "@/lib/guide/knowledge.json";
 
+const termSources: Record<string, string> = {
+  "term.wariant_81_5": "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-macierzynski/wysokosc",
+  "term.okres_wyczekiwania": "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/prawo-do-zasilku-i-okres-przyslugiwania",
+  "term.nieprzerwane_ubezpieczenie": "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/prawo-do-zasilku-i-okres-przyslugiwania",
+};
+
 const glossary: Record<string, { term_pl: string; definition_pl: string }> = knowledge.glossary;
 
 export function TermText({ text }: { text: string }) {
@@ -14,11 +20,12 @@ export function TermText({ text }: { text: string }) {
   return parts.map((part, i) => {
     if (i % 3 === 0) return part;
     if (i % 3 === 2) return null;
+    const source = termSources[parts[i + 1]];
     const term = glossary[parts[i + 1]];
     if (!term) return part;
     return (
       // A click inside a <label> would otherwise focus the input or toggle the option.
-      <span key={i} onClick={(e) => e.preventDefault()}>
+      <span key={i} onClick={(e) => { if ((e.target as HTMLElement).closest("button")) e.preventDefault(); }}>
         <Popover>
           <PopoverTrigger openOnHover delay={200} className="inline cursor-help rounded-sm text-left underline decoration-primary decoration-dotted decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
             {part}
@@ -28,6 +35,7 @@ export function TermText({ text }: { text: string }) {
           <PopoverContent align="start" className="text-left text-base font-normal leading-normal">
             <PopoverTitle className="text-lg first-letter:uppercase">{term.term_pl}</PopoverTitle>
             <PopoverDescription>{term.definition_pl}</PopoverDescription>
+            {source && <a className="text-link" href={source}>Oficjalne wyjaśnienie ZUS</a>}
             <PopoverClose className="self-start font-bold text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               Zamknij
             </PopoverClose>

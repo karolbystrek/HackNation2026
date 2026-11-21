@@ -233,5 +233,6 @@ export async function fillZusPdf(specId: string, values: FormValues, ctx: FormCo
     }
   }
   form.updateFieldAppearances(font);
+  for (const page of pdf.getPages()) page.drawText("Wydruk roboczy z symulacji", { x: 32, y: 12, size: 9, font });
   return pdf.save();
 }

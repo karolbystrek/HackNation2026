@@ -8,7 +8,7 @@ import { defaultParams as p } from "@/lib/params";
 import photo from "@/public/home/rodzic-laptop.jpg";
 
 const SERVICES: { icon: LucideIcon; title: string; description: string; href: string }[] = [
-  { icon: Stethoscope, title: "Zasiłek chorobowy w ciąży", description: "Sprawdź, ile dostaniesz na zwolnieniu z kodem B.", href: "/nowa-os" },
+  { icon: Stethoscope, title: "Zasiłek chorobowy w ciąży", description: `Przy spełnieniu warunków: ${formatRate(p.rates.full)} podstawy. Odpowiedz na pytania, by przejść do kalkulatora.`, href: "/nowa-os" },
   { icon: Baby, title: "Zasiłek macierzyński", description: "Oblicz wysokość i czas trwania po porodzie.", href: "/nowa-os" },
   { icon: Users, title: "Urlop rodzicielski", description: "Podziel urlop między rodziców i porównaj warianty.", href: "/nowa-os" },
   { icon: Footprints, title: "Urlop ojcowski", description: `Zaplanuj ${p.paternityWeeks * 7} dni dla taty – w całości lub w częściach.`, href: "/nowa-os" },
@@ -26,7 +26,7 @@ const FIGURES = [
   [formatWeeks(p.maternityWeeks[0]), "urlopu macierzyńskiego przy jednym dziecku"],
   [formatWeeks(p.parentalPoolWeeks.single), "urlopu rodzicielskiego do podziału"],
   [`${p.paternityWeeks * 7} dni`, "urlopu ojcowskiego"],
-  [formatRate(p.rates.flat), `podstawy za cały okres, jeśli złożysz wniosek w ciągu ${p.flatRateRequestDays} dni od porodu`],
+  [formatRate(p.rates.flat), `podstawy za okres objęty stawką uśrednioną, jeśli złożysz wniosek w ciągu ${p.flatRateRequestDays} dni od porodu`],
 ];
 
 const SOURCES = [
@@ -111,7 +111,7 @@ export default function Home() {
 
       <section aria-labelledby="sources-title" className="shell py-10 sm:py-14">
         <SectionTitle id="sources-title">Dane używane w symulacji</SectionTitle>
-        <p className="mt-2 max-w-[70ch] text-muted-foreground">Wersja demonstracyjna korzysta z przykładowych profili rodzin. Po zalogowaniu pobieramy dane z tych rejestrów.</p>
+        <p className="mt-2 max-w-[70ch] text-muted-foreground">Wersja demonstracyjna korzysta z przykładowych profili rodzin. Przykładowe dane odpowiadają informacjom z poniższych rejestrów.</p>
         <dl className="mt-6 max-w-[70ch] divide-y border-y">
           {SOURCES.map(([source, description]) => (
             <div key={source} className="grid gap-1 py-3 sm:grid-cols-[6rem_1fr]">

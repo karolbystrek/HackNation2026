@@ -1,7 +1,9 @@
+import { Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
+import { formatPln } from "@/lib/format";
 import { PARENTS, type LeaveResult } from "@/lib/calc/leave";
 import { addDays, diffDays, formatDate, parseIso } from "@/lib/dates";
 
-const periodColors = { maternity: "bg-primary", parental: "bg-chart-secondary" } as const;
+const periodColors = { maternity: "bg-primary", parental: "bg-chart-secondary", supplementary: "bg-primary", paternity: "bg-primary" } as const;
 
 export function LeaveLanes({ result, names, endLabel }: { result: LeaveResult; names: Record<"mother" | "father", string>; endLabel?: string }) {
   const start = parseIso(result.start);
@@ -13,41 +15,38 @@ export function LeaveLanes({ result, names, endLabel }: { result: LeaveResult; n
       {PARENTS.map((parent) => (
         <div key={parent} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] items-center gap-3">
           <span className="text-sm font-bold">{names[parent]}</span>
-          <div className="relative h-5 overflow-hidden rounded-sm bg-secondary" aria-hidden="true">
-            {start && result.periods[parent].map((period) => (
-              <div
-                key={period.from + period.label}
-                className={`absolute inset-y-0 ${periodColors[period.kind]}`}
-                style={{
-                  left: `${(diffDays(start, parseIso(period.from)!) / span) * 100}%`,
-                  width: `${(diffDays(parseIso(period.from)!, parseIso(period.to)!) / span) * 100}%`,
-                }}
-              />
-            ))}
+          <div className="relative h-11 rounded-sm bg-secondary">
+            {start && result.periods[parent].map((period) => {
+              const from = parseIso(period.from)!;
+              const to = parseIso(period.to)!;
+              const label = period.label + (period.workFraction > 0 ? " z pracą na część etatu" : "");
+              const dates = `${formatDate(from)} – ${formatDate(addDays(to, -1))}`;
+              return (
+                <Popover key={period.from + period.label}>
+                  <PopoverTrigger
+                    openOnHover
+                    aria-label={`${names[parent]}, ${label}, ${dates}`}
+                    className={`absolute inset-y-0 cursor-pointer rounded-sm border-r border-background hover:brightness-90 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${periodColors[period.kind]}`}
+                    style={{
+                      left: `${(diffDays(start, from) / span) * 100}%`,
+                      width: `${(diffDays(from, to) / span) * 100}%`,
+                    }}
+                  />
+                  <PopoverContent side="top">
+                    <PopoverTitle>{names[parent]} · {label}</PopoverTitle>
+                    <PopoverDescription>{dates}</PopoverDescription>
+                    {period.total > 0 && <p>Szacowany zasiłek brutto: {formatPln(period.total)}</p>}
+                  </PopoverContent>
+                </Popover>
+              );
+            })}
           </div>
         </div>
       ))}
-      <div className="flex flex-wrap justify-between gap-x-3 text-sm text-muted-foreground">
+      <div className="ml-[6.75rem] flex flex-wrap justify-between gap-x-3 text-sm text-muted-foreground">
         <span>{formatDate(result.start)}</span>
-        <span>{endLabel ?? formatDate(result.end)}</span>
+        <span>{endLabel ?? formatDate(end && start && end > start ? addDays(end, -1) : end)}</span>
       </div>
-      <details>
-        <summary className="text-link min-h-11 cursor-pointer content-center">Daty urlopów</summary>
-        <dl className="space-y-2 pb-2 text-sm">
-          {PARENTS.map((parent) => (
-            <div key={parent}>
-              <dt className="font-bold">{names[parent]}</dt>
-              {result.periods[parent].length === 0 && <dd>Bez urlopu w tym planie.</dd>}
-              {result.periods[parent].map((period) => (
-                <dd key={period.from + period.label}>
-                  <span className="block">{period.label}{period.workFraction > 0 && " z pracą na część etatu"}</span>
-                  <span className="block text-muted-foreground">{formatDate(period.from)} – {formatDate(addDays(parseIso(period.to)!, -1))}</span>
-                </dd>
-              ))}
-            </div>
-          ))}
-        </dl>
-      </details>
     </div>
   );
 }

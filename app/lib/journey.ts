@@ -1,13 +1,14 @@
 // Which steps a family must take, decided by knowledge/scenarios.json; built on the server by lib/knowledge.ts.
 import type { ParentKey } from "@/lib/calc/leave";
 import type { Variant } from "@/lib/calc/variants";
-import { addDays, parseIso, toIso } from "@/lib/dates";
+import { addDays, addMonths, parseIso, toIso } from "@/lib/dates";
 import type { TimelineEvent } from "@/lib/events";
 import type { Condition } from "@/lib/forms/spec";
 import type { Persona } from "@/lib/mock/personas";
 
 export type Deadline = {
   title: string;
+  consequence?: string;
   anchor: string;
   offset: { value: number; unit: "days" | "weeks" | "months" | "years"; direction: "before" | "after" | "at" };
   /** hard / recommended deadlines set a due date; limits only bound the leave itself. */
@@ -35,6 +36,7 @@ export type Journey = {
   scenarios: { id: string; conditions: Condition; steps: JourneyStep[] }[];
   deadlines: Record<string, Deadline>;
   documentTitles: Record<string, string>;
+  documentInstructions?: Record<string, string>;
 };
 
 /** One parent's situation in the vocabulary of knowledge/enums.json. */
@@ -60,12 +62,13 @@ export function factsFor(persona: Persona, parent: ParentKey, events: TimelineEv
     parent_role: parent,
     events: [...new Set([
       ...childEvents, ...(me.events ?? []),
+      ...(events.some((event) => event.circumstance === "supplementaryLeave") ? ["child_hospitalisation"] : []),
       ...(sickInPregnancy ? ["sickness_in_pregnancy"] : []),
       ...(worksOnParental ? ["combine_parental_with_work"] : []),
     ])],
     flags: {
-      payer_of_benefit: me.payerSize === "gt20" ? "payer" : "zus",
-      chooses_averaged_rate: parent === "mother" && !!persona.wantsAveragedRate,
+      payer_of_benefit: me.payerSize === "gt20" ? "payer" : me.payerSize === "unknown" ? "unknown" : "zus",
+      chooses_averaged_rate: parent === "mother" && (chosen?.result.flatRateApplied ?? !!persona.wantsAveragedRate),
       shares_parental: takesParental("mother") && takesParental("father"),
       no_pesel: false,
       has_za_zyciem: childEvents.includes("za_zyciem"),
@@ -117,7 +120,9 @@ function appliesTo(rule: Deadline["appliesTo"], facts: Facts) {
 export function stepsByTask(journey: Journey, facts: Facts): Map<string, JourneyStep[]> {
   const tasks = new Map<string, JourneyStep[]>();
   for (const scenario of journey.scenarios) {
-    if (!evalCondition(scenario.conditions, facts)) continue;
+    const scenarioFacts = facts.payer_size === "unknown" && scenario.id === "scenario.employee_small_birth"
+      ? { ...facts, payer_size: "le20" } : facts;
+    if (!evalCondition(scenario.conditions, scenarioFacts)) continue;
     for (const step of scenario.steps) {
       if (step.condition && !evalCondition(step.condition, facts)) continue;
       tasks.set(step.task, [...(tasks.get(step.task) ?? []), step]);
@@ -129,11 +134,7 @@ export function stepsByTask(journey: Journey, facts: Facts): Map<string, Journey
 function shiftIso(date: string, value: number, unit: Deadline["offset"]["unit"]): string {
   const d = parseIso(date)!;
   if (unit === "days" || unit === "weeks") return toIso(addDays(d, unit === "weeks" ? value * 7 : value));
-  const months = unit === "years" ? value * 12 : value;
-  // Clamp to the month's last day, so 31.01 + 1 month is 28/29.02.
-  const first = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + months, 1));
-  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
-  return toIso(new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(d.getUTCDate(), lastDay))));
+  return toIso(addMonths(d, unit === "years" ? value * 12 : value));
 }
 
 /** Earliest due date among the steps' deadlines whose anchor date is known for this task. */
@@ -149,9 +150,9 @@ export function dueDate(journey: Journey, steps: JourneyStep[], facts: Facts, an
 }
 
 /** Documents the steps need for this parent, deduplicated, with titles from knowledge/documents.json. */
-export function neededDocuments(journey: Journey, steps: JourneyStep[], facts: Facts): { id: string; title: string }[] {
+export function neededDocuments(journey: Journey, steps: JourneyStep[], facts: Facts): { id: string; title: string; instruction?: string }[] {
   const ids = new Set(steps.flatMap((step) => step.documents)
     .filter((doc) => !doc.condition || evalCondition(doc.condition, facts))
     .map((doc) => doc.id));
-  return [...ids].map((id) => ({ id, title: journey.documentTitles[id] ?? id }));
+  return [...ids].map((id) => ({ id, title: journey.documentTitles[id] ?? id, instruction: journey.documentInstructions?.[id] }));
 }

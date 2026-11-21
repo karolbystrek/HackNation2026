@@ -9,7 +9,7 @@ export function ApplicationAction({ task, submission, origin }: { task: Task; su
   if (submission) {
     return (
       <p className="text-sm">
-        Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>.{" "}
+        Zapisano w symulacji {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>.{" "}
         <Link href={`/wnioski/${task.id}?z=${origin}`} className="text-link">Zobacz wynik symulacji</Link>
       </p>
     );

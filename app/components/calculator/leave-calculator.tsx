@@ -6,9 +6,9 @@ import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { LeaveLanes } from "@/components/leave-lanes";
 import { amountHint, amountPattern, CalculatorDetails, UrlCalculatorSteps } from "./calculator-steps";
 import { Button, Card, Checkbox, Field, RadioGroup, ResultSummary, WarningBox } from "@/components/ui";
-import { otherParent, PARENTS, planLeave, type LeaveInput, type ParentKey } from "@/lib/calc/leave";
+import { otherParent, PARENTS, paternityEndLimit, planLeave, type LeaveInput, type ParentKey } from "@/lib/calc/leave";
 import type { TimelineEvent } from "@/lib/events";
-import { addDays, formatDate, parseIso } from "@/lib/dates";
+import { addDays, formatDate, parseIso, shiftIso, toIso } from "@/lib/dates";
 import { formatPln, formatRate, formatWeeks, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 
@@ -25,7 +25,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   event?: TimelineEvent;
 }) {
   const router = useRouter();
-  const { persona, params, names, chosen, plan, fromGuide } = useFamily();
+  const { persona, params, names, chosen, plan, fromGuide, today } = useFamily();
   const [form, setForm] = usePlanDraft(draftKey, {
     startDate: mode === "birth"
       ? (event?.type === "birth" ? event.date : persona.birthDate ?? persona.dueDate)
@@ -33,7 +33,10 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
     kids: fromGuide || mode === "birth" ? persona.kids : 1,
     zaZyciem: fromGuide && Array.isArray(plan.guideAnswers.special) && plan.guideAnswers.special.includes("zaZyciem"),
     adoptionType: (fromGuide && plan.guideAnswers.situation === "foster" ? "foster" : "adoption") as LeaveInput["adoptionType"],
-    childBirthDate: "",
+    childBirthDate: String(plan.guideAnswers.adoptedChildBirthDate ?? ""),
+    adoptionOrderDate: String(plan.guideAnswers.adoptionOrderDate ?? ""),
+    paternityStartDate: "",
+    filedOnTime: false,
     schoolDeferred: false,
     main: (event?.type === "adoption" && event.who === "father" ? "father" : "mother") as ParentKey,
     otherWeeks: event?.type === "returnToWork" ? chosen?.result.otherWeeks ?? params.parentalOwnWeeks : params.parentalOwnWeeks,
@@ -43,10 +46,17 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
+  const flatDeadline = parseIso(form.startDate) ? shiftIso(form.startDate, params.flatRateRequestDays) : null;
+  const flatExpired = flatDeadline !== null && today > flatDeadline;
+  const matchesPlan = mode === "birth" && form.startDate === (persona.birthDate ?? persona.dueDate);
   const input: LeaveInput = {
     ...form,
     mode,
     names,
+    flatRate: form.flatRate && (!flatExpired || !!form.filedOnTime),
+    supplementaryWeeks: matchesPlan ? persona.supplementaryWeeks : undefined,
+    supplementaryParent: persona.supplementaryParent,
+    paternityStartDate: form.paternityStartDate || (matchesPlan ? persona.paternityStart : undefined),
     bases: { mother: parseAmount(bases.mother), father: parseAmount(bases.father) },
   };
   const r = planLeave(input, params);
@@ -56,6 +66,9 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   const main = adoption ? form.main : "mother";
   const other = otherParent(main);
   const showPaternity = !adoption || form.adoptionType === "adoption";
+  const adoptedChild = adoption ? parseIso(form.childBirthDate) : null;
+  const paternityLimit = !adoption || adoptedChild
+    ? paternityEndLimit(parseIso(adoption ? form.adoptionOrderDate : form.startDate), adoptedChild, params) : null;
   const kidsOptions: [number, string][] = [1, 2, 3, 4, 5].map((k) => [k, k === 5 ? "5 i więcej" : String(k)]);
 
   const steps = [
@@ -78,7 +91,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
       content: (
         <>
           <Field required label={adoption ? "Data przyjęcia dziecka" : "Data porodu"} type="date"
-            value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
+            value={form.startDate} onChange={(e) => setForm((draft) => ({ ...draft, startDate: e.target.value, filedOnTime: false }))} />
           {adoption && (
             <Field required label="Data urodzenia dziecka" type="date" max={form.startDate || undefined}
               hint="Najpóźniej w dniu przyjęcia" value={form.childBirthDate} onChange={(e) => set("childBirthDate", e.target.value)} />
@@ -136,9 +149,19 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
           </dl>
 
           {showPaternity && (
-            <Checkbox checked={form.paternity} onChange={() => set("paternity", !form.paternity)} title={`Urlop ojcowski (${names.father})`}>
-              {params.paternityWeeks * 7} dni, 100%
+            <div className="grid gap-2"><Checkbox checked={form.paternity} onChange={() => set("paternity", !form.paternity)} title={`Urlop ojcowski (${names.father})`}>
+              {params.paternityWeeks * 7} dni, {formatRate(params.rates.full)}
             </Checkbox>
+            {form.paternity && <>
+              {adoption && <Field label="Data uprawomocnienia się postanowienia o przysposobieniu" type="date"
+                value={form.adoptionOrderDate ?? ""} onChange={(e) => set("adoptionOrderDate", e.target.value)} />}
+              <Field label="Planowany początek ojcowskiego" type="date" value={form.paternityStartDate ?? ""}
+                max={paternityLimit ? toIso(addDays(paternityLimit, -params.paternityMinPartDays)) : undefined}
+                hint={paternityLimit ? `Ostatni dzień urlopu: ${formatDate(addDays(paternityLimit, -1))}.` : undefined}
+                onChange={(e) => set("paternityStartDate", e.target.value)} />
+              <p className="text-sm">Jeśli jesteś na etacie, złóż wniosek do pracodawcy co najmniej {params.paternityRequestDays} dni przed początkiem urlopu.</p>
+              <a className="text-link" href="https://www.gov.pl/web/rodzina/urlop-ojcowski">Zasady urlopu ojcowskiego na gov.pl</a>
+            </>}</div>
           )}
           <div className="flex flex-col gap-4">
             <h3 className="font-bold">Praca podczas własnej części urlopu rodzicielskiego</h3>
@@ -175,10 +198,16 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               value={form.flatRate ? "flat" : "variable"}
               onChange={(value) => set("flatRate", value === "flat")}
               options={[
-                ["flat", `${formatRate(params.rates.flat)} przez cały okres`],
+                ["flat", `${formatRate(params.rates.flat)} – stawka uśredniona`],
                 ["variable", `${formatRate(params.rates.full)}, potem ${formatRate(params.rates.parental)}`],
               ]}
             />
+            {flatDeadline && <p className="text-sm">Termin wniosku o stawkę uśrednioną: {formatDate(flatDeadline)}{matchesPlan && !persona.birthDate ? " (szacunkowo)" : ""}. Wyłączne {params.parentalOwnWeeks} tygodni drugiego rodzica ma stawkę {formatRate(params.rates.parental)}.</p>}
+            {form.flatRate && flatExpired && <Checkbox checked={!!form.filedOnTime} onChange={() => set("filedOnTime", !form.filedOnTime)}
+              title="Wniosek o stawkę uśrednioną złożono w terminie" />}
+            {form.flatRate && flatExpired && !form.filedOnTime && <p className="text-sm">Szacunek użyje stawek {formatRate(params.rates.full)} i {formatRate(params.rates.parental)}.</p>}
+            {form.flatRate && <p className="text-sm">Aby zachować stawkę uśrednioną, wykorzystaj przynajmniej jeden dzień objętego nią urlopu rodzicielskiego w pierwszym roku życia dziecka.</p>}
+            <a className="text-link" href="https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-macierzynski/wysokosc">Zasady wypłaty zasiłku w ZUS</a>
             {form.flatRate && !r.flatRateAllowed && (
               <span className="text-sm leading-snug text-foreground">
                 Przy „Za życiem” kalkulator liczy wariant 100% / 70%.

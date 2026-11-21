@@ -10,9 +10,11 @@ export type Task = {
   title: string;
   description: string;
   guide?: string;
+  recipient?: string;
+  deadlineDetail?: string;
   form?: string;
   extra: boolean;
-  documents: string[];
+  documents: { id: string; title: string; instruction?: string }[];
   done: boolean;
   locked: boolean;
   waitingFor: { id: string; title: string }[];
@@ -30,9 +32,11 @@ export function buildTasks(timeline: FamilyTimelineEntry[]): Task[] {
     title: entry.title,
     description: entry.description,
     guide: entry.guide,
+    recipient: entry.recipient,
+    deadlineDetail: entry.deadlineDetail,
     form: entry.form,
     extra: !!entry.extra,
-    documents: (entry.documents ?? []).map((doc) => doc.title),
+    documents: entry.documents ?? [],
     done: entry.status === "completed",
     locked: !!entry.completedOn || entry.status === "blocked",
     waitingFor: (entry.requires ?? [])

@@ -1,5 +1,6 @@
 import { GUIDE_ID } from "@/lib/guide/persona";
-import { otherParent } from "@/lib/calc/leave";
+import { otherParent, planLeave, type LeavePeriod } from "@/lib/calc/leave";
+import { leaveInputFor } from "@/lib/calc/variants";
 import { addDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import type { FormContext } from "@/lib/forms/context";
@@ -22,11 +23,17 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   const other = persona.parents[otherParent(parent)];
   const guide = persona.id === GUIDE_ID;
   const fullName = guide ? "" : `${me.name} ${me.lastName}`;
-  const period = (who: typeof parent, kind: "maternity" | "parental"): DateRange | undefined => {
+  const period = (who: typeof parent, kind: LeavePeriod["kind"]): DateRange | undefined => {
     const found = chosen?.result.periods[who].find((p) => p.kind === kind);
-    return found && { from: found.from, to: toIso(addDays(parseIso(found.to)!, -1)) };
+    const end = chosen?.result.periods[who].filter((p) => p.kind === kind).at(-1)?.to;
+    return found && end ? { from: found.from, to: toIso(addDays(parseIso(end)!, -1)) } : undefined;
   };
-  const paternity = { from: persona.paternityStart, to: toIso(addDays(parseIso(persona.paternityStart)!, params.paternityWeeks * 7 - 1)) };
+  const fallbackPaternity = !chosen && taskId === "paternity"
+    ? planLeave(leaveInputFor(persona, params, 0), params).periods.father.find((item) => item.kind === "paternity")
+    : undefined;
+  const paternity = period("father", "paternity") ?? (fallbackPaternity
+    ? { from: fallbackPaternity.from, to: toIso(addDays(parseIso(fallbackPaternity.to)!, -1)) }
+    : { from: "", to: "" });
   const sickLeave = ctx.events.find((event) => event.type === "sickLeave" && event.who === parent);
   const parental = period(parent, "parental");
   const isParental = taskId.startsWith("parental-");
@@ -75,7 +82,13 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   };
   if (["maternity-claim", "averaged-rate", "stillbirth-claim", "conditions-request"].includes(taskId)) {
     known.scope_maternity = true;
-    known.full_leave_declaration = !!persona.wantsAveragedRate;
+    known.full_leave_declaration = (chosen?.result.flatRateApplied ?? !!persona.wantsAveragedRate) && (!persona.birthDate || ctx.today <= shift(persona.birthDate, params.flatRateRequestDays));
+  }
+  if (taskId === "supplementary-leave" || taskId === "supplementary-check") {
+    known.scope_supplementary = period(parent, "supplementary") ?? {
+      from: shift(maternity.to, 1),
+      to: persona.supplementaryWeeks ? shift(maternity.to, persona.supplementaryWeeks * 7) : "",
+    };
   }
   if (taskId === "paternity" || taskId === "paternity-request") {
     known.period = paternity;
@@ -137,7 +150,7 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     "lr.maternity_abandonment": { mother_pre_birth_use: noPreBirth, abandonment_date: shift(birth, 2), start_date: shift(birth, 3) },
     "lr.maternity_uninsured_mother_incapacity": { start_date: birth },
     "lr.maternity_uninsured_mother_works": { start_date: shift(birth, params.motherOnlyWeeks * 7), notify_end_of_employment: true },
-    "lr.supplementary_maternity": { maternity_end_date: maternity.to, period: { from: shift(maternity.to, 1), to: shift(maternity.to, 4 * 7) } },
+    "lr.supplementary_maternity": { maternity_end_date: maternity.to, period: known.scope_supplementary },
     "lr.maternity_conditions": { children: [child], period: { from: birth, to: shift(birth, params.maternityWeeks[0] * 7 - 1) } },
     "lr.combine_parental_with_work": {
       work_fraction: String(working?.workFraction ?? 0.5).replace(".", ","),

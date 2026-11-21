@@ -517,8 +517,8 @@
       "id": "wantsAveragedRate",
       "priority": 120,
       "type": "boolean",
-      "label": "Czy chcesz od razu wnioskować o cały urlop macierzyński i rodzicielski ze [stawką 81,5%](term.wariant_81_5)?",
-      "hint": "Wniosek trzeba złożyć najpóźniej 21 dni po porodzie. Inaczej dostaniesz 100% za macierzyński i 70% za rodzicielski.",
+      "label": "Czy wybierasz [stawkę uśrednioną 81,5%](term.wariant_81_5)?",
+      "hint": "Wybierz „Tak”, jeśli planujesz złożyć wniosek w terminie lub już go złożyłaś na czas. Stawkę i termin możesz porównać w kalkulatorze.",
       "showIf": {
         "all": [
           {
@@ -624,6 +624,109 @@
       "hint": "Zsumuj wszystkie pobyty, niepełny tydzień liczy się jako cały. Przy porodzie po 37. tygodniu liczy się pobyt od 5. dnia po porodzie, jeśli trwał co najmniej 2 kolejne dni i zaczął się do 28. dnia. Przy kilkorgu dzieciach podaj najdłuższy pobyt.",
       "showIf": {
         "ref": "supplementaryCase"
+      }
+    },
+    {
+      "id": "insuranceEndDate",
+      "priority": 141,
+      "type": "date",
+      "label": "Kiedy ustało ubezpieczenie chorobowe?",
+      "optional": true,
+      "showIf": {
+        "has": [
+          "special",
+          "insuranceEnded"
+        ]
+      }
+    },
+    {
+      "id": "sicknessStartAfterInsurance",
+      "priority": 142,
+      "type": "date",
+      "label": "Kiedy zaczęło się zwolnienie lekarskie?",
+      "hint": "Jeśli nie masz zwolnienia, pomiń to pytanie.",
+      "optional": true,
+      "showIf": {
+        "has": [
+          "special",
+          "insuranceEnded"
+        ]
+      }
+    },
+    {
+      "id": "birthCardDate",
+      "priority": 144,
+      "type": "date",
+      "label": "Kiedy sporządzono kartę urodzenia lub kartę martwego urodzenia?",
+      "hint": "Od tej daty liczy się termin zgłoszenia do USC. Jeśli karty jeszcze nie ma lub nie znasz daty, pomiń pytanie.",
+      "optional": true,
+      "showIf": {
+        "eq": [
+          "situation",
+          "born"
+        ]
+      }
+    },
+    {
+      "id": "childDeathDate",
+      "priority": 143,
+      "type": "date",
+      "label": "Kiedy zmarło dziecko?",
+      "hint": "Na podstawie tej daty sprawdzimy, do kiedy trwa zasiłek. Możesz pominąć pytanie.",
+      "optional": true,
+      "showIf": {
+        "has": [
+          "special",
+          "childDeath"
+        ]
+      }
+    },
+    {
+      "id": "supplementaryParent",
+      "optional": true,
+      "priority": 97,
+      "type": "single",
+      "label": "Który rodzic planuje skorzystać z uzupełniającego?",
+      "hint": "Z tego uprawnienia może skorzystać jeden rodzic.",
+      "options": [
+        {
+          "value": "mother",
+          "label": "Matka"
+        },
+        {
+          "value": "father",
+          "label": "Ojciec"
+        }
+      ],
+      "showIf": {
+        "ref": "supplementaryCase"
+      }
+    },
+    {
+      "id": "adoptedChildBirthDate",
+      "priority": 81,
+      "type": "date",
+      "label": "Kiedy urodziło się przysposabiane dziecko?",
+      "optional": true,
+      "showIf": {
+        "eq": [
+          "situation",
+          "adoption"
+        ]
+      }
+    },
+    {
+      "id": "adoptionOrderDate",
+      "priority": 82,
+      "type": "date",
+      "label": "Kiedy uprawomocniło się postanowienie o przysposobieniu?",
+      "hint": "Możesz pominąć, jeśli sąd jeszcze nie wydał prawomocnego postanowienia.",
+      "optional": true,
+      "showIf": {
+        "eq": [
+          "situation",
+          "adoption"
+        ]
       }
     },
     {
@@ -803,7 +906,7 @@
       "choices": [
         {
           "title": "Zwolnienie lekarskie albo praca do porodu",
-          "body": "Jeśli lekarz stwierdzi niezdolność do pracy, dostaniesz e-ZLA z kodem „B” i 100% podstawy. Jeśli czujesz się dobrze, możesz pracować aż do porodu."
+          "body": "Niezdolność do pracy w ciąży potwierdza zwolnienie. Ciążę potwierdza kod B lub osobne zaświadczenie. Przy spełnieniu warunków stawka wynosi 100% podstawy."
         }
       ]
     },
