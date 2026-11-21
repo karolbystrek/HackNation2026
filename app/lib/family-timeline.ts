@@ -94,7 +94,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     },
   );
 
-  if (parents.mother.contract === "jdg" && parents.mother.sickLeaveFrom) {
+  if (parents.mother.contract === "jdg") {
     const sickLeave = events.find((event) => event.type === "sickLeave" && event.who === "mother");
     if (sickLeave) entries.push({
       id: "sickness-claim", kind: "application", who: "mother", title: "Wniosek o zasiłek chorobowy (ZAS-53)",
@@ -206,7 +206,7 @@ export function applyProgress(entries: Entry[], doneTasks: string[], today: stri
   const completed = new Set(entries.filter((entry) =>
     entry.completedOn || (completedSteps[entry.id] && !entry.review) ||
     (entry.kind === "event" && !entry.estimated && entry.date <= today) ||
-    (entry.kind === "application" && doneTasks.includes(entry.id))
+    ((entry.kind === "application" || entry.id === "birth-certificate") && doneTasks.includes(entry.id))
   ).map((entry) => entry.id));
   // Guide steps may require an entry that this case leaves out; only present entries can block.
   const present = new Set(entries.map((entry) => entry.id));

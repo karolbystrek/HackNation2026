@@ -14,7 +14,7 @@ export type Task = {
   extra: boolean;
   done: boolean;
   locked: boolean;
-  waitingFor: string[];
+  waitingFor: { id: string; title: string }[];
 };
 
 /** Applications from the timeline, as a checklist. */
@@ -36,6 +36,6 @@ export function buildTasks(timeline: FamilyTimelineEntry[]): Task[] {
     waitingFor: (entry.requires ?? [])
       .flatMap((id) => byId.get(id) ?? [])
       .filter((required) => required.status !== "confirmed" && required.status !== "completed")
-      .map((required) => required.title),
+      .map(({ id, title }) => ({ id, title })),
   }));
 }

@@ -5,17 +5,17 @@ import { useState } from "react";
 import { BackLink, Button, ButtonLink, Field, Notice, PageTitle, RadioGroup } from "@/components/ui";
 import { EVENT_TYPES, type EventType, type EventWho } from "@/lib/events";
 import { formatPln, parseAmount } from "@/lib/format";
-import { updatePlan } from "@/lib/plan-store";
+import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function AddEvent() {
   const { names } = useFamily();
   const router = useRouter();
-  const [type, setType] = useState<(typeof EVENT_TYPES)[number]["type"]>("contract");
-  const [who, setWho] = useState<EventWho>("father");
-  const [date, setDate] = useState("");
-  const [amount, setAmount] = useState("");
+  const initialDraft = { type: "contract" as EventType, selectedWho: "father" as EventWho, date: "", amount: "" };
+  const [draft, setDraft] = usePlanDraft("dodaj", initialDraft);
+  const { type, selectedWho, date, amount } = draft;
   const [error, setError] = useState("");
+  const who = type === "sickLeave" ? "mother" : selectedWho;
   const def = EVENT_TYPES.find((t) => t.type === type)!;
 
   function add() {
@@ -25,11 +25,13 @@ export default function AddEvent() {
     }
     const whoName = who === "both" ? "" : ` – ${names[who]}`;
     const title = type === "salary" && amount ? `Zmiana pensji${whoName}: ${formatPln(parseAmount(amount))} brutto` : `${def.label}${whoName}`;
+    const id = crypto.randomUUID();
     updatePlan((s) => ({
       ...s,
-      events: [...s.events, { id: `n${Date.now()}`, type: type as EventType, who, date, source: "new", title, description: def.effect, decision: type === "birth" }],
+      drafts: { ...s.drafts, dodaj: initialDraft },
+      events: [...s.events, { id, type, who, date, source: "new", title, description: def.effect, decision: type === "birth" }],
     }));
-    router.push("/plan");
+    router.replace(`/plan#timeline-event-${id}`);
   }
 
   return (
@@ -40,25 +42,27 @@ export default function AddEvent() {
       <RadioGroup
         label="Co się wydarzy?"
         value={type}
-        onChange={setType}
+        onChange={(type) => setDraft({ ...draft, type })}
         options={EVENT_TYPES.map((event) => [event.type, event.label])}
       />
 
-      <RadioGroup
-        label="Kogo dotyczy?"
-        value={who}
-        onChange={setWho}
-        options={[
-          ["mother", names.mother],
-          ["father", names.father],
-          ["both", names.both],
-        ]}
-      />
+      {type !== "sickLeave" && (
+        <RadioGroup
+          label="Kogo dotyczy?"
+          value={who}
+          onChange={(selectedWho) => setDraft({ ...draft, selectedWho })}
+          options={[
+            ["mother", names.mother],
+            ["father", names.father],
+            ["both", names.both],
+          ]}
+        />
+      )}
 
       <div className="flex flex-wrap gap-4">
-        <Field label="Kiedy?" type="date" aria-invalid={!!error} aria-describedby={error ? "date-error" : undefined} value={date} onChange={(e) => { setDate(e.target.value); setError(""); }} className="flex-[1_1_220px]" />
+        <Field label={type === "sickLeave" ? "Początek zwolnienia" : "Kiedy?"} type="date" aria-invalid={!!error} aria-describedby={error ? "date-error" : undefined} value={date} onChange={(e) => { setDraft({ ...draft, date: e.target.value }); setError(""); }} className="flex-[1_1_220px]" />
         {type === "salary" && (
-          <Field label="Nowe wynagrodzenie brutto" inputMode="numeric" placeholder="np. 7000" value={amount} onChange={(e) => setAmount(e.target.value)} className="flex-[1_1_220px]" />
+          <Field label="Nowe wynagrodzenie brutto" inputMode="numeric" placeholder="np. 7000" value={amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} className="flex-[1_1_220px]" />
         )}
       </div>
       {error && (

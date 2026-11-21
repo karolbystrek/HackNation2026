@@ -40,8 +40,8 @@ export function LeaveLanes({ result, names, endLabel }: { result: LeaveResult; n
               {result.periods[parent].length === 0 && <dd>Bez urlopu w tym planie.</dd>}
               {result.periods[parent].map((period) => (
                 <dd key={period.from + period.label}>
-                  {period.label} · {formatDate(period.from)} – {formatDate(addDays(parseIso(period.to)!, -1))}
-                  {period.workFraction > 0 && " · z pracą na część etatu"}
+                  <span className="block">{period.label}{period.workFraction > 0 && " z pracą na część etatu"}</span>
+                  <span className="block text-muted-foreground">{formatDate(period.from)} – {formatDate(addDays(parseIso(period.to)!, -1))}</span>
                 </dd>
               ))}
             </div>

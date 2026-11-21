@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LeaveLanes } from "@/components/leave-lanes";
 import { BackLink, Button, Card, Chip, PageTitle, WarningBox } from "@/components/ui";
 import { formatDate } from "@/lib/dates";
@@ -8,16 +9,23 @@ import { formatPln } from "@/lib/format";
 import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
-export default function Variants() {
+export default function VariantsPage() {
+  return <Suspense><Variants /></Suspense>;
+}
+
+function Variants() {
   const { persona, params, variants, plan, names } = useFamily();
   const router = useRouter();
-  const raise = plan.events.find((e) => e.type === "salary");
+  const query = useSearchParams();
+  const fromTasks = query.get("z") === "zadania";
+  const event = plan.events.find((item) => item.id === query.get("wydarzenie"));
+  const returnHref = fromTasks ? "/zadania" : event ? `/plan#timeline-event-${encodeURIComponent(event.id)}` : "/plan";
 
   return (
     <main id="main-content" tabIndex={-1} className="page">
-      <BackLink href="/plan">Wróć do osi czasu</BackLink>
+      <BackLink href={returnHref}>{fromTasks ? "Wróć do zadań" : event ? "Wróć do wydarzenia" : "Wróć do osi czasu"}</BackLink>
       <PageTitle
-        lead={`Policzyliśmy 3 warianty z Waszych zarobków${raise ? ` (z uwzględnieniem: ${raise.title})` : ""}. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem.`}
+        lead={`Policzyliśmy 3 warianty z zarobków z profilu. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem.`}
       >
         Narodziny dziecka: kto idzie na urlop?
       </PageTitle>
@@ -27,7 +35,7 @@ export default function Variants() {
         return (
           <Card key={v.key} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <h2 className="grow text-[22px] font-bold">Wariant {v.key} · {v.name}</h2>
+              <div className="grow"><p className="text-sm text-muted-foreground">Wariant {v.key}</p><h2 className="text-[22px] font-bold">{v.name}</h2></div>
               <Chip>{v.tag}</Chip>
             </div>
 
@@ -67,7 +75,7 @@ export default function Variants() {
                 router.push("/zadania");
               }}
             >
-              {active ? "Wybrany wariant ✓" : `Wybieram wariant ${v.key}`}
+              {active ? "Przejdź do zadań" : `Wybierz wariant ${v.key} i przejdź do zadań`}
             </Button>
           </Card>
         );

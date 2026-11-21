@@ -27,7 +27,7 @@ export default function MObywatelLogin() {
         onSubmit={(event) => {
           event.preventDefault();
           logIn(personaId);
-          router.push("/plan");
+          router.replace("/plan");
         }}
       >
         <fieldset className="w-full min-w-0">

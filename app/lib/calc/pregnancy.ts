@@ -73,12 +73,12 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   }
 
   if (count.insolvency)
-    rows.push({ label: "Zasiłek w wysokości macierzyńskiego", amount: count.insolvency * daily, note: `${count.insolvency} dni · 100% · wniosek bezpośrednio do ZUS` });
+    rows.push({ label: "Zasiłek w wysokości macierzyńskiego", amount: count.insolvency * daily, note: `${count.insolvency} dni ze stawką 100%. Wniosek złóż bezpośrednio do ZUS.` });
   if (count.employer)
-    rows.push({ label: "Wynagrodzenie chorobowe", amount: count.employer * daily, note: `${count.employer} dni · 100% w ciąży · płaci pracodawca (do ${employerDays} dni w roku)` });
-  if (count.sickness) rows.push({ label: "Zasiłek chorobowy", amount: count.sickness * daily, note: `${count.sickness} dni · 100% (kod B)` });
+    rows.push({ label: "Wynagrodzenie chorobowe", amount: count.employer * daily, note: `${count.employer} dni ze stawką 100%. Wypłaca pracodawca (do ${employerDays} dni w roku).` });
+  if (count.sickness) rows.push({ label: "Zasiłek chorobowy", amount: count.sickness * daily, note: `${count.sickness} dni ze stawką 100% (kod B).` });
   if (count.rehab) {
-    rows.push({ label: "Świadczenie rehabilitacyjne", amount: count.rehab * daily, note: `${count.rehab} dni po ${p.benefitPeriodDays} dniach zwolnienia · wymaga decyzji ZUS` });
+    rows.push({ label: "Świadczenie rehabilitacyjne", amount: count.rehab * daily, note: `${count.rehab} dni po ${p.benefitPeriodDays} dniach zwolnienia. Wymaga decyzji ZUS.` });
     warnings.push(`Zwolnienie przekracza ${p.benefitPeriodDays} dni (okres zasiłkowy). Dalej możliwe jest świadczenie rehabilitacyjne – o jego przyznaniu decyduje ZUS.`);
   }
   rows.push({ label: "Od dnia porodu", amount: null, note: "Zaczyna się zasiłek macierzyński – zobaczcie zakładkę Narodziny." });

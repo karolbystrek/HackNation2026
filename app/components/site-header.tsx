@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import { logOut, usePlan } from "@/lib/plan-store";
+
+function FamilyLink({ name }: { name: string }) {
+  const pathname = usePathname();
+  const query = useSearchParams();
+  const from = query.size ? `${pathname}?${query}` : pathname;
+  return <Link href={`/rodzina?z=${encodeURIComponent(from)}`} className="text-link min-h-11 content-center">{name}</Link>;
+}
 
 export function SiteHeader() {
   const plan = usePlan();
@@ -21,12 +29,12 @@ export function SiteHeader() {
           <nav aria-label="Konto demonstracyjne" className="flex flex-wrap items-center gap-x-5">
             {plan.personaId === GUIDE_ID
               ? <Link href="/nowa-os" className="text-link min-h-11 content-center">Zmień odpowiedzi</Link>
-              : <Link href="/rodzina" className="text-link min-h-11 content-center">{persona.label}</Link>}
+              : <Suspense><FamilyLink name={persona.label} /></Suspense>}
             <Button
               variant="link"
               onClick={() => {
                 logOut();
-                router.push("/");
+                router.replace("/");
               }}
             >
               Wyloguj

@@ -1,38 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { usePlanDraft } from "@/lib/plan-store";
 import { LeaveLanes } from "@/components/leave-lanes";
-import { amountHint, amountPattern, CalculatorDetails, CalculatorSteps } from "./calculator-steps";
+import { amountHint, amountPattern, CalculatorDetails, UrlCalculatorSteps } from "./calculator-steps";
 import { Button, Card, Checkbox, Field, RadioGroup, ResultSummary, WarningBox } from "@/components/ui";
 import { otherParent, PARENTS, planLeave, type LeaveInput, type ParentKey } from "@/lib/calc/leave";
+import type { TimelineEvent } from "@/lib/events";
 import { addDays, formatDate, parseIso } from "@/lib/dates";
 import { formatPln, formatRate, formatWeeks, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 
 type Bases = Record<ParentKey, string>;
 
-export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active }: {
+export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active, event, draftKey }: {
   mode: "birth" | "adoption";
   bases: Bases;
   setBases: (b: Bases) => void;
   onBasis: (parent: ParentKey, startMonth: string) => void;
   onBack: () => void;
   active: boolean;
+  draftKey: string;
+  event?: TimelineEvent;
 }) {
-  const { persona, params, names } = useFamily();
-  const [form, setForm] = useState({
-    startDate: mode === "birth" ? (persona.birthDate ?? persona.dueDate) : "2027-06-01",
+  const { persona, params, names, chosen } = useFamily();
+  const [form, setForm] = usePlanDraft(draftKey, {
+    startDate: mode === "birth"
+      ? (event?.type === "birth" ? event.date : persona.birthDate ?? persona.dueDate)
+      : event?.date ?? "2027-06-01",
     kids: mode === "birth" ? persona.kids : 1,
     zaZyciem: false,
     adoptionType: "adoption" as LeaveInput["adoptionType"],
-    childBirthDate: "2023-02-10",
+    childBirthDate: event?.type === "adoption" ? "" : "2023-02-10",
     schoolDeferred: false,
-    main: "mother" as ParentKey,
-    otherWeeks: params.parentalOwnWeeks,
+    main: (event?.type === "adoption" && event.who === "father" ? "father" : "mother") as ParentKey,
+    otherWeeks: event?.type === "returnToWork" ? chosen?.result.otherWeeks ?? params.parentalOwnWeeks : params.parentalOwnWeeks,
     paternity: true,
     flatRate: false,
-    workingParent: null as ParentKey | null,
-    workFraction: 0.5,
+    workFractions: { mother: 0, father: 0 },
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -83,11 +87,14 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               </Checkbox>
             )
           ) : (
-            <CalculatorDetails label="Zaświadczenie „Za życiem”" initiallyOpen={form.zaZyciem}>
+            <div>
               <Checkbox checked={form.zaZyciem} onChange={() => set("zaZyciem", !form.zaZyciem)} title="Dziecko ma zaświadczenie „Za życiem”">
-                Urlop rodzicielski wydłuża się do {params.parentalPoolWeeks.zaZyciemSingle} tyg. ({params.parentalPoolWeeks.zaZyciemMultiple} przy ciąży mnogiej).
+                Zaświadczenie zwiększa pulę urlopu rodzicielskiego do {form.kids > 1 ? params.parentalPoolWeeks.zaZyciemMultiple : params.parentalPoolWeeks.zaZyciemSingle} tygodni.
               </Checkbox>
-            </CalculatorDetails>
+              <a href="https://www.gov.pl/web/rodzina/urlop-rodzicielski" className="text-link ml-8 inline-flex min-h-11 items-center">
+                Zasady urlopu rodzicielskiego
+              </a>
+            </div>
           )}
         </>
       ),
@@ -104,53 +111,56 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               options={PARENTS.map((p) => [p, names[p]])}
             />
           )}
+          <div className="space-y-1">
+            <p className="text-lg font-bold">Wspólna pula urlopu rodzicielskiego: {r.pool} tyg.</p>
+            <p className="text-sm text-muted-foreground">Każdy rodzic ma w tej puli {params.parentalOwnWeeks} tygodni, których nie może przekazać drugiej osobie.</p>
+          </div>
           <label className="flex flex-col gap-1.5 font-bold">
-            <span>
-              {names[other]} bierze z urlopu rodzicielskiego: {r.otherWeeks} tyg.
-            </span>
-            <input type="range" min={0} max={r.maxOtherWeeks} step={1} value={r.otherWeeks} onChange={(e) => set("otherWeeks", Number(e.target.value))} className="min-h-11 w-full accent-primary" />
-            <span className="text-sm font-normal text-muted-foreground">
-              {names[main]}: {r.mainWeeks} tyg. · {names[other]}: {r.otherWeeks} tyg. · pula {r.pool} tyg., po {params.parentalOwnWeeks} tyg. tylko dla każdego
-            </span>
+            <span>Podzielcie tygodnie między siebie</span>
+            <input type="range" min={0} max={r.maxOtherWeeks} step={1} value={r.otherWeeks}
+              aria-valuetext={`${names[main]}: ${formatWeeks(r.mainWeeks)}, ${names[other]}: ${formatWeeks(r.otherWeeks)}`}
+              onChange={(e) => set("otherWeeks", Number(e.target.value))} className="min-h-11 w-full accent-primary" />
           </label>
+          <dl className="grid grid-cols-2 gap-3 bg-secondary p-3">
+            {[[names[main], r.mainWeeks], [names[other], r.otherWeeks]].map(([label, weeks]) => (
+              <div key={label}>
+                <dt className="text-sm text-muted-foreground">{label}</dt>
+                <dd className="text-lg font-bold">{weeks} tyg.</dd>
+              </div>
+            ))}
+          </dl>
 
           {showPaternity && (
             <Checkbox checked={form.paternity} onChange={() => set("paternity", !form.paternity)} title={`Urlop ojcowski (${names.father})`}>
               {params.paternityWeeks * 7} dni, 100%
             </Checkbox>
           )}
-          <CalculatorDetails label="Praca na część etatu podczas urlopu" initiallyOpen={!!form.workingParent}>
-            <RadioGroup
-              label="Praca w trakcie urlopu rodzicielskiego"
-              value={form.workingParent ?? "none"}
-              onChange={(v) => set("workingParent", v === "none" ? null : v)}
-              options={[["none", "Nikt nie pracuje"], ...PARENTS.map((p): [ParentKey, string] => [p, `${names[p]} pracuje`])]}
-            />
-            {form.workingParent && (
+          <div className="flex flex-col gap-4">
+            <h3 className="font-bold">Praca podczas własnej części urlopu rodzicielskiego</h3>
+            {([main, other] as const).filter((parent) => (parent === main ? r.mainWeeks : r.otherWeeks) > 0).map((parent) => (
               <RadioGroup
-                label="Wymiar etatu"
-                value={form.workFraction}
-                onChange={(v) => set("workFraction", v)}
-                options={[
-                  [0.25, "1/4 etatu"],
-                  [0.5, "1/2 etatu"],
-                ]}
+                key={parent}
+                label={`Wymiar pracy (${names[parent]})`}
+                value={form.workFractions[parent]}
+                onChange={(value) => set("workFractions", { ...form.workFractions, [parent]: value })}
+                options={[[0, "Bez pracy"], [0.25, "1/4 etatu"], [0.5, "1/2 etatu"]]}
               />
-            )}
-          </CalculatorDetails>
+            ))}
+          </div>
         </>
       ),
     },
     {
-      title: "Kwoty do obliczeń",
+      title: "Podstawa i stawka zasiłku",
       content: (
         <>
+          <p className="text-muted-foreground">Podstawa to kwota, od której naliczany jest zasiłek.</p>
           {PARENTS.map((parent) => (
             <div key={parent}>
-              <Field required label={`Podstawa zasiłku (zł) · ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
+              <Field required label={`Podstawa zasiłku (zł) dla ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
                 title={amountHint} maxLength={24} value={bases[parent]} onChange={(e) => setBases({ ...bases, [parent]: e.target.value })} />
               <Button variant="link" onClick={() => onBasis(parent, form.startDate.slice(0, 7))}>
-                Oblicz z 12 miesięcy · {names[parent]}
+                Oblicz z 12 miesięcy
               </Button>
             </div>
           ))}
@@ -178,14 +188,15 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   ];
 
   return (
-    <CalculatorSteps steps={steps} onBack={onBack} active={active} result={
+    <UrlCalculatorSteps steps={steps} onBack={onBack} active={active} result={
       <>
-        <ResultSummary label="Zasiłki łącznie (brutto)" value={formatPln(r.familyTotal)}>
+        <ResultSummary label="Szacowane zasiłki łącznie (brutto)" value={formatPln(r.familyTotal)}>
           <p>Koniec urlopów: <strong>{formatDate(r.end)}</strong></p>
           <p>{r.deadline}</p>
+          <p>Prawo do zasiłku ustala ZUS lub płatnik składek.</p>
         </ResultSummary>
         <WarningBox items={r.warnings} />
-        <CalculatorDetails label="Zobacz szczegóły">
+        <CalculatorDetails label="Okresy i kwoty dla każdego rodzica">
           <Card className="py-[18px]">
             <LeaveLanes result={r} names={names} />
           </Card>
@@ -203,7 +214,8 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
                     <span>{formatRate(x.rate)}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {formatDate(x.from)} – {formatDate(addDays(parseIso(x.to)!, -1))} · {x.workFraction > 0 ? `${formatWeeks(x.weeks)} zasiłku rozłożone na ${formatWeeks(x.spanWeeks)}` : formatWeeks(x.weeks)}
+                    <p>{formatDate(x.from)} – {formatDate(addDays(parseIso(x.to)!, -1))}</p>
+                    <p>{x.workFraction > 0 ? `${formatWeeks(x.weeks)} zasiłku rozłożone na ${formatWeeks(x.spanWeeks)}` : formatWeeks(x.weeks)}</p>
                   </div>
                   <div className="text-sm">
                     {formatPln(x.monthlyBenefit, 2)} / mies.

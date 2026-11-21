@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ApplicationAction } from "@/components/application-action";
 import { Button, Chip, PageTitle } from "@/components/ui";
-import { Disclosure } from "@/components/ui/disclosure";
+import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
 import { tasksToIcs } from "@/lib/ics";
@@ -37,6 +37,7 @@ export default function Tasks() {
             checked={task.done}
             disabled={task.locked || !!submission}
             aria-label={task.title}
+            aria-describedby={task.locked && !task.done && task.waitingFor.length > 0 ? `${inputId}-waiting` : undefined}
             onChange={() => {
               updatePlan((state) => ({
                 ...state,
@@ -55,9 +56,16 @@ export default function Tasks() {
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
           <ApplicationAction task={task} submission={submission} />
-          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {task.title}</a>}
+          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja składania wniosku</a>}
           {task.waitingFor.length > 0 && !task.done && (
-            <p className="text-sm text-muted-foreground">Wymaga: {task.waitingFor.join(", ")}.</p>
+            <div id={`${inputId}-waiting`} className="text-sm text-muted-foreground">
+              <p className="font-bold">Oczekuje na potwierdzenie w Planie</p>
+              <ul role="list">
+                {task.waitingFor.map(({ id, title }) => (
+                  <li key={id}><Link href={`/plan#timeline-${id}`} className="text-link inline-flex min-h-11 items-center">{title}</Link></li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </li>
@@ -70,8 +78,8 @@ export default function Tasks() {
         <div className="grow">
           <PageTitle>Wasza lista zadań</PageTitle>
           {!fromGuide && <div className="text-[15px] text-muted-foreground">
-            {chosen ? `Wariant ${chosen.key} · ${chosen.name} · ` : null}
-            <Link href="/warianty" className="font-bold text-primary underline">
+            {chosen && <p>Wariant {chosen.key} <strong className="block text-foreground">{chosen.name}</strong></p>}
+            <Link href="/warianty?z=zadania" className="font-bold text-primary underline">
               {chosen ? "Zmień wariant" : "Wybierz wariant urlopu"}
             </Link>
           </div>}
@@ -92,9 +100,9 @@ export default function Tasks() {
       </section>
 
       {completed.length > 0 && (
-        <Disclosure className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>
+        <RememberedDisclosure section="zadania/ukonczone" className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>
           <ul role="list">{completed.map(renderTask)}</ul>
-        </Disclosure>
+        </RememberedDisclosure>
       )}
     </main>
   );

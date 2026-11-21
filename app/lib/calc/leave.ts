@@ -26,8 +26,10 @@ export type LeaveInput = {
   /** Planned start for the family variant. Calculators may omit it. */
   paternityStartDate?: string;
   flatRate: boolean;
-  workingParent: ParentKey | null;
-  workFraction: number;
+  workFractions?: Record<ParentKey, number>;
+  /** Legacy REST inputs. */
+  workingParent?: ParentKey | null;
+  workFraction?: number;
 };
 
 export type LeavePeriod = {
@@ -135,11 +137,17 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
     return end;
   }
 
+  const work = (parent: ParentKey) => {
+    const fraction = input.workFractions
+      ? input.workFractions[parent]
+      : input.workingParent === parent ? input.workFraction : undefined;
+    return typeof fraction === "number" && Number.isFinite(fraction) ? Math.min(Math.max(fraction, 0), 0.5) : 0;
+  };
+
   let end = start;
   if (start && !noRight) {
     const maternityRate = flatRateApplied ? p.rates.flat : p.rates.full;
     const parentalRate = flatRateApplied ? p.rates.flat : p.rates.parental;
-    const work = (parent: ParentKey) => (input.workingParent === parent ? input.workFraction : 0);
     const maternityLabel = adoption ? "Na warunkach urlopu macierzyńskiego" : "Urlop macierzyński";
     const e1 = add(main, maternityLabel, "maternity", start, p.maternityWeeks[kids - 1], maternityRate, 0);
     const e2 = add(main, "Urlop rodzicielski", "parental", e1, mainWeeks, parentalRate, work(main));
@@ -180,7 +188,9 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   if (lostToCap > 0.05) warnings.push(`Urlop kończy się w dniu ${capYears}. urodzin dziecka – przepada ok. ${formatWeeks(lostToCap)} urlopu.`);
   if (toppedUp) warnings.push(`Zasiłek poniżej ${formatPln(p.parentalAllowanceMonthly)} miesięcznie jest podwyższany do tej kwoty (świadczenie rodzicielskie).`);
   if (zaZyciem) warnings.push("„Za życiem” wymaga zaświadczenia lekarza specjalisty – dołączcie je do wniosku.");
-  if (input.workingParent) warnings.push("Praca do połowy etatu wydłuża urlop rodzicielski proporcjonalnie. Suma zasiłku się nie zmienia, dochodzi pensja.");
+  if (PARENTS.some((parent) => periods[parent].some((period) => period.workFraction > 0))) {
+    warnings.push("Praca podczas rodzicielskiego wydłuża okres urlopu i obniża miesięczną kwotę zasiłku.");
+  }
 
   return {
     start: start ? toIso(start) : null,

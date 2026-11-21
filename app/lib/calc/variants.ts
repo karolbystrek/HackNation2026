@@ -35,8 +35,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
     paternity: true,
     paternityStartDate: persona.paternityStart,
     flatRate: false,
-    workingParent: null,
-    workFraction: 0.5,
+    workFractions: { mother: 0, father: 0 },
   };
 }
 

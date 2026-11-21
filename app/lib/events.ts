@@ -18,7 +18,8 @@ export type TimelineEvent = {
   decision?: boolean;
 };
 
-export const EVENT_TYPES: { type: Exclude<EventType, "sickLeave">; label: string; effect: string }[] = [
+export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] = [
+  { type: "sickLeave", label: "Zwolnienie w ciąży", effect: "W Planie możecie sprawdzić szacowany zasiłek od daty rozpoczęcia zwolnienia." },
   { type: "birth", label: "Narodziny dziecka", effect: "Pojawi się decyzja: kto i jak długo idzie na urlop. Porównamy dla Was warianty." },
   {
     type: "adoption",
@@ -33,7 +34,7 @@ export const EVENT_TYPES: { type: Exclude<EventType, "sickLeave">; label: string
   {
     type: "salary",
     label: "Podwyżka lub obniżka",
-    effect: "Zmieni podstawę zasiłku – liczymy średnią z 12 miesięcy przed urlopem. Duży wzrost tuż przed urlopem ZUS może zweryfikować.",
+    effect: "Sprawdźcie, czy zmiana wpłynie na podstawę zasiłku. W kalkulatorze możecie uzupełnić wynagrodzenia za poszczególne miesiące.",
   },
   {
     type: "contractEnd",
@@ -48,6 +49,6 @@ export const EVENT_TYPES: { type: Exclude<EventType, "sickLeave">; label: string
   {
     type: "returnToWork",
     label: "Powrót do pracy / część etatu",
-    effect: "Na urlopie rodzicielskim można pracować do połowy etatu. Urlop wydłuża się proporcjonalnie, a zasiłek zostaje.",
+    effect: "Jeśli łączycie pracę z urlopem rodzicielskim, porównajcie okres urlopu i wysokość zasiłku w kalkulatorze.",
   },
 ];
