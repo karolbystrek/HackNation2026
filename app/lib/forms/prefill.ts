@@ -41,6 +41,8 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     return `${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}: ${formatPln(gross)} brutto`;
   }).join("\n");
   const hospital = "Szpital Miejski, Oddział Położniczy";
+  const noPreBirth = "Matka nie korzystała z urlopu macierzyńskiego przed porodem.";
+  const working = chosen?.result.periods[parent].find((p) => p.kind === "parental" && p.workFraction > 0);
 
   const known: FormValues = {
     insured_pesel: me.pesel,
@@ -123,6 +125,27 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     "ff.zas55": { maternity_equivalent_from: me.sickLeaveFrom ?? persona.dueDate, other_employment: "nie_zapewniono" },
     "ff.z10": { claim: "zasilek_chorobowy", earning_activity: "Nie prowadzę działalności ani gospodarstwa rolnego." },
     "ff.znp7": { cause: "ogolny_stan_zdrowia", pension_and_benefits: "Nie pobieram emerytury, renty ani zasiłku dla bezrobotnych." },
+    "lr.maternity_pre_birth": { start_date: shift(persona.dueDate, -14) },
+    "lr.maternity_resign_14w": { return_date: shift(birth, params.motherOnlyWeeks * 7) },
+    "lr.maternity_resign_incapacity": { return_date: shift(birth, 56) },
+    "lr.maternity_takeover": { children: [child], mother_pre_birth_use: noPreBirth, period: { from: shift(birth, params.motherOnlyWeeks * 7), to: maternity.to } },
+    "lr.maternity_mother_hospital": { start_date: shift(birth, 3), mother_pre_birth_use: noPreBirth, notify_discharge: true },
+    "lr.maternity_mother_death": { mother_pre_birth_use: noPreBirth, death_date: shift(birth, 2), start_date: shift(birth, 3) },
+    "lr.maternity_abandonment": { mother_pre_birth_use: noPreBirth, abandonment_date: shift(birth, 2), start_date: shift(birth, 3) },
+    "lr.maternity_uninsured_mother_incapacity": { start_date: birth },
+    "lr.maternity_uninsured_mother_works": { start_date: shift(birth, params.motherOnlyWeeks * 7), notify_end_of_employment: true },
+    "lr.supplementary_maternity": { maternity_end_date: maternity.to, period: { from: shift(maternity.to, 1), to: shift(maternity.to, 4 * 7) } },
+    "lr.maternity_conditions": { children: [child], period: { from: birth, to: shift(birth, params.maternityWeeks[0] * 7 - 1) } },
+    "lr.combine_parental_with_work": {
+      work_fraction: String(working?.workFraction ?? 0.5).replace(".", ","),
+      period: working ? { from: working.from, to: toIso(addDays(parseIso(working.to)!, -1)) } : { from: "", to: "" },
+      extension_declaration: "Część urlopu wydłużona z powodu pracy też będzie łączona z pracą w tym samym wymiarze.",
+    },
+    "civil.birth_certificate": {
+      copy_kind: "skrocony", copies: "1", child_first_name: persona.childName ?? "", child_last_name: persona.parents.father.lastName,
+      child_birth_date: persona.birthDate ?? "", child_birth_place: persona.birthPlace ?? "",
+      applicant: { name: fullName, pesel: me.pesel }, applicant_address: me.address, legal_interest: "rodzic", delivery: "usc",
+    },
   };
   Object.assign(known, extra[spec.id]);
 

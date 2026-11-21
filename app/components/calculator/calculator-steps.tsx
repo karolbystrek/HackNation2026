@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { calculatorNavigate } from "@/lib/calculator-navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Card } from "@/components/ui";
 import { Disclosure } from "@/components/ui/disclosure";
@@ -29,18 +31,18 @@ export function CalculatorSteps({
   resultTitle?: string;
   /** Optional controlled step, e.g. to jump back to a step from a summary. */
   step?: number;
-  onStepChange?: (step: number) => void;
+  onStepChange?: (step: number, back?: boolean) => void;
   /** Return false to stay on the step (custom validation). */
   onStepSubmit?: (step: number) => boolean;
 }) {
   const [innerStep, setInnerStep] = useState(0);
   const step = controlledStep ?? innerStep;
-  const setStep = onStepChange ?? setInnerStep;
+  const setStep = onStepChange ?? ((next: number) => setInnerStep(next));
   const heading = useRef<HTMLHeadingElement>(null);
   const current = steps[step];
 
   useEffect(() => {
-    if (active) heading.current?.focus();
+    if (active) heading.current?.focus({ preventScroll: step === 0 });
   }, [active, step]);
 
   return (
@@ -73,7 +75,7 @@ export function CalculatorSteps({
         >
           <Card className="flex min-w-0 flex-col gap-5">{current.content}</Card>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Button variant="link" onClick={step === 0 ? onBack : () => setStep(step - 1)}>Wstecz</Button>
+            <Button variant="link" onClick={step === 0 ? onBack : () => setStep(step - 1, true)}>Wstecz</Button>
             <Button type="submit">{step + 1 === steps.length ? calculate : "Dalej"}</Button>
           </div>
         </form>
@@ -81,13 +83,25 @@ export function CalculatorSteps({
         <>
           {result}
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => setStep(0)}>Zmień dane</Button>
+            <Button variant="outline" onClick={() => setStep(0, true)}>Zmień dane</Button>
             <Button variant="link" onClick={onBack}>{backFromResult}</Button>
           </div>
         </>
       )}
     </section>
   );
+}
+
+export function UrlCalculatorSteps({ stepParam = "krok", ...props }: Omit<Parameters<typeof CalculatorSteps>[0], "step" | "onStepChange"> & { stepParam?: string }) {
+  const requested = Number(useSearchParams().get(stepParam) ?? "1");
+  const step = Number.isInteger(requested) && requested >= 1 ? Math.min(requested - 1, props.steps.length) : 0;
+
+  return <CalculatorSteps {...props} step={step} onStepChange={(next, back) => {
+    calculatorNavigate((params) => {
+      if (next === 0) params.delete(stepParam);
+      else params.set(stepParam, String(next + 1));
+    }, back);
+  }} />;
 }
 
 export function CalculatorDetails({ label, children, initiallyOpen }: {

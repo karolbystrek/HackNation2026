@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Button, ButtonLink, Chip, PageTitle } from "@/components/ui";
-import { formatDate } from "@/lib/dates";
-import { Disclosure } from "@/components/ui/disclosure";
+import { ApplicationAction } from "@/components/application-action";
+import { Button, Chip, PageTitle } from "@/components/ui";
+import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
 import { tasksToIcs } from "@/lib/ics";
@@ -17,7 +17,6 @@ export default function Tasks() {
   const main = tasks.filter((task) => !task.extra);
   const remaining = main.filter((task) => !task.done);
   const completed = main.filter((task) => task.done);
-  const extras = tasks.filter((task) => task.extra);
 
   function downloadCalendar() {
     const url = URL.createObjectURL(new Blob([tasksToIcs(main)], { type: "text/calendar" }));
@@ -38,6 +37,7 @@ export default function Tasks() {
             checked={task.done}
             disabled={task.locked || !!submission}
             aria-label={task.title}
+            aria-describedby={task.locked && !task.done && task.waitingFor.length > 0 ? `${inputId}-waiting` : undefined}
             onChange={() => {
               updatePlan((state) => ({
                 ...state,
@@ -55,17 +55,17 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
-          {submission ? (
-            <p className="text-sm">
-              Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>.{" "}
-              <Link href={`/wnioski/${task.id}`} className="text-link">Zobacz wysłany wniosek</Link>
-            </p>
-          ) : task.form && !task.done && (
-            <ButtonLink href={`/wnioski/${task.id}`} className="self-start">Wypełnij wniosek</ButtonLink>
-          )}
-          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {task.title}</a>}
+          <ApplicationAction task={task} submission={submission} />
+          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja składania wniosku</a>}
           {task.waitingFor.length > 0 && !task.done && (
-            <p className="text-sm text-muted-foreground">Wymaga: {task.waitingFor.join(", ")}.</p>
+            <div id={`${inputId}-waiting`} className="text-sm text-muted-foreground">
+              <p className="font-bold">Oczekuje na potwierdzenie w Planie</p>
+              <ul role="list">
+                {task.waitingFor.map(({ id, title }) => (
+                  <li key={id}><Link href={`/plan#timeline-${id}`} className="text-link inline-flex min-h-11 items-center">{title}</Link></li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </li>
@@ -78,8 +78,8 @@ export default function Tasks() {
         <div className="grow">
           <PageTitle>Wasza lista zadań</PageTitle>
           {!fromGuide && <div className="text-[15px] text-muted-foreground">
-            {chosen ? `Wariant ${chosen.key} · ${chosen.name} · ` : null}
-            <Link href="/warianty" className="font-bold text-primary underline">
+            {chosen && <p>Wariant {chosen.key} <strong className="block text-foreground">{chosen.name}</strong></p>}
+            <Link href="/warianty?z=zadania" className="font-bold text-primary underline">
               {chosen ? "Zmień wariant" : "Wybierz wariant urlopu"}
             </Link>
           </div>}
@@ -94,21 +94,15 @@ export default function Tasks() {
       <section aria-labelledby="pozostale-zadania">
         <h2 id="pozostale-zadania" tabIndex={-1} className="mb-3 text-xl font-bold">Pozostałe zadania ({remaining.length})</h2>
         {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}
+        <p className="mt-4 text-muted-foreground">
+          Wnioski na szczególne sytuacje i sprawdzanie teczki ZUS znajdziesz w zakładce <Link href="/wnioski" className="text-link">Wnioski</Link>.
+        </p>
       </section>
 
-      {extras.length > 0 && (
-        <Disclosure className="border-y" label={
-          <span><span className="block font-bold">Inne formularze ZUS ({extras.length})</span>
-            <span className="text-muted-foreground">Wypełnia pracodawca lub lekarz albo są potrzebne tylko w szczególnej sytuacji.</span></span>
-        }>
-          <ul role="list">{extras.map(renderTask)}</ul>
-        </Disclosure>
-      )}
-
       {completed.length > 0 && (
-        <Disclosure className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>
+        <RememberedDisclosure section="zadania/ukonczone" className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>
           <ul role="list">{completed.map(renderTask)}</ul>
-        </Disclosure>
+        </RememberedDisclosure>
       )}
     </main>
   );

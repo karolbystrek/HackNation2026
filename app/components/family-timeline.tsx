@@ -2,18 +2,29 @@
 
 import Link from "next/link";
 import { useLayoutEffect, type MouseEvent, type ReactNode } from "react";
-import { ButtonLink, Chip } from "@/components/ui";
-import { Disclosure } from "@/components/ui/disclosure";
+import { Button, ButtonLink, Chip } from "@/components/ui";
+import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { formatDate, parseIso } from "@/lib/dates";
-import type { EventWho } from "@/lib/events";
+import type { EventType, EventWho, TimelineEvent } from "@/lib/events";
 import { timelineDate, type FamilyTimelineEntry } from "@/lib/family-timeline";
-import { usePlan } from "@/lib/plan-store";
+import { updatePlan, usePlan } from "@/lib/plan-store";
 import { attentionEntries, deadlineNotice } from "@/lib/timeline-view";
 
 const statuses = {
   confirmed: "Potwierdzone", planned: "Zaplanowane", blocked: "Oczekuje na dokument lub działanie",
   ready: "Do zrobienia", completed: "Zakończone", late: "Po terminie",
   active: "W trakcie", ended: "Okres zakończony", review: "Do sprawdzenia",
+};
+
+const calculatorLabels: Record<EventType, string> = {
+  birth: "Oblicz zasiłek po narodzinach",
+  adoption: "Oblicz zasiłek po przyjęciu dziecka",
+  sickLeave: "Sprawdź zasiłek chorobowy",
+  returnToWork: "Sprawdź pracę podczas urlopu",
+  salary: "Przelicz podstawę zasiłku",
+  contract: "Sprawdź dane do wyliczenia zasiłku",
+  contractEnd: "Sprawdź dane do wyliczenia zasiłku",
+  business: "Sprawdź dane do wyliczenia zasiłku",
 };
 
 const dayFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeZone: "UTC" });
@@ -64,10 +75,11 @@ function openRelated(event: MouseEvent<HTMLAnchorElement>) {
 }
 
 /** The family timeline: earlier entries folded, a "Dzisiaj" panel with what to do now, then upcoming entries. */
-export function FamilyTimeline({ entries, names, today, actions }: {
-  entries: FamilyTimelineEntry[]; names: Record<EventWho, string>; today: string; actions?: ReactNode;
+export function FamilyTimeline({ entries, names, today, actions, profileEvents = [] }: {
+  entries: FamilyTimelineEntry[]; names: Record<EventWho, string>; today: string; actions?: ReactNode; profileEvents?: TimelineEvent[];
 }) {
-  const { submissions } = usePlan();
+  const plan = usePlan();
+  const { submissions } = plan;
   const attention = attentionEntries(entries, today);
   const active = entries.filter((entry) => entry.status === "active" ||
     (entry.kind === "event" && entry.status === "confirmed" && entry.end && today <= entry.end));
@@ -79,15 +91,19 @@ export function FamilyTimeline({ entries, names, today, actions }: {
   const todayIndex = firstUpcoming < 0 ? points.length : firstUpcoming;
 
   useLayoutEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) {
-      window.scrollTo({ top: 0 });
-      return;
+    function revealHash() {
+      const hash = window.location.hash;
+      if (!hash) return;
+      const target = revealEntry(hash) ?? document.getElementById(hash.slice(1));
+      target?.scrollIntoView({ block: "start" });
     }
-    const target = revealEntry(hash) ?? document.getElementById(hash.slice(1));
-    target?.scrollIntoView({ block: "start" });
+
+    revealHash();
+    window.addEventListener("hashchange", revealHash);
+    return () => window.removeEventListener("hashchange", revealHash);
   }, []);
 
+  const eventsByEntry = new Map(plan.events.map((event) => [`event-${event.id}`, event]));
   const rows = points.map(({ entry, date, end }) => {
     if (end) return (
       <li key={`${entry.id}-end`} className="relative pb-2 pl-4 sm:pl-6">
@@ -108,16 +124,20 @@ export function FamilyTimeline({ entries, names, today, actions }: {
       </li>
     );
 
+    const event = eventsByEntry.get(entry.id);
+    const profileBirth = event?.type === "birth" && profileEvents.some((item) => item.id === event.id);
     const notice = deadlineNotice(entry, today);
     const isPeriod = entry.end !== undefined;
     const required = entries.filter((item) => entry.requires?.includes(item.id));
+    const birthCertificate = entry.id === "birth-certificate" && !entry.completedOn;
+    const certificateConfirmed = birthCertificate && plan.doneTasks.includes(entry.id);
     const showStatus = entry.kind === "application" && entry.status !== "blocked";
     const submission = submissions[entry.id];
 
     return (
       <li key={entry.id} className="relative pb-2 pl-4 sm:pl-6">
         <span aria-hidden="true" className={`absolute top-5 rounded-full border-2 border-input bg-background ${isPeriod ? "-left-1 h-4 w-1.5" : "-left-[6px] size-2.5"}`} />
-        <Disclosure id={`timeline-${entry.id}`} className="scroll-mt-4 border-b open:bg-secondary target:bg-secondary" label={
+        <RememberedDisclosure section={`plan/${entry.id}`} id={`timeline-${entry.id}`} className="scroll-mt-4 border-b open:bg-secondary target:bg-secondary" label={
           <span className="grid gap-1 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4">
             <span className="text-sm leading-snug text-muted-foreground">
               <EntryDate entry={entry} />
@@ -134,6 +154,28 @@ export function FamilyTimeline({ entries, names, today, actions }: {
         }>
           <div className="max-w-[70ch] space-y-3 px-3 pb-4 sm:px-4">
             <p>{entry.description}</p>
+            {birthCertificate && (
+              <p>{certificateConfirmed
+                ? "Potwierdziliście, że USC sporządził akt urodzenia."
+                : entry.status === "blocked"
+                  ? "Najpierw zgłoście urodzenie i oznaczcie zgłoszenie jako wykonane na liście zadań."
+                  : "Gdy USC sporządzi akt, potwierdźcie to tutaj, żeby odblokować powiązane zadania."}</p>
+            )}
+            {birthCertificate && (certificateConfirmed || entry.status === "planned") && (
+              <Button variant="outline" onClick={() => updatePlan((state) => ({
+                ...state,
+                doneTasks: certificateConfirmed
+                  ? state.doneTasks.filter((id) => id !== entry.id)
+                  : [...state.doneTasks, entry.id],
+              }))}>
+                {certificateConfirmed ? "Cofnij potwierdzenie aktu" : "Potwierdź sporządzenie aktu"}
+              </Button>
+            )}
+            {event && (
+              <ButtonLink variant="outline" href={profileBirth ? `/warianty?wydarzenie=${encodeURIComponent(event.id)}` : `/kalkulator?wydarzenie=${encodeURIComponent(event.id)}`}>
+                {profileBirth ? "Porównaj podział opieki" : calculatorLabels[event.type]}
+              </ButtonLink>
+            )}
             {(entry.end || entry.recipient || entry.review || required.length > 0 || entry.guide || entry.form || showStatus) && (
               <dl className="divide-y border-y [&>div]:grid [&>div]:gap-1 [&>div]:py-3 [&_dt]:font-bold sm:[&>div]:grid-cols-[10rem_minmax(0,1fr)] sm:[&>div]:gap-4">
                 {entry.end && (
@@ -181,7 +223,7 @@ export function FamilyTimeline({ entries, names, today, actions }: {
               </dl>
             )}
           </div>
-        </Disclosure>
+        </RememberedDisclosure>
       </li>
     );
   });
@@ -193,11 +235,11 @@ export function FamilyTimeline({ entries, names, today, actions }: {
       {todayIndex > 0 && (
         <li className="relative pb-2">
           <span aria-hidden="true" className="absolute top-5 -left-[6px] size-2.5 rounded-full border-2 border-input bg-background" />
-          <Disclosure id="wczesniejsze-wpisy" className="[&>summary]:ml-4 sm:[&>summary]:ml-6" label={
+          <RememberedDisclosure section="plan/wczesniejsze" id="wczesniejsze-wpisy" className="[&>summary]:ml-4 sm:[&>summary]:ml-6" label={
             <span className="font-bold">Wcześniejsze wpisy <span className="font-normal text-muted-foreground">({todayIndex})</span></span>
           }>
             <ol role="list" className="pt-1">{rows.slice(0, todayIndex)}</ol>
-          </Disclosure>
+          </RememberedDisclosure>
         </li>
       )}
       <li id="dzisiaj" tabIndex={-1} className="relative scroll-mt-4 pb-4 pl-4 sm:pl-6">
@@ -243,7 +285,7 @@ export function FamilyTimeline({ entries, names, today, actions }: {
             </div>
           )}
           {active.length > 1 && (
-            <Disclosure className="mt-2 border-y" label={<span className="text-sm font-bold">W trakcie ({active.length})</span>}>
+            <RememberedDisclosure section="plan/w-trakcie" className="mt-2 border-y" label={<span className="text-sm font-bold">W trakcie ({active.length})</span>}>
               <ul className="divide-y px-3 pb-2 sm:px-4">
                 {active.map((item) => (
                   <li key={item.id} className="flex flex-wrap items-center gap-x-3">
@@ -254,7 +296,7 @@ export function FamilyTimeline({ entries, names, today, actions }: {
                   </li>
                 ))}
               </ul>
-            </Disclosure>
+            </RememberedDisclosure>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">{actions}</div>
         </section>

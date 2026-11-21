@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { amountHint, amountPattern, CalculatorDetails, CalculatorSteps } from "./calculator-steps";
+import { usePlanDraft } from "@/lib/plan-store";
+import { amountHint, amountPattern, CalculatorDetails, UrlCalculatorSteps } from "./calculator-steps";
 import { Button, Checkbox, Field, RadioGroup, ResultSummary, WarningBox } from "@/components/ui";
 import { calcPregnancy, type PregnancyInput } from "@/lib/calc/pregnancy";
 import { addDays, parseIso, toIso } from "@/lib/dates";
@@ -9,20 +9,22 @@ import type { ParentKey } from "@/lib/calc/leave";
 import { formatPln, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 
-export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }: {
+export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, startDate, draftKey }: {
   basis: string;
   setBasis: (v: string) => void;
   onBasis: (parent: ParentKey, startMonth: string) => void;
   onBack: () => void;
   active: boolean;
+  draftKey: string;
+  startDate?: string;
 }) {
   const { persona, params, names } = useFamily();
   const mother = persona.parents.mother;
-  const [form, setForm] = useState<Omit<PregnancyInput, "basis">>({
+  const [form, setForm] = usePlanDraft<Omit<PregnancyInput, "basis">>(draftKey, {
     contract: mother.contract,
     insuredFrom: mother.insuredFrom,
-    sickLeaveFrom: mother.sickLeaveFrom ?? persona.fetchedAt,
-    dueDate: persona.dueDate,
+    sickLeaveFrom: startDate ?? mother.sickLeaveFrom ?? persona.fetchedAt,
+    dueDate: startDate ? persona.birthDate ?? persona.dueDate : persona.dueDate,
     employerInsolvent: false,
     over50: mother.age >= 50,
   });
@@ -42,11 +44,8 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }
             options={[["uop", "Umowa o pracę"], ["zlec", "Umowa zlecenie"], ["jdg", "Działalność"]]}
           />
           <Field required label="Ubezpieczenie chorobowe od" type="date" value={form.insuredFrom} onChange={(e) => set("insuredFrom", e.target.value)} />
-          <CalculatorDetails label="Rozwiązanie umowy w ciąży" initiallyOpen={form.employerInsolvent}>
-            <Checkbox checked={form.employerInsolvent} onChange={() => set("employerInsolvent", !form.employerInsolvent)} title="Umowę rozwiązano z powodu upadłości, likwidacji lub śmierci pracodawcy">
-              Wtedy do porodu przysługuje zasiłek w wysokości zasiłku macierzyńskiego.
-            </Checkbox>
-          </CalculatorDetails>
+          <Checkbox checked={form.employerInsolvent} onChange={() => set("employerInsolvent", !form.employerInsolvent)}
+            title="Umowę rozwiązano w ciąży z powodu upadłości, likwidacji lub śmierci pracodawcy" />
         </>
       ),
     },
@@ -61,11 +60,11 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }
       ),
     },
     {
-      title: "Kwota do obliczeń",
+      title: "Podstawa zasiłku",
       content: (
         <>
           <Field required label="Podstawa zasiłku (zł)" inputMode="decimal" pattern={amountPattern} title={amountHint} maxLength={24}
-            value={basis} onChange={(e) => setBasis(e.target.value)} />
+            hint="Kwota, od której naliczany jest zasiłek." value={basis} onChange={(e) => setBasis(e.target.value)} />
           <Button variant="link" className="self-start" onClick={() => onBasis("mother", form.sickLeaveFrom.slice(0, 7))}>Oblicz z 12 miesięcy</Button>
         </>
       ),
@@ -73,16 +72,16 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }
   ];
 
   return (
-    <CalculatorSteps steps={steps} onBack={onBack} active={active} result={
+    <UrlCalculatorSteps steps={steps} onBack={onBack} active={active} result={
       <>
-        <ResultSummary label="Do dnia porodu (brutto)" value={formatPln(r.total)}>
-          <div className="text-[15px]">
-            {r.days} dni płatnego zwolnienia · {formatPln(parseAmount(basis), 2)} / mies.
-          </div>
-          <p>Wypłaca: {r.payer}</p>
+        <ResultSummary label="Szacowana kwota do dnia porodu (brutto)" value={formatPln(r.total)}>
+          <p>{r.days} dni płatnego zwolnienia</p>
+          <p>Miesięczna podstawa zasiłku <strong>{formatPln(parseAmount(basis), 2)}</strong></p>
+          <p>Prawo do zasiłku ustala ZUS lub płatnik składek.</p>
         </ResultSummary>
         <WarningBox items={r.warnings} />
-        <CalculatorDetails label="Zobacz szczegóły">
+        <CalculatorDetails label="Składniki kwoty i płatnik">
+          <p>Wypłaca: {r.payer}</p>
           {r.rows.map((row) => (
             <div key={row.label} className="flex flex-col gap-0.5 border-b border-border py-2.5 last:border-0">
               <div className="flex justify-between gap-2 text-[15px] font-bold">

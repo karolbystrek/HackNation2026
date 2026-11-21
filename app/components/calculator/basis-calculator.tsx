@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { amountHint, amountPattern, CalculatorDetails, CalculatorSteps } from "./calculator-steps";
+import { usePlanDraft } from "@/lib/plan-store";
+import { amountHint, amountPattern, CalculatorDetails, UrlCalculatorSteps } from "./calculator-steps";
 import { Button, Field, RadioGroup, ResultSummary } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import { PARENTS, type ParentKey } from "@/lib/calc/leave";
@@ -10,18 +10,20 @@ import { useFamily } from "@/lib/use-family";
 
 const MONTHS = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
 
-export function BasisCalculator({ onUse, onBack, active, request }: {
+export function BasisCalculator({ onUse, onBack, active, request, initialParent = "father", draftKey }: {
   onUse: (parent: ParentKey, basis: string) => void;
   onBack: () => void;
   active?: boolean;
+  draftKey: string;
+  initialParent?: ParentKey;
   request?: { parent: ParentKey; startMonth: string };
 }) {
   const { persona, params, names } = useFamily();
-  const initialParent = request?.parent ?? "father";
-  const [source, setSource] = useState<ParentKey | "manual">(initialParent);
-  const [incomeType, setIncomeType] = useState<"uop" | "jdg">(persona.parents[initialParent].contract === "jdg" ? "jdg" : "uop");
-  const [startMonth, setStartMonth] = useState(request?.startMonth || persona.dueDate.slice(0, 7));
-  const [months, setMonths] = useState(() => persona.parents[initialParent].monthlyGross.map(String));
+  const parent = request?.parent ?? initialParent;
+  const [source, setSource] = usePlanDraft<ParentKey | "manual">(`${draftKey}/source`, parent);
+  const [incomeType, setIncomeType] = usePlanDraft<"uop" | "jdg">(`${draftKey}/incomeType`, persona.parents[parent].contract === "jdg" ? "jdg" : "uop");
+  const [startMonth, setStartMonth] = usePlanDraft(`${draftKey}/startMonth`, request?.startMonth || persona.dueDate.slice(0, 7));
+  const [months, setMonths] = usePlanDraft(`${draftKey}/months`, persona.parents[parent].monthlyGross.map(String));
 
   const r = computeBasis(months.map(parseAmount), params, incomeType);
   const [startYear, startMon] = startMonth.split("-").map(Number);
@@ -96,7 +98,7 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{incomeFields}</div>
           ) : (
             <>
-              <p>{names[source]} · {formatPln(r.average, 2)} średnio miesięcznie</p>
+              <p>Średnio miesięcznie ({names[source]}) <strong>{formatPln(r.average, 2)}</strong></p>
               <CalculatorDetails label="Sprawdź lub zmień kwoty" initiallyOpen={months.some((value, i) => value !== String(persona.parents[source].monthlyGross[i]))}>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{incomeFields}</div>
               </CalculatorDetails>
@@ -108,10 +110,10 @@ export function BasisCalculator({ onUse, onBack, active, request }: {
   ];
 
   return (
-    <CalculatorSteps steps={steps} calculate="Oblicz podstawę" backFromResult={request ? "Wróć bez użycia kwoty" : undefined} onBack={onBack} active={active} result={
+    <UrlCalculatorSteps stepParam={request ? "krok-podstawy" : "krok"} steps={steps} calculate="Oblicz podstawę" backFromResult={request ? "Wróć bez użycia kwoty" : undefined} onBack={onBack} active={active} result={
       <div className="flex flex-col gap-4">
         <ResultSummary label="Podstawa wymiaru zasiłku" value={formatPln(r.basis, 2)} />
-        <CalculatorDetails label="Zobacz szczegóły">
+        <CalculatorDetails label="Jak obliczyliśmy podstawę">
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between gap-2 border-b border-border py-2.5 text-[15px] last:border-0">
               <span>{label}</span>

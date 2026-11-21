@@ -12,11 +12,12 @@ setup: ## Install the pinned Supabase CLI
 supabase:
 	npx --no-install supabase start
 	@umask 077; set -o pipefail; npx --no-install supabase status -o env | \
-		awk '/^(API_URL|PUBLISHABLE_KEY)=/ { \
+		awk '/^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=/ { \
 			sub(/^API_URL=/, "NEXT_PUBLIC_SUPABASE_URL="); \
 			sub(/^PUBLISHABLE_KEY=/, "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="); \
+			sub(/^SECRET_KEY=/, "SUPABASE_SECRET_KEY="); \
 			print; count++ \
-		} END { exit count != 2 }' > .env.supabase.local
+		} END { exit count != 3 }' > .env.supabase.local
 
 dev: supabase ## Start with hot reload
 	docker compose up --build --watch
@@ -44,7 +45,8 @@ status: ## Show service status and local Supabase keys
 	docker compose ps
 	npx --no-install supabase status
 
-test: ## Run the connection test (requires make up)
+test: ## Run unit tests and the connection test (requires make up)
+	docker compose exec -T app npm test
 	docker compose exec -T app npm run test:connection
 
 lint: ## Run ESLint
@@ -53,6 +55,6 @@ lint: ## Run ESLint
 build: ## Verify the production build
 	docker compose run --rm --no-deps app npm run build
 
-check: ## Run type checks, lint and the connection test
+check: ## Run type checks, lint and the tests
 	docker compose exec -T app npm run check
 	$(MAKE) test

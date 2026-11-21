@@ -17,6 +17,8 @@ export type PlanState = {
   guideAnswers: Answers;
   /** Simulated submissions of applications, by timeline task id. */
   submissions: Record<string, Submission>;
+  drafts?: Record<string, unknown>;
+  calculatorHref?: string;
 };
 
 export type Submission = { number: string; sentAt: string; recipient: string; channel: string; values: FormValues };
@@ -57,6 +59,22 @@ export function updatePlan(change: (s: PlanState) => PlanState) {
     // Storage unavailable: the plan still works until the tab closes.
   }
   listeners.forEach((l) => l());
+}
+
+export function usePlanDraft<T>(key: string, initialValue: T) {
+  const value = (usePlan().drafts?.[key] as T | undefined) ?? initialValue;
+  function save(next: T | ((previous: T) => T)) {
+    updatePlan((plan) => ({
+      ...plan,
+      drafts: {
+        ...plan.drafts,
+        [key]: typeof next === "function"
+          ? (next as (previous: T) => T)((plan.drafts?.[key] as T | undefined) ?? initialValue)
+          : next,
+      },
+    }));
+  }
+  return [value, save] as const;
 }
 
 /** Starts a plan for a demo profile or, with GUIDE_ID, for the questionnaire answers, which are kept. */

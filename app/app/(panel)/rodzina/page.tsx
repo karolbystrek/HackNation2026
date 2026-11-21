@@ -1,17 +1,34 @@
 "use client";
 
-import { ButtonLink, Card, Chip, PageTitle } from "@/components/ui";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { BackLink, Card, Chip, PageTitle } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
 import { PARENTS } from "@/lib/calc/leave";
 import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 
-export default function FamilyData() {
+const returnPages = new Map([
+  ["/plan", "Wróć do osi czasu"],
+  ["/kalkulator", "Wróć do kalkulatora"],
+  ["/zadania", "Wróć do zadań"],
+  ["/warianty", "Wróć do wariantów"],
+  ["/dodaj", "Wróć do dodawania wydarzenia"],
+]);
+
+export default function FamilyPage() {
+  return <Suspense><FamilyData /></Suspense>;
+}
+
+function FamilyData() {
   const { persona, params } = useFamily();
+  const from = useSearchParams().get("z") ?? "";
+  const returnLabel = returnPages.get(from.split("?")[0]);
 
   return (
     <main id="main-content" tabIndex={-1} className="page">
+      <BackLink href={returnLabel ? from : "/plan"}>{returnLabel ?? "Wróć do osi czasu"}</BackLink>
       <PageTitle lead={`Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`}>Wasze dane</PageTitle>
       <Card>
         <h2 className="text-xl font-bold">Dane sprawy użyte na osi czasu</h2>
@@ -19,7 +36,8 @@ export default function FamilyData() {
           {[
             ["Przewidywany termin porodu", formatDate(persona.dueDate)],
             ["Rzeczywista data urodzenia", persona.birthDate ? formatDate(persona.birthDate) : "Oczekuje na poród"],
-            ["Imię i miejsce urodzenia dziecka", persona.childName ? `${persona.childName} · ${persona.birthPlace}` : "Brak danych"],
+            ["Imię dziecka", persona.childName ?? "Brak danych"],
+            ["Miejsce urodzenia", persona.birthPlace ?? "Brak danych"],
             ["Data wystawienia karty urodzenia", persona.birthCardDate ? formatDate(persona.birthCardDate) : "Brak karty"],
             ["Zgłoszenie do USC", persona.birthRegistrationDate ? formatDate(persona.birthRegistrationDate) : "Oczekuje na zgłoszenie"],
             ["Akt urodzenia", persona.birthCertificateDate ? formatDate(persona.birthCertificateDate) : "Oczekuje na sporządzenie"],
@@ -65,9 +83,6 @@ export default function FamilyData() {
         })}
       </div>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <ButtonLink href="/plan" className="min-h-[52px]">
-          Dalej: Wasza oś czasu →
-        </ButtonLink>
         <a href="https://www.zus.pl/ezus/logowanie" target="_blank" rel="noreferrer" className="text-link font-bold">
           Coś się nie zgadza? Zapytaj przez PUE/eZUS
         </a>

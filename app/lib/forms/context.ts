@@ -14,7 +14,7 @@ export type FormContext = {
   events: TimelineEvent[];
   params: Params;
   today: string;
-  recipient: "zus" | "employer";
+  recipient: "zus" | "employer" | "usc";
   recipientName: string;
   waitingFor: string[];
 };
@@ -26,16 +26,18 @@ export function formContext(
   const chosen = buildVariants(persona, params).find((variant) => variant.key === chosenKey) ?? null;
   const timeline = buildFamilyTimeline(persona, events, chosen, params, doneTasks, today);
   const entry = timeline.find((item) => item.id === taskId && item.form);
-  if (!entry || entry.who === "both") return null;
+  if (!entry) return null;
 
   const byId = new Map(timeline.map((item) => [item.id, item]));
-  const toZus = entry.recipient === "ZUS";
+  // Steps for both parents (birth registration, birth certificate) are filed by the mother in the demo.
+  const parent = entry.who === "both" ? "mother" : entry.who;
+  const recipient = entry.recipient === "ZUS" ? "zus" : entry.recipient === "Urząd stanu cywilnego" ? "usc" : "employer";
   return {
     entry,
     ctx: {
-      taskId, persona, parent: entry.who, chosen, events, params, today,
-      recipient: toZus ? "zus" : "employer",
-      recipientName: toZus ? "ZUS" : persona.parents[entry.who].payerName,
+      taskId, persona, parent, chosen, events, params, today,
+      recipient,
+      recipientName: recipient === "zus" ? "ZUS" : recipient === "usc" ? `Urząd stanu cywilnego${persona.birthPlace ? ` (${persona.birthPlace})` : ""}` : persona.parents[parent].payerName,
       waitingFor: (entry.requires ?? [])
         .map((id) => byId.get(id)!)
         .filter((required) => required.status !== "confirmed" && required.status !== "completed")
