@@ -1,0 +1,80 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import type { Condition } from "@/lib/forms/spec";
+import type { Deadline, Journey, JourneyStep, StepDocument } from "@/lib/journey";
+
+// knowledge/ sits next to app/ in the repo and is mounted at /knowledge in the container.
+const KNOWLEDGE_DIR = path.join(process.cwd(), "..", "knowledge");
+
+// Loose view of knowledge/ records; the JSON Schemas in knowledge/schema are the contract.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type KnowledgeRecord = Record<string, any> & { id: string };
+
+export async function records(file: string): Promise<KnowledgeRecord[]> {
+  "use cache";
+  return JSON.parse(await readFile(path.join(KNOWLEDGE_DIR, file), "utf8")).records;
+}
+
+type RawAttachment = { document_id: string; required: "always" | "conditional"; condition?: Condition };
+
+/** Attachments that apply always, or under a condition the app can evaluate. */
+function attachments(raw: RawAttachment[] = []): StepDocument[] {
+  return raw
+    .filter((a) => a.required === "always" || a.condition)
+    .map((a) => (a.required === "always" ? { id: a.document_id } : { id: a.document_id, condition: a.condition }));
+}
+
+/** The parent-facing part of knowledge/ the timeline and task list are built from. */
+export async function loadJourney(): Promise<Journey> {
+  "use cache";
+  const [scenarios, deadlines, forms, leaveRequests, documents] = await Promise.all(
+    ["scenarios.json", "deadlines.json", "forms.json", "leave_requests.json", "documents.json"].map(records),
+  );
+  const byId = (list: KnowledgeRecord[]) => new Map(list.map((record) => [record.id, record]));
+  const formById = byId(forms);
+  const leaveById = byId(leaveRequests);
+  const docById = byId(documents);
+
+  const toStep = (scenario: string, raw: KnowledgeRecord): JourneyStep => {
+    const leave = (raw.leave_request_ids ?? []).map((id: string) => leaveById.get(id)).find(Boolean);
+    // Only forms the parent fills in; payer certificates such as ZAS-15 are the employer's job.
+    const form = (raw.form_ids ?? []).map((id: string) => formById.get(id))
+      .find((f: KnowledgeRecord | undefined) => f?.field_set_id && f.filled_by?.includes("insured"));
+    const documents = leave ? attachments(leave.attachments)
+      : form ? attachments(form.attachment_rules)
+      : (raw.document_ids ?? []).map((id: string): StepDocument => {
+        const needed: Condition[] | null = docById.get(id)?.needed_when ?? null;
+        return needed ? { id, condition: { any: needed } } : { id };
+      });
+    return {
+      scenario,
+      task: raw.task,
+      action: raw.action_pl,
+      recipient: raw.recipient,
+      condition: raw.condition,
+      form: leave ? { id: leave.id } : form ? { id: form.field_set_id, symbol: form.symbol, guide: form.page_url } : undefined,
+      documents,
+      deadlines: raw.deadline_ids ?? [],
+    };
+  };
+
+  return {
+    scenarios: scenarios
+      .filter((s) => s.status === "current")
+      .map((s) => ({
+        id: s.id,
+        conditions: s.conditions,
+        steps: s.steps.filter((step: KnowledgeRecord) => step.task && step.actor === "insured").map((step: KnowledgeRecord) => toStep(s.id, step)),
+      }))
+      .filter((s) => s.steps.length > 0),
+    deadlines: Object.fromEntries(deadlines.map((d): [string, Deadline] => [d.id, {
+      title: d.title_pl, anchor: d.anchor_event, offset: d.offset, kind: d.kind, appliesTo: d.applies_to ?? null,
+    }])),
+    documentTitles: Object.fromEntries(documents.map((d) => [d.id, d.title_pl])),
+  };
+}
+
+/** Wizard specs the journey can open: every form or leave request a task step points to. */
+export function journeyFormIds(journey: Journey): string[] {
+  return [...new Set(journey.scenarios.flatMap((s) => s.steps.flatMap((step) => (step.form ? [step.form.id] : []))))];
+}

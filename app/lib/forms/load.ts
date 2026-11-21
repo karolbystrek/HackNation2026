@@ -1,10 +1,6 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { BIRTH_CERTIFICATE_REQUEST } from "@/lib/forms/civil";
 import type { Condition, FieldType, FormAttachment, FormField, FormSpec } from "@/lib/forms/spec";
-
-// knowledge/ sits next to app/ in the repo and is copied to /knowledge in the container.
-const KNOWLEDGE_DIR = path.join(process.cwd(), "..", "knowledge");
+import { records } from "@/lib/knowledge";
 
 /** Applications the timeline can open in the form wizard. */
 export const FORM_IDS = [
@@ -82,15 +78,6 @@ type RawField = {
   required_if?: Condition; options?: string[]; help_pl?: string;
 };
 type RawAttachment = { document_id: string; required: FormAttachment["required"]; condition?: Condition; note_pl?: string };
-type RawRecord = {
-  id: string; title_pl: string; fields?: RawField[]; field_set_id?: string; status?: string;
-  attachments?: RawAttachment[]; attachment_rules?: RawAttachment[];
-};
-
-export async function records(file: string): Promise<RawRecord[]> {
-  "use cache";
-  return JSON.parse(await readFile(path.join(KNOWLEDGE_DIR, file), "utf8")).records;
-}
 
 function toField(raw: RawField, section: string): FormField {
   return {
@@ -130,7 +117,7 @@ export async function loadSpecs(ids: string[]): Promise<Record<string, FormSpec>
         id,
         title: leave.title_pl,
         fields: [
-          ...leave.fields!.map((field) => toField(field, "Wniosek")),
+          ...leave.fields.map((field: RawField) => toField(field, "Wniosek")),
           // Leave requests are signed like any letter to the employer; the simulated mObywatel signature replaces it.
           { key: "signature", label: "Podpis", type: "signature", section: "Podpis", required: "always" },
         ],
@@ -144,7 +131,7 @@ export async function loadSpecs(ids: string[]): Promise<Record<string, FormSpec>
     specs[id] = {
       id,
       title: form?.title_pl ?? fieldSet.title_pl,
-      fields: fieldSet.fields!.map((field) => toField(field, "Wniosek")),
+      fields: fieldSet.fields.map((field: RawField) => toField(field, "Wniosek")),
       attachments: (form?.attachment_rules ?? []).map(toAttachment),
     };
   }

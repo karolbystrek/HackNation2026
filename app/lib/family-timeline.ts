@@ -1,6 +1,8 @@
+import { PARENTS, type ParentKey } from "@/lib/calc/leave";
 import { formatDate, shiftIso } from "@/lib/dates";
 import type { EventWho, TimelineEvent } from "@/lib/events";
 import type { Variant } from "@/lib/calc/variants";
+import { dueDate, factsFor, neededDocuments, stepsByTask, type Facts, type Journey } from "@/lib/journey";
 import type { Persona } from "@/lib/mock/personas";
 import type { Params } from "@/lib/params";
 
@@ -28,6 +30,8 @@ type Entry = {
   form?: string;
   /** Situational or third-party form, listed for completeness; it never counts as an open task. */
   extra?: boolean;
+  /** Documents knowledge/ requires for this step. */
+  documents?: { id: string; title: string }[];
 };
 
 export type FamilyTimelineEntry = Entry & { status: Status };
@@ -36,15 +40,48 @@ export function timelineDate(entry: FamilyTimelineEntry) {
   return entry.completedOn ?? entry.due ?? entry.date;
 }
 
-export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[], today: string): FamilyTimelineEntry[] {
+/** Where the parent hands the application in; when ZUS pays, the payer forwards it (knowledge/forms.json, form.zam). */
+function recipientLabel(recipient: string, facts: Facts) {
+  const payer = facts.insured_type === "contractor" ? "Zleceniodawca" : "Pracodawca";
+  if (recipient === "zus") return "ZUS";
+  if (recipient === "municipality") return "Gmina (ośrodek pomocy społecznej)";
+  if (recipient === "payer_of_benefit") return facts.insured_type === "self_employed" ? "ZUS" : payer;
+  return recipient === "employer" ? "Pracodawca" : payer;
+}
+
+type TaskPlan = {
+  id: string;
+  title: string;
+  date: string;
+  /** Dates knowledge/ deadlines may count from (knowledge/enums.json anchor_events). */
+  anchors: Record<string, string | undefined>;
+  /** First day of the leave the application is for. */
+  start?: string;
+  requires?: string[];
+  estimated?: boolean;
+  dateNote?: string;
+  review?: boolean;
+  /** A choice, not an obligation: listed with the other forms and never counted as an open task. */
+  optional?: boolean;
+  period?: Omit<Entry, "kind" | "who" | "requires" | "estimated">;
+};
+
+export function buildFamilyTimeline(
+  persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, journey: Journey, doneTasks: string[], today: string,
+): FamilyTimelineEntry[] {
   const birth = persona.birthDate ?? persona.dueDate;
-  const birthEvent = persona.events.find((event) => event.type === "birth")!;
+  const birthEvent = persona.events.find((event) => event.type === "birth" || event.type === "adoption")!;
   const birthId = `event-${birthEvent.id}`;
   const provisional = !persona.birthDate;
-  const { birthCardDate, birthRegistrationDate, birthCertificateDate, parents } = persona;
+  const { birthCardDate, birthRegistrationDate, birthCertificateDate } = persona;
   const cardDate = birthCardDate ?? birth;
-  const rateDeadline = persona.wantsAveragedRate && (chosen?.result.flatRateAllowed ?? true)
-    ? shiftIso(birth, params.flatRateRequestDays) : undefined;
+  const childEvents = persona.childEvents ?? ["birth"];
+  const placed = childEvents.some((event) => event === "adoption" || event === "foster_placement");
+  const lost = childEvents.some((event) => event === "stillbirth" || event === "child_death_lt8w");
+  // After a stillbirth only the 8-week maternity benefit is left, so the leave variant does not apply.
+  const variant = lost ? null : chosen;
+  const periodOf = (parent: ParentKey, kind: "maternity" | "parental") => variant?.result.periods[parent].find((period) => period.kind === kind);
+  const maternityWeeks = params.maternityWeeks[Math.min(Math.max(persona.kids, 1), params.maternityWeeks.length) - 1];
   const entries: Entry[] = events.map((event) => ({
     ...event,
     id: `event-${event.id}`,
@@ -53,7 +90,8 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     estimated: event.id === birthEvent.id && provisional,
   }));
 
-  entries.push(
+  // Civil registry steps: outside knowledge/, which covers ZUS and labour law only. A placed child already has a birth certificate.
+  if (!placed) entries.push(
     {
       id: "birth-card", kind: "document", who: "both", title: "Karta urodzenia",
       description: "Placówka medyczna przekazuje kartę urodzenia do USC.",
@@ -79,90 +117,167 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
       guide: "https://www.gov.pl/web/gov/uzyskaj-odpis-aktu-urodzenia", requires: ["birth-certificate"],
       estimated: !birthCertificateDate, form: "civil.birth_certificate",
     },
-    {
-      id: "maternity-claim", kind: "application", who: "mother",
-      title: parents.mother.contract === "uop" ? "Dokumenty do wypłaty zasiłku macierzyńskiego" : "Wniosek o zasiłek macierzyński (ZAM)",
-      description: parents.mother.contract === "uop"
-        ? "Po porodzie urlop macierzyński rozpoczyna się z mocy prawa. Ten krok dotyczy wypłaty zasiłku."
-        : rateDeadline
-          ? "ZUS pobiera akt z rejestru. Podany termin dotyczy wyboru stawki 81,5% we wniosku ZAM."
-          : "Złóż wniosek o zasiłek. ZUS pobiera akt urodzenia z rejestru na podstawie danych dziecka i rodzica.",
-      date: birth, due: rateDeadline, estimated: provisional, requires: ["birth-certificate"],
-      recipient: parents.mother.contract === "jdg" ? "ZUS" : "Płatnik składek",
-      guide: "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
-      form: parents.mother.contract === "uop" ? undefined : "ff.zam",
-    },
   );
 
-  if (parents.mother.contract === "jdg") {
-    const sickLeave = events.find((event) => event.type === "sickLeave" && event.who === "mother");
-    if (sickLeave) entries.push({
-      id: "sickness-claim", kind: "application", who: "mother", title: "Wniosek o zasiłek chorobowy (ZAS-53)",
-      description: "Wniosek dotyczy zwolnienia w ciąży wystawionego przed porodem.",
-      date: sickLeave.date, recipient: "ZUS", guide: "https://www.zus.pl/-/zaswiadczenie-zas-53", form: "ff.zas53", requires: [`event-${sickLeave.id}`],
-    });
-  }
-
-  entries.push(
-    {
-      id: "paternity", kind: "application", who: "father", title: "Wniosek o urlop ojcowski",
-      description: `Złóż co najmniej ${params.paternityRequestDays} dni przed planowanym startem (${formatDate(persona.paternityStart)}).`,
-      date: birth, due: shiftIso(persona.paternityStart, -params.paternityRequestDays), estimated: provisional,
-      recipient: "Pracodawca", requires: ["birth-certificate"],
-      guide: "https://www.gov.pl/web/rodzina/urlop-ojcowski",
-      form: parents.father.contract === "uop" ? "lr.paternity" : "ff.zam",
-    },
-    {
-      id: "paternity-period", kind: "period", who: "father", title: "Urlop ojcowski",
-      description: "Może przypadać w tym samym czasie co urlop macierzyński.",
-      date: persona.paternityStart, end: shiftIso(persona.paternityStart, params.paternityWeeks * 7 - 1),
-      requires: ["paternity"], estimated: provisional,
-    },
-  );
-
-  const maternity = chosen?.result.periods.mother.find((period) => period.kind === "maternity");
-  if (maternity) entries.push({
+  const maternity = periodOf("mother", "maternity");
+  // shortcut: the leave engine plans a placement like a birth; its leave on maternity terms comes from conditions_leave instead.
+  if (maternity && !placed) entries.push({
     id: "maternity-period", kind: "period", who: "mother",
-    title: parents.mother.contract === "uop" ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
+    title: persona.parents.mother.contract === "uop" ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
     description: "Rozpoczęcie okresu wynika z daty porodu.",
     date: maternity.from, end: shiftIso(maternity.to, -1), estimated: provisional, requires: [birthId],
   });
 
-  // The example cases use one parental period per parent.
-  for (const parent of ["mother", "father"] as const) {
-    const period = chosen?.result.periods[parent].find((item) => item.kind === "parental");
-    if (!period) continue;
-    const id = `parental-${parent}`;
-    const employee = parents[parent].contract === "uop";
-    const due = shiftIso(period.from, employee ? -params.parentalRequestDays : -1);
-    const review = !!persona.completedSteps?.[id] && chosen?.key !== persona.initialVariant;
-    entries.push(
-      {
-        id, kind: "application", who: parent,
-        title: employee ? "Wniosek o urlop rodzicielski" : "Wniosek o zasiłek za okres rodzicielskiego (ZAM)",
-        description: `Planowany start: ${formatDate(period.from)}. Podaj, kiedy drugi rodzic korzysta z rodzicielskiego.`,
-        date: birth, due, recipient: employee ? "Pracodawca" : "ZUS",
-        guide: employee ? "https://www.gov.pl/web/rodzina/urlop-rodzicielski" : "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
-        requires: ["birth-certificate"], estimated: provisional, review,
-        form: employee ? "lr.parental" : "ff.zam",
-      },
-      ...(employee && period.workFraction > 0 ? [{
-        id: `combine-${parent}`, kind: "application" as const, who: parent, title: "Wniosek o łączenie urlopu rodzicielskiego z pracą",
-        description: `Wybrany wariant zakłada pracę na ${Math.round(period.workFraction * 100)}% etatu w czasie urlopu rodzicielskiego.`,
-        date: birth, due, recipient: "Pracodawca", guide: "https://www.gov.pl/web/rodzina/urlop-rodzicielski",
-        requires: [id], estimated: provisional, form: "lr.combine_parental_with_work",
-      }] : []),
-      {
-        id: `${id}-period`, kind: "period", who: parent,
-        title: employee ? "Urlop rodzicielski" : "Okres zasiłku za rodzicielski",
-        description: "Termin wynika z wybranego podziału opieki.",
-        date: period.from, end: shiftIso(period.to, -1), requires: [id], estimated: provisional,
-      },
-    );
+  // Applications and checks: which ones, their forms, recipients, deadlines and documents come from knowledge/scenarios.json.
+  for (const parent of PARENTS) {
+    const facts = factsFor(persona, parent, events, variant);
+    const employee = facts.insured_type === "employee";
+    for (const [task, steps] of stepsByTask(journey, facts)) {
+      const form = steps.find((step) => step.form)?.form;
+      const plan = taskPlan(task, parent, employee, !!form);
+      if (!plan) continue;
+      const documents = neededDocuments(journey, steps, facts);
+      const action = [...new Set(steps.map((step) => step.action))].join(" ");
+      entries.push({
+        id: plan.id, kind: "application", who: parent,
+        title: form?.symbol ? `${plan.title} (${form.symbol})` : plan.title,
+        description: plan.start ? `Planowany start: ${formatDate(plan.start)}. ${action}` : action,
+        date: plan.date, dateNote: plan.dateNote,
+        // Steps without a fixed deadline say "before the period starts".
+        due: dueDate(journey, steps, facts, plan.anchors) ?? (plan.start && shiftIso(plan.start, -1)),
+        recipient: recipientLabel(steps[0].recipient, facts),
+        guide: form?.guide, form: form?.id, documents,
+        requires: plan.requires ?? [documents.some((doc) => doc.id === "doc.birth_certificate_short") ? "birth-certificate" : birthId],
+        estimated: plan.estimated ?? provisional, review: plan.review, extra: plan.optional,
+      });
+      if (plan.period) entries.push({ ...plan.period, kind: "period", who: parent, requires: [plan.id], estimated: provisional });
+    }
+  }
+
+  function taskPlan(task: string, parent: ParentKey, employee: boolean, hasForm: boolean): TaskPlan | null {
+    switch (task) {
+      // Tasks of the mother's own benefit; scenarios without a parent_role would otherwise give them to both parents.
+      case "maternity_claim":
+        if (parent !== "mother") return null;
+        return {
+          id: "maternity-claim", date: birth,
+          title: hasForm ? "Wniosek o zasiłek macierzyński" : "Dokumenty do wypłaty zasiłku macierzyńskiego",
+          anchors: {
+            birth_date: birth, adoption_intake_date: placed ? birth : undefined,
+            benefit_period_end: maternity && shiftIso(maternity.to, -1),
+          },
+          period: lost ? {
+            id: "maternity-period", title: "Urlop macierzyński po stracie dziecka",
+            description: `Zasiłek macierzyński przysługuje przez ${params.stillbirthWeeks} tygodni po porodzie.`,
+            date: birth, end: shiftIso(birth, params.stillbirthWeeks * 7 - 1),
+          } : undefined,
+        };
+      case "pre_birth_leave": {
+        if (parent !== "mother" || !provisional) return null;
+        const start = shiftIso(persona.dueDate, -params.preBirthMaxWeeks * 7);
+        return {
+          id: "pre-birth-leave", title: "Wniosek o urlop macierzyński przed porodem", date: start, start, optional: true, requires: [],
+          anchors: { leave_start: start, expected_birth_date: persona.dueDate },
+        };
+      }
+      case "supplementary_leave": {
+        const weeks = persona.supplementaryWeeks;
+        if (parent !== "mother" || !weeks) return null;
+        // shortcut: the leave engine does not know supplementary leave, so the parental leave after it is not moved back.
+        const start = maternity?.to ?? shiftIso(birth, maternityWeeks * 7);
+        return {
+          id: "supplementary-leave", title: "Wniosek o uzupełniający urlop macierzyński", date: birth, start,
+          anchors: { maternity_leave_end: shiftIso(start, -1) },
+          period: {
+            id: "supplementary-period", title: "Uzupełniający urlop macierzyński",
+            description: "Tydzień urlopu za każdy tydzień pobytu dziecka w szpitalu.",
+            date: start, end: shiftIso(start, weeks * 7 - 1),
+          },
+        };
+      }
+      case "conditions_leave":
+        if (parent !== "mother") return null;
+        return {
+          id: "conditions-leave", title: "Wniosek o urlop na warunkach urlopu macierzyńskiego", date: birth, start: birth,
+          anchors: { adoption_intake_date: birth, leave_start: birth },
+          period: {
+            id: "conditions-period", title: "Urlop na warunkach urlopu macierzyńskiego",
+            description: "Liczy się od dnia przyjęcia dziecka.", date: birth, end: shiftIso(birth, maternityWeeks * 7 - 1),
+          },
+        };
+      case "funeral_claim":
+        if (parent !== "mother") return null;
+        return { id: "funeral-claim", title: "Wniosek o zasiłek pogrzebowy", date: birth, anchors: { death_date: birth }, requires: [] };
+      case "job_loss_benefit":
+        return { id: "job-loss-benefit", title: "Wniosek o zasiłek w wysokości zasiłku macierzyńskiego", date: today, estimated: false, anchors: {}, requires: [] };
+      case "parental_allowance":
+        if (parent !== "mother") return null;
+        return { id: "parental-allowance", title: "Wniosek o świadczenie rodzicielskie", date: birth, anchors: { birth_date: birth } };
+      case "takeover_leave":
+        return {
+          id: `takeover-${parent}`, date: birth, dateNote: "Gdy mama trafi do szpitala", anchors: {},
+          title: employee ? "Wniosek o urlop macierzyński na czas pobytu mamy w szpitalu" : "Wniosek o zasiłek macierzyński za mamę",
+        };
+      case "combine_request": {
+        const parental = periodOf(parent, "parental");
+        if (!parental) return null;
+        return {
+          id: `combine-${parent}`, title: "Wniosek o łączenie urlopu rodzicielskiego z pracą", date: birth,
+          anchors: { work_start: parental.from }, requires: [`parental-${parent}`],
+        };
+      }
+      case "sickness_claim": {
+        const sick = events.find((event) => event.type === "sickLeave" && event.who === parent);
+        return sick ? {
+          id: "sickness-claim", title: "Wniosek o zasiłek chorobowy", date: sick.date, estimated: false,
+          anchors: { benefit_period_end: sick.endDate ?? undefined }, requires: [`event-${sick.id}`],
+        } : null;
+      }
+      case "arrears_check":
+        return { id: `arrears-check-${parent}`, title: "Sprawdź, czy nie masz zaległości w składkach", date: birth, anchors: {}, requires: [] };
+      case "paternity_leave": {
+        const start = persona.paternityStart;
+        return {
+          id: "paternity", date: birth, start, anchors: { leave_start: start },
+          title: employee ? "Wniosek o urlop ojcowski" : "Wniosek o zasiłek za urlop ojcowski",
+          period: {
+            id: "paternity-period", title: employee ? "Urlop ojcowski" : "Okres zasiłku za urlop ojcowski",
+            description: "Może przypadać w tym samym czasie co urlop macierzyński.",
+            date: start, end: shiftIso(start, params.paternityWeeks * 7 - 1),
+          },
+        };
+      }
+      case "parental_leave": {
+        // The example cases use one parental period per parent.
+        const period = periodOf(parent, "parental");
+        if (!period) return null;
+        const id = `parental-${parent}`;
+        return {
+          id, date: birth, start: period.from, anchors: { leave_start: period.from },
+          title: employee ? "Wniosek o urlop rodzicielski" : "Wniosek o zasiłek za okres rodzicielskiego",
+          review: !!persona.completedSteps?.[id] && variant?.key !== persona.initialVariant,
+          period: {
+            id: `${id}-period`, title: employee ? "Urlop rodzicielski" : "Okres zasiłku za rodzicielski",
+            description: "Termin wynika z wybranego podziału opieki.",
+            date: period.from, end: shiftIso(period.to, -1),
+          },
+        };
+      }
+      case "resume_voluntary_sickness": {
+        const lastEnd = variant?.result.periods[parent].map((period) => period.to).sort().at(-1);
+        return {
+          id: `resume-sickness-${parent}`, title: "Ponownie zgłoś się do dobrowolnego ubezpieczenia chorobowego",
+          date: lastEnd ?? birth, dateNote: lastEnd ? undefined : "Po zakończeniu zasiłku", requires: [],
+          // Insurance from the business or contract starts again the day after the last benefit period.
+          anchors: { insurance_title_start: lastEnd },
+        };
+      }
+    }
+    throw new Error(`knowledge/scenarios.json uses task "${task}", which the timeline does not know`);
   }
 
   // Other ZUS forms: filled by the employer, a doctor, or only in special situations.
-  const payerOfBenefit = parents.mother.contract === "uop" && parents.mother.payer.includes("ponad 20") ? "Płatnik składek" : "ZUS";
+  const payerOfBenefit = persona.parents.mother.payerSize === "gt20" ? "Płatnik składek" : "ZUS";
   const afterMandatoryWeeks = shiftIso(birth, params.motherOnlyWeeks * 7);
   const situational = "Tylko w szczególnej sytuacji";
   const extras: [form: string, who: EventWho, title: string, description: string, date: string, recipient: string, dateNote?: string][] = [

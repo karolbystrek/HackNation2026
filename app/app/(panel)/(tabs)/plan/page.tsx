@@ -29,9 +29,9 @@ export default function Timeline() {
 
       <FamilyTimeline profileEvents={fromGuide ? [] : persona.events} entries={entries} names={names} today={today} actions={<>
         <ButtonLink href="/zadania" variant={attention.length > 0 ? "primary" : "outline"}>Lista zadań</ButtonLink>
-        {!fromGuide && <ButtonLink href="/warianty" variant={attention.length > 0 || chosen ? "link" : "primary"}>
+        <ButtonLink href="/warianty" variant={attention.length > 0 || chosen ? "link" : "primary"}>
           {chosen ? "Porównaj warianty urlopu" : "Zaplanuj podział urlopu"}
-        </ButtonLink>}
+        </ButtonLink>
       </>} />
     </main>
   );

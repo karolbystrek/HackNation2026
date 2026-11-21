@@ -52,7 +52,7 @@ Design choices you must respect:
 | leave_requests | `attachments[].document_id`, `deadline_ids`, `related_form_ids` | documents, deadlines, forms |
 | documents | `form_ids` | forms |
 | deadlines | `param_id`, `anchor_param` | parameters |
-| scenarios | `steps[].form_ids / leave_request_ids / document_ids / deadline_id` | forms, leave_requests, documents, deadlines |
+| scenarios | `steps[].form_ids / leave_request_ids / document_ids / deadline_ids` (+ `task`) | forms, leave_requests, documents, deadlines |
 | scenarios | `outcome_benefit_ids`, `risk_ids`, `support_org_ids` | benefits, risks, support_orgs |
 | risks | `affected_benefit_ids` | benefits |
 | faq, glossary, conflicts | `related_ids` | anything |
@@ -85,17 +85,25 @@ jq '.records[] | select(.verification.status=="unverified") | .id' knowledge/*.j
 | Feature | Read from |
 |---|---|
 | Calculators (`app/lib/calc/*`) | `parameters` (values), `benefits.base_calculation_steps_pl` (base method), `benefits.eligibility` |
-| Plan / tasks / timeline (`app/lib/calc/tasks.ts`, `events.ts`) | `scenarios.steps`, `deadlines` |
+| Plan / tasks / timeline (`app/lib/journey.ts`, `family-timeline.ts`) | `scenarios.steps` with a `task` tag, `deadlines`, `forms` / `leave_requests` attachments, `documents.needed_when` |
 | Document checklist | `forms.attachment_rules` + `documents.needed_when` / `not_needed_when` |
 | Form-filling simulation | `form_fields.fields` (`required_if` uses conditions) |
 | Employer requests | `leave_requests` (W1–W14: fields, attachments, deadlines) |
 | Recognising uploaded sample cases | `forms.aliases`, `recognition_hints_pl`, superseded forms |
 | Warnings | `risks` (`detection_condition`, `prevention_pl`) |
 | Help for difficult situations | `support_orgs` (`situations`) |
-| Guide panel (`/plan`, `/zadania`, `/swiadczenia` after the `/nowa-os` form and login) | `app/lib/guide/knowledge.json`, a trimmed snapshot of the records `guide.json` references. Regenerate with `node scripts/guide-knowledge.mjs` after editing either; `tests/tree.test.mjs` fails when it is stale. Mark a glossary term in a question label, hint or option as `[phrase](term.id)`: `TermText` renders it as a popup with `definition_pl`. |
+| Questionnaire (`/nowa-os`) | Questions and topics in `app/lib/guide/guide.json`; `/swiadczenia` reads `app/lib/guide/knowledge.json`, a trimmed snapshot of the records `guide.json` references. The plan itself comes from `scenarios` like a demo profile: `lib/guide/persona.ts` turns the answers into persona facts (`insuredType`, parent `events`, `childEvents`). Regenerate with `node scripts/guide-knowledge.mjs` after editing either; `tests/tree.test.mjs` fails when it is stale. Mark a glossary term in a question label, hint or option as `[phrase](term.id)`: `TermText` renders it as a popup with `definition_pl`. |
 | AI answers / search | `faq`, `glossary.synonyms_pl` (query expansion), any record's `title/summary/body_pl` |
 
 `app/lib/params.ts` stays the runtime source of numbers (project rule). `knowledge/parameters.json` holds the same values with legal basis and validity. When you add or change a number in `params.ts`, take it from `parameters.json` and keep both in sync. Do not import JSON from `knowledge/` into the app: the app build only sees `app/`, so use a generated snapshot like the guide's.
+
+**How the app builds the plan from scenarios.** `app/lib/knowledge.ts` reads `knowledge/` on the server at runtime, like `lib/forms/load.ts`, and hands a compact `Journey` to the panel pages. This works where `/knowledge` is mounted (Docker); a deploy that ships only `app/` needs a generated snapshot like the guide's. For each parent, `app/lib/journey.ts` builds facts (`insured_type`, `payer_size`, `parent_role`, `events`, plus `fact` flags such as `payer_of_benefit`, `chooses_averaged_rate`, `shares_parental`). It then keeps every insured step with a `task` tag whose scenario `conditions` and step `condition` hold. Steps with the same `task` merge into one to-do:
+- form: the first `leave_request_ids` entry, else the first insured-filled form with a field set;
+- documents: that form's attachment rules, else `document_ids` filtered by `documents.needed_when`;
+- due date: the earliest non-`limit` deadline whose anchor the task knows and whose `applies_to` matches;
+- description: the step `action_pl`.
+
+`family-timeline.ts` (`taskPlan`) only adds ids, titles and the leave dates from the calculator. Untagged steps are context only. A new `task` value needs a case in `taskPlan`; `npm test` (`lib/journey.test.ts`) fails otherwise. Do not add a `note_pl` leaf to a condition the app evaluates: it always counts as false.
 
 ## Editing rules
 

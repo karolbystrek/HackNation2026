@@ -1,6 +1,7 @@
 import { otherParent } from "@/lib/calc/leave";
 import { addDays, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import type { FormContext } from "@/lib/forms/context";
+import { evalCondition, factsFor, isFilled } from "@/lib/journey";
 import {
   ATTACHMENTS_STEP, attachmentKey, stepOf, type Child, type Condition, type DateRange, type FieldValue, type FormAttachment,
   type FormField, type FormSpec, type FormValues, type Person,
@@ -9,43 +10,12 @@ import {
 export type Issue = { field: string; message: string };
 export type Validation = { errors: Issue[]; warnings: string[] };
 
-const INSURED_TYPE = { uop: "employee", zlec: "contractor", jdg: "self_employed" } as const;
+export { isFilled };
 
-function facts(ctx: FormContext) {
-  const me = ctx.persona.parents[ctx.parent];
-  return {
-    insuredType: INSURED_TYPE[me.contract],
-    events: ["birth"],
-    flags: {
-      no_pesel: false,
-      has_za_zyciem: false,
-      school_deferral: false,
-      payer_of_benefit: me.contract === "uop" && me.payer.includes("ponad 20") ? "payer" : "zus",
-    } as Record<string, unknown>,
-  };
-}
-
-export function isFilled(value: FieldValue | undefined): boolean {
-  if (value === undefined || value === false) return false;
-  if (typeof value === "string") return value.trim() !== "";
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "object") return Object.values(value).some((part) => typeof part === "string" && part.trim() !== "");
-  return true;
-}
-
-/** Evaluates a knowledge/ predicate; conditions described only in prose (`note_pl`) cannot be checked and count as false. */
+/** Evaluates a knowledge/ condition for the applicant; `field:<key>` facts read the form's answers. */
 export function holds(condition: Condition, ctx: FormContext, values: FormValues): boolean {
-  const f = facts(ctx);
-  if (Array.isArray(condition.any)) return condition.any.some((c: Condition) => holds(c, ctx, values));
-  if (Array.isArray(condition.all)) return condition.all.every((c: Condition) => holds(c, ctx, values));
-  if (condition.not) return !holds(condition.not as Condition, ctx, values);
-  if (condition.insured_type) return f.insuredType === condition.insured_type;
-  if (condition.event) return f.events.includes(condition.event as string);
-  if (typeof condition.fact === "string") {
-    const value = condition.fact.startsWith("field:") ? values[condition.fact.slice(6)] : f.flags[condition.fact];
-    return condition.eq === true ? isFilled(value as FieldValue) : value === condition.eq;
-  }
-  return false;
+  const facts = factsFor(ctx.persona, ctx.parent, ctx.events, ctx.chosen);
+  return evalCondition(condition, facts, (fact) => (fact.startsWith("field:") ? values[fact.slice(6)] : facts.flags[fact]));
 }
 
 export function fieldState(field: FormField, ctx: FormContext, values: FormValues): "hidden" | "required" | "optional" {

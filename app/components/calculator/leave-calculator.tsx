@@ -176,9 +176,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             />
             {form.flatRate && !r.flatRateAllowed && (
               <span className="text-sm leading-snug text-foreground">
-                {form.zaZyciem
-                  ? "Przy „Za życiem” kalkulator liczy wariant 100% / 70%."
-                  : `${formatRate(params.rates.flat)} wymaga wniosku o pełny wymiar urlopu w ciągu ${params.flatRateRequestDays} dni – przy takim podziale liczymy 100% / 70%.`}
+                Przy „Za życiem” kalkulator liczy wariant 100% / 70%.
               </span>
             )}
           </div>

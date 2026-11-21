@@ -176,7 +176,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                 {profileBirth ? "Porównaj podział opieki" : calculatorLabels[event.type]}
               </ButtonLink>
             )}
-            {(entry.end || entry.recipient || entry.review || required.length > 0 || entry.guide || entry.form || showStatus) && (
+            {(entry.end || entry.recipient || entry.review || required.length > 0 || entry.documents?.length || entry.guide || entry.form || showStatus) && (
               <dl className="divide-y border-y [&>div]:grid [&>div]:gap-1 [&>div]:py-3 [&_dt]:font-bold sm:[&>div]:grid-cols-[10rem_minmax(0,1fr)] sm:[&>div]:gap-4">
                 {entry.end && (
                   <div><dt>{entry.estimated ? "Szacowany okres" : "Okres"}</dt><dd>
@@ -202,6 +202,12 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                         ))}
                       </ul>
                     </dd>
+                  </div>
+                )}
+                {!!entry.documents?.length && (
+                  <div>
+                    <dt>Dokumenty</dt>
+                    <dd><ul role="list" className="space-y-1">{entry.documents.map((doc) => <li key={doc.id}>{doc.title}</li>)}</ul></dd>
                   </div>
                 )}
                 {entry.review && (

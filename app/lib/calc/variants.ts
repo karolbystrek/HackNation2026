@@ -26,7 +26,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
     bases: { mother: computeBasis(mother.monthlyGross, p, mother.contract).basis, father: computeBasis(father.monthlyGross, p, father.contract).basis },
     startDate: persona.birthDate ?? persona.dueDate,
     kids: persona.kids,
-    zaZyciem: false,
+    zaZyciem: !!persona.childEvents?.includes("za_zyciem"),
     adoptionType: "adoption",
     childBirthDate: "",
     schoolDeferred: false,
@@ -34,7 +34,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
     otherWeeks,
     paternity: true,
     paternityStartDate: persona.paternityStart,
-    flatRate: false,
+    flatRate: !!persona.wantsAveragedRate,
     workFractions: { mother: 0, father: 0 },
   };
 }

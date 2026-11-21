@@ -11,7 +11,7 @@ import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { plan, fromGuide, chosen, names, entries } = useFamily();
+  const { plan, chosen, names, entries } = useFamily();
 
   const tasks = buildTasks(entries);
   const main = tasks.filter((task) => !task.extra);
@@ -55,6 +55,7 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
+          {task.documents.length > 0 && <p className="text-sm">Dokumenty: {task.documents.join(", ")}.</p>}
           <ApplicationAction task={task} submission={submission} />
           {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja składania wniosku</a>}
           {task.waitingFor.length > 0 && !task.done && (
@@ -77,12 +78,12 @@ export default function Tasks() {
       <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
         <div className="grow">
           <PageTitle>Wasza lista zadań</PageTitle>
-          {!fromGuide && <div className="text-[15px] text-muted-foreground">
+          <div className="text-[15px] text-muted-foreground">
             {chosen && <p>Wariant {chosen.key} <strong className="block text-foreground">{chosen.name}</strong></p>}
             <Link href="/warianty?z=zadania" className="font-bold text-primary underline">
               {chosen ? "Zmień wariant" : "Wybierz wariant urlopu"}
             </Link>
-          </div>}
+          </div>
         </div>
         <Button variant="outline" onClick={downloadCalendar}>
           Dodaj terminy do kalendarza

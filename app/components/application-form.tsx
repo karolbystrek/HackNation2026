@@ -15,7 +15,7 @@ import {
   ATTACHMENTS_STEP, ZUS_TEMPLATES, attachmentKey, type Child, type DateRange, type FieldValue, type FormField, type FormSpec,
   type FormValues, type Person,
 } from "@/lib/forms/spec";
-import { submitApplication, type Submission } from "@/lib/plan-store";
+import { submitApplication, usePlan, type Submission } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 const inputClass = "min-h-11 w-full min-w-0 rounded-sm border border-input bg-background px-3 py-2 aria-invalid:border-destructive";
@@ -23,10 +23,10 @@ const sentFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeSty
 
 export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) {
   const { taskId } = useParams<{ taskId: string }>();
-  const { persona, plan, params, today } = useFamily();
+  const { persona, plan, params, journey, today } = useFamily();
   const found = useMemo(
-    () => formContext(persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId),
-    [persona, plan.events, plan.chosenVariant, params, plan.doneTasks, today, taskId],
+    () => formContext(persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId),
+    [persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId],
   );
 
   if (!found) {
@@ -60,6 +60,7 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
 }
 
 function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; doneTasks: string[] }) {
+  const { guideAnswers } = usePlan();
   const router = useRouter();
   const [values, setValues] = useState(() => prefill(spec, ctx));
   const [step, setStep] = useState(0);
@@ -104,7 +105,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null,
-          events: ctx.events, doneTasks, values,
+          events: ctx.events, doneTasks, values, guideAnswers,
         }),
       });
       const data = await response.json();
@@ -221,6 +222,7 @@ function Submitted({ spec, ctx, submission, doneTasks }: { spec: FormSpec; ctx: 
 
 /** The official ZUS form filled by the server, shown in the browser's PDF viewer where fields stay editable. */
 function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormContext; values: FormValues; doneTasks: string[] }) {
+  const { guideAnswers } = usePlan();
   const [url, setUrl] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const fileName = `${ZUS_TEMPLATES[specId].toUpperCase()}-${ctx.persona.parents[ctx.parent].lastName}.pdf`;
@@ -233,7 +235,7 @@ function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormC
       const response = await fetch("/api/applications/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, doneTasks, values }),
+        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, doneTasks, values, guideAnswers }),
       });
       if (!response.ok) throw new Error(String(response.status));
       setUrl(URL.createObjectURL(await response.blob()));

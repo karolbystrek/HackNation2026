@@ -3,8 +3,10 @@ import { todayInWarsaw } from "@/lib/dates";
 import type { TimelineEvent } from "@/lib/events";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { loadSpecs } from "@/lib/forms/load";
+import { loadJourney } from "@/lib/knowledge";
 import type { FormSpec, FormValues } from "@/lib/forms/spec";
-import { findPersona } from "@/lib/mock/personas";
+import { currentPersona } from "@/lib/guide/persona";
+import type { Answers } from "@/lib/guide/tree";
 import { defaultParams } from "@/lib/params";
 
 type Body = {
@@ -14,6 +16,8 @@ type Body = {
   events: TimelineEvent[];
   doneTasks: string[];
   values: FormValues;
+  /** Questionnaire answers; the server rebuilds a questionnaire case from them. */
+  guideAnswers?: Answers;
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -26,11 +30,11 @@ export async function readApplicationRequest(request: Request): Promise<{ spec: 
     !(body.chosenVariant === null || ["A", "B", "C"].includes(body.chosenVariant as string))) {
     return Response.json({ error: "Expected taskId, personaId, chosenVariant, events, doneTasks and values" }, { status: 400 });
   }
-  const { taskId, personaId, chosenVariant, events, doneTasks, values } = body as Body;
-  const persona = findPersona(personaId);
+  const { taskId, personaId, chosenVariant, events, doneTasks, values, guideAnswers } = body as Body;
+  const persona = currentPersona({ personaId, guideAnswers: isObject(guideAnswers) ? guideAnswers : {} });
   if (!persona) return Response.json({ error: "Unknown persona" }, { status: 404 });
 
-  const found = formContext(persona, events, chosenVariant, defaultParams, doneTasks, todayInWarsaw(), taskId);
+  const found = formContext(persona, events, chosenVariant, defaultParams, await loadJourney(), doneTasks, todayInWarsaw(), taskId);
   if (!found) return Response.json({ error: "This task has no application form" }, { status: 404 });
   const spec = (await loadSpecs([found.entry.form!]))[found.entry.form!];
   return { spec, ctx: found.ctx, values };

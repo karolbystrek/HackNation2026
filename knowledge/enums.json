@@ -149,7 +149,9 @@
         {"value": "has_za_zyciem", "label_pl": "dziecko ma zaświadczenie „Za życiem” (bool)"},
         {"value": "full_leave_declared_within_21_days", "label_pl": "wniosek o pełny wymiar złożony do 21 dni po porodzie (bool)"},
         {"value": "other_employment_provided", "label_pl": "zapewniono inne zatrudnienie (bool)"},
-        {"value": "no_pesel", "label_pl": "osoba nie ma nadanego numeru PESEL (bool)"}
+        {"value": "no_pesel", "label_pl": "osoba nie ma nadanego numeru PESEL (bool)"},
+        {"value": "chooses_averaged_rate", "label_pl": "rodzina wybiera wariant 81,5% (bool)"},
+        {"value": "shares_parental", "label_pl": "oboje rodzice korzystają z urlopu rodzicielskiego (bool)"}
       ]
     }
   ]
