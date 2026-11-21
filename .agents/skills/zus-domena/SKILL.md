@@ -8,6 +8,8 @@ description: ZUS benefit rules for parents (zasiłek chorobowy w ciąży, zasił
 Własne streszczenie zasad z treści zadania ZUS.
 Liczby sprawdzaj w `materials/` (tabela wymiarów, poradnik ZUS 2026) - przy rozbieżności wygrywa materiał.
 Pełna lista wymagań konkursu: [wymagania.md](wymagania.md).
+Szczegółowe, źródłowane dane (przepisy, parametry, formularze, załączniki, terminy, scenariusze, stan prawny 21.11.2026) są w `knowledge/` – jak z nich korzystać: skill `zus-knowledge`.
+Poradnik ZUS ma stan prawny 1.04.2026; zmiany od 24.10.2026 (ZAM zamiast ZUR/ZAO, koniec Z-3b, odpis aktu urodzenia) są w `knowledge/` jako `superseded`.
 
 ## Pojęcia
 
@@ -29,7 +31,8 @@ Pełna lista wymagań konkursu: [wymagania.md](wymagania.md).
 
 ## Zasiłek w wysokości zasiłku macierzyńskiego
 
-Gdy kobieta w ciąży straciła pracę przez upadłość/likwidację/śmierć pracodawcy albo przez rozwiązanie umowy z naruszeniem prawa (potwierdzone prawomocnym wyrokiem).
+Gdy kobieta w ciąży straciła pracę przez upadłość/likwidację/śmierć pracodawcy (art. 30 ust. 3 u.z.).
+Rozwiązanie umowy z naruszeniem prawa (prawomocny wyrok) daje zasiłek macierzyński dopiero po porodzie (art. 30 ust. 1 pkt 2), nie ten zasiłek – treść zadania podaje to błędnie, zob. `conflict.unlawful_dismissal_benefit` w `knowledge/`.
 Wypłacany do dnia porodu, **100%** podstawy.
 
 ## Zasiłek macierzyński - okresy

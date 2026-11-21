@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/enums.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description_pl", "values"],
+        "properties": {
+          "id": {"type": "string"},
+          "description_pl": {"type": "string"},
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["value", "label_pl"],
+              "properties": {"value": {"type": "string"}, "label_pl": {"type": "string"}, "note_pl": {"type": "string"}},
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

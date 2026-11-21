@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/forms.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["symbol", "full_name_pl", "form_kind", "filled_by", "submitted_to"],
+            "properties": {
+              "symbol": {"type": "string"},
+              "aliases": {"type": "array", "items": {"type": "string"}},
+              "full_name_pl": {"type": "string"},
+              "form_kind": {"enum": ["application", "payer_certificate", "statement", "medical_certificate", "other"]},
+              "filled_by": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/actor"}},
+              "submitted_to": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/actor"}},
+              "channels": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/channel"}},
+              "zus_updated_at": {"$ref": "common.schema.json#/$defs/date"},
+              "page_url": {"type": ["string", "null"]},
+              "pdf_url": {"type": ["string", "null"]},
+              "annex_ref": {"type": ["string", "null"]},
+              "benefit_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "field_set_id": {"oneOf": [{"$ref": "common.schema.json#/$defs/id"}, {"type": "null"}]},
+              "when_to_use_pl": {"type": "string"},
+              "not_needed_when_pl": {"type": "string"},
+              "attachment_rules": {"type": "array", "items": {"$ref": "common.schema.json#/$defs/attachmentRule"}},
+              "deadline_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "withdrawn_at": {"$ref": "common.schema.json#/$defs/date"},
+              "replaced_by": {"$ref": "common.schema.json#/$defs/idList"},
+              "recognise_in_uploads": {"type": "boolean"},
+              "recognition_hints_pl": {"type": "array", "items": {"type": "string"}}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

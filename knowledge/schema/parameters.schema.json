@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/parameters.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["key", "value", "unit", "admin_editable"],
+            "properties": {
+              "key": {"type": "string", "pattern": "^[a-z0-9_.]+$"},
+              "value": {"type": ["number", "boolean"]},
+              "unit": {"enum": ["percent", "days", "weeks", "months", "years", "pln", "count", "grams", "ratio"]},
+              "dimension": {
+                "type": "object",
+                "properties": {
+                  "children_count": {"type": ["integer", "string"]},
+                  "za_zyciem": {"type": "boolean"},
+                  "intake": {"enum": ["birth", "adoption", "foster"]},
+                  "combined_with_work": {"type": "boolean"},
+                  "insurance": {"enum": ["mandatory", "voluntary"]},
+                  "variant": {"type": "string"}
+                },
+                "additionalProperties": false
+              },
+              "admin_editable": {"type": "boolean"},
+              "year": {"type": ["integer", "null"]}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

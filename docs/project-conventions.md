@@ -16,9 +16,20 @@ We have a few hours, not weeks.
 
 - Next.js 16 App Router with `cacheComponents` enabled. Its APIs differ from older Next versions: before using an API you are not sure about, read the bundled docs in `app/node_modules/next/dist/docs/`.
 - Tailwind CSS 4, React 19, TypeScript.
+- UI component choice: shadcn/ui with a ZUS-inspired light theme. Initialized in `app/components.json` with Base UI (base-nova), Lucide icons and shared CSS variables; add components as screens need them. Follow the `polish-public-ui` skill in `.agents/skills/` for design tokens and interaction guidance.
 - Backend = Next.js Route Handlers in `app/app/api/*` exposing REST (the challenge recommends REST). Benefit calculation logic lives in plain functions in `app/lib/`.
 - Supabase for data (admin parameters, saved cases): `@supabase/supabase-js` + `@supabase/ssr`, SQL migrations in `supabase/migrations/`, keys in `app/.env.local` (never commit it).
 - Everything external is simulated: mObywatel login, ZUS data download, contribution debt, e-ZLA, PUE/eZUS, submitting applications. Use mocks/fixtures, no real integrations.
+
+## Application map
+
+The public-service UI uses the light theme from `app/app/globals.css`. Use its semantic Tailwind tokens for all colors and the shared `shell`, `page` and `text-link` classes for layout and links. Reuse the shadcn button variants in `app/components/ui/button.tsx` and the shared fields, choices, notices and headings in `app/components/ui.tsx`. Each page gives its main landmark `id="main-content"` and `tabIndex={-1}` for the skip link.
+- Benefit engine: pure functions in `app/lib/calc/` (`leave.ts` birth/adoption leave, `pregnancy.ts`, `basis.ts`, `variants.ts` A/B/C leave splits, `tasks.ts` to-do list). The calculator UI, the variants page and `POST /api/calculate` all call the same functions; add new benefit logic there, not in components.
+- The calculator page keeps each path’s draft in browser memory while open. The basis calculator can open inside a benefit path and return the new amount to the same step.
+- Demo families returned by the simulated mObywatel login live in `app/lib/mock/personas.ts`. Add a persona there to get a new demo account.
+- The logged-in plan (persona, timeline events, chosen variant, done tasks) is client-only state in `app/lib/plan-store.ts`, kept in `sessionStorage`. Pages under `app/app/(panel)/` read it through `useFamily()` and are guarded by `components/session-guard.tsx`.
+- Because panel pages render from browser state, `next.config.ts` sets `instantInsights.validationLevel: "manual-warning"`; declare `instant` on a segment to opt it into validation.
+- Dates in code are ISO `YYYY-MM-DD` strings computed in UTC (`app/lib/dates.ts`); format them for display with `formatDate`.
 
 ## Conventions
 

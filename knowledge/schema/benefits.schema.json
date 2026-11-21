@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/benefits.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "common.schema.json#/$defs/record"},
+          {
+            "required": ["benefit_family", "eligibility", "payer_rule_pl"],
+            "properties": {
+              "benefit_family": {"enum": ["sickness", "rehabilitation", "maternity_equivalent", "maternity", "funeral", "care", "parental_allowance", "top_up"]},
+              "leave_type": {"enum": ["maternity", "maternity_conditions", "supplementary_maternity", "parental", "paternity", "none"]},
+              "eligibility": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text_pl"],
+                  "properties": {"text_pl": {"type": "string"}, "condition": {"$ref": "common.schema.json#/$defs/condition"}, "legal_refs": {"$ref": "common.schema.json#/$defs/idList"}},
+                  "additionalProperties": false
+                }
+              },
+              "exclusions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text_pl"],
+                  "properties": {"text_pl": {"type": "string"}, "legal_refs": {"$ref": "common.schema.json#/$defs/idList"}},
+                  "additionalProperties": false
+                }
+              },
+              "rate_param_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "duration_param_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "payer_rule_pl": {"type": "string"},
+              "base_calculation_steps_pl": {"type": "array", "items": {"type": "string"}},
+              "form_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "document_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "deadline_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "scenario_ids": {"$ref": "common.schema.json#/$defs/idList"},
+              "risk_ids": {"$ref": "common.schema.json#/$defs/idList"}
+            }
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}

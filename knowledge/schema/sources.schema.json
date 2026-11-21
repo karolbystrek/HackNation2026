@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hacknation.local/knowledge/schema/sources.schema.json",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title_pl", "type", "status", "accessed"],
+        "properties": {
+          "id": {"$ref": "common.schema.json#/$defs/id"},
+          "title_pl": {"type": "string"},
+          "type": {"enum": ["act", "regulation", "consolidated_text", "zus_page", "zus_form", "zus_guide", "zus_news", "gov_page", "pip_page", "challenge_brief", "org_website", "secondary"]},
+          "url": {"type": ["string", "null"]},
+          "dz_u": {"type": ["string", "null"]},
+          "issued": {"$ref": "common.schema.json#/$defs/date"},
+          "published": {"$ref": "common.schema.json#/$defs/date"},
+          "in_force_from": {"$ref": "common.schema.json#/$defs/date"},
+          "legal_state_date": {"$ref": "common.schema.json#/$defs/date"},
+          "accessed": {"$ref": "common.schema.json#/$defs/date"},
+          "status": {"enum": ["current", "partly_outdated", "outdated", "repealed", "unreachable"]},
+          "authority": {"enum": ["primary", "official_guidance", "secondary"]},
+          "redistribution": {"enum": ["public", "public_paraphrase_only", "restricted_hacknation"]},
+          "notes_pl": {"type": "string"},
+          "superseded_by": {"oneOf": [{"$ref": "common.schema.json#/$defs/id"}, {"type": "null"}]}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
