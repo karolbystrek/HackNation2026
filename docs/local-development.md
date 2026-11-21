@@ -65,13 +65,12 @@ GEMINI_MODEL=gemini-3.8-flash
 
 Without a key, cached cases still work and new files return a clear error.
 
-The ZUS sample cases may not be published, so they stay in `materials/` and in the private `zus-cases` Supabase bucket.
-Upload them, warm the cache and print our result next to each ZUS decision with:
+The case picker uses a fictional PDF bundled in `app/public/case-samples/`.
+Restricted ZUS challenge files stay in ignored `materials/`. To analyze them
+through the local app and compare the results with the ZUS decisions, run:
 
 ```sh
-set -a; . ./.env.supabase.local; set +a
-node app/scripts/upload-cases.mjs "materials/extracted/Sprawy " --analyze
+node app/scripts/analyze-local-cases.mjs "materials/extracted/Sprawy "
 ```
 
-For the hosted demo, run the same script with the hosted `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY`.
 Never commit the script output, because it names the case files.

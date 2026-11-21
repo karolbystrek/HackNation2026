@@ -64,22 +64,28 @@ export function CaseCheck({ params }: { params: Params }) {
     updatePlan((plan) => ({ ...plan, drafts: { ...plan.drafts, "sprawa-odczyt": null, "sprawa-korekta": null, "sprawa-podstawa": "" } }));
   }
 
-  async function upload() {
-    if (!file) return;
-    const form = new FormData();
-    form.append("file", file);
+  async function readPdf(uploaded: File | null) {
     setBusy(true);
     setError(null);
     clearCase();
     const controller = new AbortController();
     activeRead.current = controller;
     try {
+      const sampleUrl = "/case-samples/demo-maternity.pdf";
+      const form = new FormData();
+      if (uploaded) {
+        form.append("file", uploaded);
+      } else {
+        const sample = await fetch(sampleUrl, { signal: controller.signal });
+        if (!sample.ok) throw new Error("Przykładowa sprawa jest niedostępna.");
+        form.append("file", await sample.blob(), "demo-maternity.pdf");
+      }
       const response = await fetch("/api/cases/analyze", { method: "POST", body: form, signal: controller.signal });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Nie udało się odczytać dokumentów.");
       if (controller.signal.aborted) return;
-      setPreviewUrl(URL.createObjectURL(file));
-      setLoaded({ extraction: body.extraction, cached: body.cached, source: "Wgrany PDF", id: crypto.randomUUID() });
+      setPreviewUrl(uploaded ? URL.createObjectURL(uploaded) : sampleUrl);
+      setLoaded({ extraction: body.extraction, cached: body.cached, source: uploaded ? "Wgrany PDF" : "Fikcyjna sprawa", id: crypto.randomUUID() });
     } catch (e) {
       if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Nie udało się odczytać dokumentów.");
     } finally {
@@ -99,7 +105,7 @@ export function CaseCheck({ params }: { params: Params }) {
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="min-h-11 min-w-0 rounded-sm border border-input bg-background px-3 py-2 file:mr-3 file:rounded-sm file:border-0 file:bg-secondary file:px-3 file:py-1 file:font-bold"
         />
-        <Button className="self-start" disabled={busy || !file} onClick={upload}>Prześlij PDF do odczytu</Button>
+        <Button className="self-start" disabled={busy || !file} onClick={() => { if (file) void readPdf(file); }}>Prześlij PDF do odczytu</Button>
       </div>
 
       <div aria-live="polite">
@@ -108,6 +114,7 @@ export function CaseCheck({ params }: { params: Params }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={busy} onClick={() => readPdf(null)}>Wypróbuj fikcyjną sprawę</Button>
         <Button variant="outline" disabled={busy} onClick={() => {
           setError(null);
           clearCase();

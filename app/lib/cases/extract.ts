@@ -4,7 +4,6 @@ import { assertExtraction, caseExtractionSchema, type CaseExtraction } from "@/l
 import { records } from "@/lib/knowledge";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export const CASE_BUCKET = "zus-cases";
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 // Bump when the prompt or schema changes, so cached readings from the old prompt are read again.
 const CACHE_TAG = `${MODEL}#2`;
