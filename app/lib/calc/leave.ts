@@ -23,6 +23,8 @@ export type LeaveInput = {
   /** Parental leave weeks taken by the other parent, after the main parent. */
   otherWeeks: number;
   paternity: boolean;
+  /** Planned start for the family variant. Calculators may omit it. */
+  paternityStartDate?: string;
   flatRate: boolean;
   workingParent: ParentKey | null;
   workFraction: number;
@@ -141,7 +143,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
     const showPaternity = !adoption || input.adoptionType === "adoption";
     if (showPaternity && input.paternity) {
       // Paternity leave right after birth when the father is the "other" parent, else after the parental leave.
-      const paternityStart = other === "father" ? start : e3 > e2 ? e3 : e2;
+      const paternityStart = parseIso(input.paternityStartDate) ?? (other === "father" ? start : e3 > e2 ? e3 : e2);
       add("father", "Urlop ojcowski", "maternity", paternityStart, p.paternityWeeks, p.rates.full, 0);
     }
     for (const parent of PARENTS) {

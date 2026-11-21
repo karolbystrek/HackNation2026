@@ -13,6 +13,25 @@ export default function FamilyData() {
   return (
     <main id="main-content" tabIndex={-1} className="page">
       <PageTitle lead={`Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`}>Wasze dane</PageTitle>
+      <Card>
+        <h2 className="text-xl font-bold">Dane sprawy użyte na osi czasu</h2>
+        <dl className="mt-2 grid gap-3 sm:grid-cols-2">
+          {[
+            ["Przewidywany termin porodu", formatDate(persona.dueDate)],
+            ["Rzeczywista data urodzenia", persona.birthDate ? formatDate(persona.birthDate) : "Oczekuje na poród"],
+            ["Imię i miejsce urodzenia dziecka", persona.childName ? `${persona.childName} · ${persona.birthPlace}` : "Brak danych"],
+            ["Data wystawienia karty urodzenia", persona.birthCardDate ? formatDate(persona.birthCardDate) : "Brak karty"],
+            ["Zgłoszenie do USC", persona.birthRegistrationDate ? formatDate(persona.birthRegistrationDate) : "Oczekuje na zgłoszenie"],
+            ["Akt urodzenia", persona.birthCertificateDate ? formatDate(persona.birthCertificateDate) : "Oczekuje na sporządzenie"],
+            ["Planowany początek ojcowskiego", formatDate(persona.paternityStart)],
+            ...(persona.wantsAveragedRate ? [["Preferowana stawka zasiłku", "81,5% (jeśli pozwala na to podział urlopu)"]] : []),
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-sm text-muted-foreground">{label}</dt><dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
       <div className="grid gap-6 md:grid-cols-2">
         {PARENTS.map((key) => {
           const parent = persona.parents[key];

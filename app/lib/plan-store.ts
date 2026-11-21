@@ -53,7 +53,7 @@ export function updatePlan(change: (s: PlanState) => PlanState) {
 
 export function logIn(personaId: string) {
   const persona = findPersona(personaId)!;
-  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: null, doneTasks: ["sick-leave"] }));
+  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [] }));
 }
 
 export function logOut() {

@@ -9,10 +9,10 @@ import { useFamily } from "@/lib/use-family";
 export default function TabsLayout({ children }: LayoutProps<"/">) {
   const pathname = usePathname();
   const { persona, params, chosen, plan } = useFamily();
-  const open = chosen ? buildTasks(persona, chosen, params).filter((t) => !plan.doneTasks.includes(t.id)).length : 0;
+  const open = buildTasks(persona, plan.events, chosen, params, plan.doneTasks).filter((task) => !task.done && !task.locked).length;
   const tabs = [
     { href: "/plan", label: "Oś czasu" },
-    { href: "/zadania", label: chosen ? `Do zrobienia (${open})` : "Do zrobienia" },
+    { href: "/zadania", label: open ? `Do zrobienia (${open})` : "Do zrobienia" },
     { href: "/kalkulator", label: "Kalkulatory" },
   ];
 

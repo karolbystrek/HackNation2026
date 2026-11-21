@@ -21,7 +21,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
 }) {
   const { persona, params, names } = useFamily();
   const [form, setForm] = useState({
-    startDate: mode === "birth" ? persona.dueDate : "2027-06-01",
+    startDate: mode === "birth" ? (persona.birthDate ?? persona.dueDate) : "2027-06-01",
     kids: mode === "birth" ? persona.kids : 1,
     zaZyciem: false,
     adoptionType: "adoption" as LeaveInput["adoptionType"],

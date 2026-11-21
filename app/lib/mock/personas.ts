@@ -1,5 +1,6 @@
 // Demo profiles returned by the simulated mObywatel login and ZUS/KAS/PESEL download.
 import type { ParentKey } from "@/lib/calc/leave";
+import type { VariantKey } from "@/lib/calc/variants";
 import type { ContractType } from "@/lib/calc/pregnancy";
 import type { TimelineEvent } from "@/lib/events";
 
@@ -26,6 +27,16 @@ export type Persona = {
   /** Day the data was "downloaded"; the demo treats it as today. */
   fetchedAt: string;
   dueDate: string;
+  birthDate?: string;
+  birthCardDate?: string;
+  birthRegistrationDate?: string;
+  birthCertificateDate?: string;
+  birthPlace?: string;
+  childName?: string;
+  paternityStart: string;
+  initialVariant?: VariantKey;
+  wantsAveragedRate?: boolean;
+  completedSteps?: Record<string, string>;
   kids: number;
   parents: Record<ParentKey, ParentProfile>;
   events: TimelineEvent[];
@@ -38,6 +49,7 @@ export const personas: Persona[] = [
     description: "Oboje na umowie o pracę, pierwsze dziecko w drodze, Anna na zwolnieniu w ciąży.",
     fetchedAt: "2026-11-21",
     dueDate: "2027-03-15",
+    paternityStart: "2027-04-01",
     kids: 1,
     parents: {
       mother: {
@@ -99,5 +111,91 @@ export const personas: Persona[] = [
     ],
   },
 ];
+
+const employed = personas[0].parents;
+
+personas.push(
+  {
+    id: "maja-piotr",
+    label: "Maja i Piotr",
+    description: "Po porodzie · Maja prowadzi działalność, rodzina czeka na akt urodzenia.",
+    fetchedAt: "2026-11-21",
+    dueDate: "2026-11-20",
+    birthDate: "2026-11-17",
+    birthCardDate: "2026-11-18",
+    birthPlace: "Kraków",
+    childName: "Zofia",
+    paternityStart: "2026-12-07",
+    wantsAveragedRate: true,
+    kids: 1,
+    parents: {
+      mother: {
+        ...employed.mother,
+        name: "Maja",
+        nameGenitive: "Mai",
+        contract: "jdg",
+        employment: "Jednoosobowa działalność gospodarcza",
+        payer: "ZUS",
+        insurance: "Od 01.03.2024 – dobrowolne",
+        sickLeaveFrom: "2026-11-02",
+        monthlyGross: Array(12).fill(6500),
+      },
+      father: { ...employed.father, name: "Piotr", nameGenitive: "Piotra" },
+    },
+    events: [
+      {
+        id: "sick",
+        type: "sickLeave",
+        who: "mother",
+        date: "2026-11-02",
+        source: "zus",
+        title: "Zwolnienie w ciąży (e-ZLA, kod B)",
+        description: "Zwolnienie wystawione przed narodzinami Zofii.",
+      },
+      {
+        id: "birth",
+        type: "birth",
+        who: "both",
+        date: "2026-11-17",
+        source: "user",
+        decision: true,
+        title: "Narodziny Zofii",
+        description: "Rzeczywista data porodu wyznacza terminy spraw związanych z zasiłkiem.",
+      },
+    ],
+    completedSteps: { "sickness-claim": "2026-11-03" },
+  },
+  {
+    id: "ola-marek",
+    label: "Ola i Marek",
+    description: "Po urlopie macierzyńskim · oboje pracują na etacie i mają uzgodniony podział urlopu.",
+    fetchedAt: "2026-11-21",
+    dueDate: "2026-06-14",
+    birthDate: "2026-06-10",
+    birthCardDate: "2026-06-10",
+    birthRegistrationDate: "2026-06-12",
+    birthCertificateDate: "2026-06-12",
+    birthPlace: "Poznań",
+    childName: "Leon",
+    paternityStart: "2026-07-06",
+    initialVariant: "B",
+    kids: 1,
+    parents: {
+      mother: { ...employed.mother, name: "Ola", nameGenitive: "Oli", sickLeaveFrom: null },
+      father: { ...employed.father, name: "Marek", nameGenitive: "Marka" },
+    },
+    events: [{
+      id: "birth",
+      type: "birth",
+      who: "both",
+      date: "2026-06-10",
+      source: "user",
+      decision: true,
+      title: "Narodziny Leona",
+      description: "Po porodzie rozpoczął się urlop macierzyński Oli.",
+    }],
+    completedSteps: { "maternity-claim": "2026-06-15", paternity: "2026-06-22", "parental-mother": "2026-10-05" },
+  },
+);
 
 export const findPersona = (id: string | null) => personas.find((p) => p.id === id) ?? null;
