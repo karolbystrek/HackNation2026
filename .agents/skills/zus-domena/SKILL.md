@@ -11,6 +11,14 @@ Pełna lista wymagań konkursu: [wymagania.md](wymagania.md).
 Szczegółowe, źródłowane dane (przepisy, parametry, formularze, załączniki, terminy, scenariusze, stan prawny 21.11.2026) są w `knowledge/` – jak z nich korzystać: skill `zus-knowledge`.
 Poradnik ZUS ma stan prawny 1.04.2026; zmiany od 24.10.2026 (ZAM zamiast ZUR/ZAO, koniec Z-3b, odpis aktu urodzenia) są w `knowledge/` jako `superseded`.
 
+## Styl interfejsu
+
+Każdy ekran, komponent i token wyglądu buduj według skilla `zus-gov-ui` (kolory ZUS + układ stron gov.pl: pasy na całą szerokość, kafelki „Załatw sprawę”, ścieżka nawigacji, ramki „Ważne”, granatowa stopka).
+Ten styl **nadpisuje** sekcje „Visual direction” i „Starting theme” w `polish-public-ui`; z `polish-public-ui` bierz tylko wybór komponentów, formularze, stany i dostępność.
+Wzorzec: strona `/prezentacja` (`app/app/prezentacja/page.tsx`). Tokeny są w `app/app/globals.css`, akcja bursztynowa to `variant="action"` przycisku.
+Nie używaj logo ZUS, godła, znaku gov.pl ani napisu „Serwis Rzeczypospolitej Polskiej”; zawsze pokazuj, że to projekt demonstracyjny.
+Wartości liczbowe na ekranach (tygodnie, %, dni) bierz z `app/lib/params.ts`, nie wpisuj ich na sztywno.
+
 ## Pojęcia
 
 - **Płatnik składek** - zatrudniający. Płatnik zgłaszający >20 ubezpieczonych do ubezpieczenia chorobowego sam wypłaca zasiłki; mniejszy przekazuje sprawę do ZUS.

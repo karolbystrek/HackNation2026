@@ -25,7 +25,7 @@ function Variants() {
     <main id="main-content" tabIndex={-1} className="page">
       <BackLink href={returnHref}>{fromTasks ? "Wróć do zadań" : event ? "Wróć do wydarzenia" : "Wróć do osi czasu"}</BackLink>
       <PageTitle
-        lead={`Policzyliśmy 3 warianty z zarobków z profilu. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem.`}
+        lead={`Porównaj podział urlopu i kwoty zasiłków. „Tracicie” to różnica między podstawą zasiłku a zasiłkiem, przed podatkiem.`}
       >
         Narodziny dziecka: kto idzie na urlop?
       </PageTitle>
@@ -35,7 +35,7 @@ function Variants() {
         return (
           <Card key={v.key} className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <div className="grow"><p className="text-sm text-muted-foreground">Wariant {v.key}</p><h2 className="text-[22px] font-bold">{v.name}</h2></div>
+              <div className="grow"><p className="text-sm text-muted-foreground">{v.key === "custom" ? "Z kalkulatora" : `Wariant ${v.key}`}</p><h2 className="text-[22px] font-bold">{v.name}</h2></div>
               <Chip>{v.tag}</Chip>
             </div>
 
@@ -75,7 +75,7 @@ function Variants() {
                 router.push("/zadania");
               }}
             >
-              {active ? "Przejdź do zadań" : `Wybierz wariant ${v.key} i przejdź do zadań`}
+              {active ? "Przejdź do zadań" : v.key === "custom" ? "Wybierz plan z kalkulatora" : `Wybierz wariant ${v.key} i przejdź do zadań`}
             </Button>
           </Card>
         );

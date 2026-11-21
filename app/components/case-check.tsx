@@ -6,10 +6,19 @@ import { analyzeCase, PERIOD_LABELS } from "@/lib/cases/analyze";
 import type { BenefitKind, CaseExtraction, ContractType, EventKind, PeriodKind } from "@/lib/cases/schema";
 import { formatDate } from "@/lib/dates";
 import { formatPln, parseAmount } from "@/lib/format";
+import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import type { Params } from "@/lib/params";
 
-type Sample = { id: string; label: string };
-type Loaded = { extraction: CaseExtraction; cached: boolean; source: string };
+type Loaded = { extraction: CaseExtraction; cached: boolean; source: string; id: string; manual?: boolean };
+
+const EMPTY_CASE: CaseExtraction = {
+  benefit: "other", contract: "unknown", insuranceTitleCode: null, claimant: "other",
+  event: { kind: "other", date: null, childBirthDate: null, kids: 1, zaZyciem: false, gestationWeek: null, birthWeightG: null, hospitalWeeks: null },
+  documents: [], requested: [], fullLeaveDeclaration: false, sickInsurance: [],
+  insuranceEnd: { date: null, reason: "none" }, debtOnDate: null, basisMonths: [],
+  decision: { present: false, granted: null, reason: null, periods: [], ratePercent: null, basis: null, monthlyAmount: null },
+  uncertain: [],
+};
 
 const BENEFITS: [BenefitKind, string][] = [
   ["maternity", "Zasiłek macierzyński"],
@@ -29,100 +38,85 @@ const DOCUMENT_NAMES: Record<string, string> = {
   medical_certificate: "Zaświadczenie lekarskie",
 };
 
-/** Upload or pick a ZUS case file, let AI read it, correct the data and compare our calculation with the ZUS decision. */
+/** Upload a PDF or enter case data manually to check the benefit. */
 export function CaseCheck({ params }: { params: Params }) {
-  const [samples, setSamples] = useState<Sample[] | null>(null);
-  const [sampleId, setSampleId] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [loaded, setLoaded] = usePlanDraft<Loaded | null>("sprawa-odczyt", null);
+  const activeRead = useRef<AbortController | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
-  const selectId = useId();
-
-  useEffect(() => {
-    fetch("/api/cases").then((r) => r.json()).then((body: { samples: Sample[] }) => setSamples(body.samples)).catch(() => setSamples([]));
-  }, []);
+  const fileId = useId();
 
   useEffect(() => {
     if (loaded) resultHeading.current?.focus();
   }, [loaded]);
 
-  async function read(init: RequestInit, source: string) {
+  useEffect(() => () => activeRead.current?.abort(), []);
+
+  function clearCase() {
+    updatePlan((plan) => ({ ...plan, drafts: { ...plan.drafts, "sprawa-odczyt": null, "sprawa-korekta": null } }));
+  }
+
+  async function upload() {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
     setBusy(true);
     setError(null);
-    setLoaded(null);
+    clearCase();
+    const controller = new AbortController();
+    activeRead.current = controller;
     try {
-      const response = await fetch("/api/cases/analyze", { method: "POST", ...init });
+      const response = await fetch("/api/cases/analyze", { method: "POST", body: form, signal: controller.signal });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Nie udało się odczytać teczki.");
-      setLoaded({ extraction: body.extraction, cached: body.cached, source });
+      if (!response.ok) throw new Error(body.error ?? "Nie udało się odczytać dokumentów.");
+      if (controller.signal.aborted) return;
+      setLoaded({ extraction: body.extraction, cached: body.cached, source: "Wgrany PDF", id: crypto.randomUUID() });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Nie udało się odczytać teczki.");
+      if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Nie udało się odczytać dokumentów.");
     } finally {
       setBusy(false);
     }
   }
 
-  function upload(file: File | undefined) {
-    if (!file) return;
-    const form = new FormData();
-    form.append("file", file);
-    read({ body: form }, file.name);
-  }
-
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="flex min-w-0 flex-col gap-2">
-          <label htmlFor={`${selectId}-file`} className="font-bold">Wgraj teczkę (PDF)</label>
-          <p className="text-sm text-muted-foreground">Skan wniosku z dokumentami, np. ZAM, ZUR, Z-3, poświadczenie ubezpieczenia, decyzja ZUS.</p>
-          <input
-            id={`${selectId}-file`}
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }}
-            className="min-h-11 rounded-sm border border-input bg-background px-3 py-2 file:mr-3 file:rounded-sm file:border-0 file:bg-secondary file:px-3 file:py-1 file:font-bold"
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2">
-          <label htmlFor={selectId} className="font-bold">albo wybierz przykładową sprawę ZUS</label>
-          <p className="text-sm text-muted-foreground">Zanonimizowane teczki udostępnione przez ZUS na potrzeby wyzwania.</p>
-          <div className="flex flex-wrap gap-2">
-            <select
-              id={selectId}
-              value={sampleId}
-              disabled={busy || !samples?.length}
-              onChange={(e) => setSampleId(e.target.value)}
-              className="min-h-11 min-w-0 grow basis-60 rounded-sm border border-input bg-background px-3 py-2"
-            >
-              <option value="">{samples === null ? "Wczytuję listę…" : samples.length ? "Wybierz sprawę" : "Brak przykładów"}</option>
-              {samples?.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-            <Button
-              disabled={busy || !sampleId}
-              onClick={() => read({ headers: { "content-type": "application/json" }, body: JSON.stringify({ sampleId }) }, samples?.find((s) => s.id === sampleId)?.label ?? sampleId)}
-            >
-              Sprawdź
-            </Button>
-          </div>
-        </div>
+      <div className="flex max-w-xl flex-col gap-2">
+        <label htmlFor={fileId} className="font-bold">Wybierz dokumenty (PDF)</label>
+        <input
+          id={fileId}
+          type="file"
+          accept="application/pdf"
+          disabled={busy}
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="min-h-11 min-w-0 rounded-sm border border-input bg-background px-3 py-2 file:mr-3 file:rounded-sm file:border-0 file:bg-secondary file:px-3 file:py-1 file:font-bold"
+        />
+        <Button className="self-start" disabled={busy || !file} onClick={upload}>Prześlij PDF do odczytu</Button>
       </div>
 
       <div aria-live="polite">
-        {busy && <Notice><p className="font-bold">Odczytuję teczkę…</p><p className="text-muted-foreground">Dokumenty czyta model AI. Długi skan może potrwać do 2 minut.</p></Notice>}
-        {error && <Notice className="border-destructive"><p className="font-bold">Nie udało się sprawdzić teczki</p><p>{error}</p></Notice>}
+        {busy && <Notice><p className="font-bold">Odczytujemy dokumenty…</p><p className="text-muted-foreground">To może potrwać do 2 minut.</p></Notice>}
+        {error && <Notice className="border-destructive"><p className="font-bold">Nie udało się odczytać dokumentów</p><p>{error}</p></Notice>}
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={busy} onClick={() => {
+          setError(null);
+          clearCase();
+          setLoaded({ extraction: EMPTY_CASE, source: "Dane wpisane ręcznie", id: crypto.randomUUID(), cached: false, manual: true });
+        }}>Wpisz dane ręcznie</Button>
+        {loaded && <Button variant="link" onClick={clearCase}>Wyczyść bieżącą sprawę</Button>}
+      </div>
       {loaded && (
-        <CaseResult key={loaded.source} loaded={loaded} params={params} headingRef={resultHeading} />
+        <CaseResult key={loaded.id} loaded={loaded} params={params} headingRef={resultHeading} />
       )}
     </div>
   );
 }
 
 function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Params; headingRef: React.RefObject<HTMLHeadingElement | null> }) {
-  const [c, setC] = useState(loaded.extraction);
+  const [c, setC] = usePlanDraft("sprawa-korekta", loaded.extraction);
   const analysis = analyzeCase(c, params);
   const unsure = (path: string) => c.uncertain.some((u) => u === path || u.startsWith(`${path}.`) || u.startsWith(`${path}[`));
   const hint = (path: string) => (unsure(path) ? <span className="font-bold text-destructive">Odczyt niepewny, sprawdź ze skanem.</span> : undefined);
@@ -134,12 +128,12 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
       <div>
         <h3 id="case-result" ref={headingRef} tabIndex={-1} className="text-2xl font-bold">Wynik: {loaded.source}</h3>
         <p className="text-sm text-muted-foreground">
-          {loaded.cached ? "Odczyt z pamięci podręcznej." : "Odczytano przez AI."} Dane możesz poprawić, a wynik przeliczy się od razu.
+          {loaded.manual ? "Uzupełnij dane potrzebne do oceny." : "Jeśli coś odczytaliśmy źle, popraw dane pod wynikiem. Wynik przeliczy się od razu."}
         </p>
       </div>
 
-      <Notice className={analysis.eligible ? "border-primary" : "border-destructive"}>
-        <p className="text-lg font-bold">{analysis.eligible ? "Zasiłek przysługuje" : "Zasiłek nie przysługuje"}</p>
+      <Notice className={analysis.eligible === null ? undefined : analysis.eligible ? "border-primary" : "border-destructive"}>
+        <p className="text-lg font-bold">{analysis.eligible === null ? "Brakuje danych do oceny" : analysis.eligible ? "Zasiłek przysługuje" : "Zasiłek nie przysługuje"}</p>
         <p>{analysis.eligibility}</p>
         {analysis.basis && (
           <p className="mt-2">
@@ -174,7 +168,7 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
       {c.decision.present && (
         <div className="flex min-w-0 flex-col gap-2">
           {analysis.comparison.length > 0 ? (
-            <Table caption="Porównanie z decyzją ZUS z teczki" head={["Pozycja", "Nasze wyliczenie", "ZUS", "Wynik"]}>
+            <Table caption="Porównanie z decyzją ZUS" head={["Pozycja", "Nasze wyliczenie", "ZUS", "Wynik"]}>
               {analysis.comparison.map((row, i) => (
                 <tr key={i} className="border-t">
                   <th scope="row" className="py-2 pr-3 text-left font-normal">{row.label}</th>
@@ -200,8 +194,8 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
         </div>
       )}
 
-      <details className="border-y py-3">
-        <summary className="min-h-11 cursor-pointer content-center text-lg font-bold">Odczytane dane – popraw, jeśli coś się nie zgadza</summary>
+      <details open={loaded.manual || undefined} className="border-y py-3">
+        <summary className="min-h-11 cursor-pointer content-center text-lg font-bold">{loaded.manual ? "Dane do obliczenia" : "Odczytane dane – popraw, jeśli coś się nie zgadza"}</summary>
         <div className="mt-4 flex flex-col gap-5">
           <RadioGroup label="Świadczenie" options={BENEFITS} value={c.benefit} onChange={(benefit) => set({ benefit })} />
           <RadioGroup label="Tytuł ubezpieczenia" options={CONTRACTS} value={c.contract} onChange={(contract) => set({ contract })} />
@@ -214,6 +208,13 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
           <Checkbox checked={c.fullLeaveDeclaration} onChange={() => set({ fullLeaveDeclaration: !c.fullLeaveDeclaration })} title="Wniosek o 81,5% za cały okres" />
           <Checkbox checked={!!c.debtOnDate} onChange={() => set({ debtOnDate: !c.debtOnDate })} title="Zadłużenie składkowe na dzień powstania prawa" />
 
+          {(c.benefit === "equal_maternity" || c.benefit === "maternity") && <>
+            <Field label="Data ustania zatrudnienia" type="date" value={c.insuranceEnd.date ?? ""} onChange={(e) =>
+              set({ insuranceEnd: { ...c.insuranceEnd, date: e.target.value || null } })} />
+            <RadioGroup label="Przyczyna ustania zatrudnienia" value={c.insuranceEnd.reason}
+              options={[["none", "Brak danych"], ["employer_insolvency", "Upadłość, likwidacja lub śmierć pracodawcy"], ["unlawful_dismissal", "Bezprawne zwolnienie w ciąży potwierdzone prawomocnym wyrokiem"], ["other", "Inna przyczyna"]]}
+              onChange={(reason) => set({ insuranceEnd: { ...c.insuranceEnd, reason } })} />
+          </>}
           <PeriodsEditor title="Okresy z wniosku" periods={c.requested} unsure={unsure("requested")} onChange={(requested) => set({ requested })} />
 
           <fieldset className="flex flex-col gap-3">
@@ -235,16 +236,18 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
             {hint("basisMonths")}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {c.basisMonths.map((m, i) => (
-                <Field
-                  key={m.month + i}
-                  label={m.month}
-                  inputMode="decimal"
-                  defaultValue={String(m.amount).replace(".", ",")}
-                  onBlur={(e) => set({ basisMonths: c.basisMonths.map((x, j) => (j === i ? { ...x, amount: parseAmount(e.target.value) } : x)) })}
-                />
+                <div key={i} className="grid gap-2">
+                  <Field label="Miesiąc" type="month" value={m.month}
+                    onChange={(e) => set({ basisMonths: c.basisMonths.map((x, j) => j === i ? { ...x, month: e.target.value } : x) })} />
+                  <Field label="Kwota podstawy lub wynagrodzenia" inputMode="decimal"
+                    defaultValue={m.amount ? String(m.amount).replace(".", ",") : ""}
+                    onBlur={(e) => set({ basisMonths: c.basisMonths.map((x, j) => j === i ? { ...x, amount: parseAmount(e.target.value) } : x) })} />
+                  <Button variant="link" onClick={() => set({ basisMonths: c.basisMonths.filter((_, j) => j !== i) })}>Usuń miesiąc</Button>
+                </div>
               ))}
             </div>
-            {c.basisMonths.length === 0 && <p className="text-muted-foreground">W teczce nie odczytano miesięcznych kwot.</p>}
+            <Button variant="outline" className="self-start" disabled={c.basisMonths.length >= 12}
+              onClick={() => set({ basisMonths: [...c.basisMonths, { month: "", amount: 0 }] })}>Dodaj miesiąc</Button>
           </fieldset>
         </div>
       </details>

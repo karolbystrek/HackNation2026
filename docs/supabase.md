@@ -21,5 +21,11 @@ Generate database types when adding the application schema.
 `make down`, `make restart` and `make clean` preserve database data;
 `supabase stop --no-backup` and database resets delete it.
 
+The parameter editor is available at `/admin`. Provision a Supabase Auth user with
+`app_metadata.benefit_admin = true` through a trusted admin interface. The editor
+accepts that user’s email and password. The API checks the current user record
+before writing to `benefit_settings`. The calculator, case analyzer and form wizard
+read the same settings. Apply the migration before enabling the editor.
+
 See [local commands](local-development.md) and
 [client entry points](../app/README.md#supabase-clients).

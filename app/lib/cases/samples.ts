@@ -8,6 +8,7 @@ const ID = /^case-\d{2,3}$/;
 
 export async function listSamples(): Promise<CaseSample[]> {
   const { data, error } = await createAdminClient().storage.from(CASE_BUCKET).download("index.json");
+  if (error && "code" in error && error.code === "NoSuchKey") return [];
   if (error) throw new Error(`Cannot read ${CASE_BUCKET}/index.json: ${error.message}`);
   const items = JSON.parse(await data.text()) as CaseSample[];
   return items.filter((item) => ID.test(item.id));

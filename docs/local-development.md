@@ -32,6 +32,9 @@ Run `make up` before checks. Run `make build` before deployment.
 After cleanup, run `make setup` again. Restarting uses background mode;
 run `make dev` to resume hot reload.
 
+If the app still shows a page or layout deleted from the source tree, run
+`make up` to rebuild the image and recreate the app container.
+
 - App: http://localhost:3000
 - Supabase API: http://127.0.0.1:54321
 - Studio: http://127.0.0.1:54323

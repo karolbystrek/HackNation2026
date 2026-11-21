@@ -2,7 +2,7 @@
 
 // Client-only session state of the family's plan, kept in sessionStorage so a refresh keeps it.
 import { useSyncExternalStore } from "react";
-import type { VariantKey } from "@/lib/calc/variants";
+import type { CustomLeave, VariantKey } from "@/lib/calc/variants";
 import type { TimelineEvent } from "@/lib/events";
 import type { Answers } from "@/lib/guide/tree";
 import { currentPersona } from "@/lib/guide/persona";
@@ -12,6 +12,7 @@ export type PlanState = {
   personaId: string | null;
   events: TimelineEvent[];
   chosenVariant: VariantKey | null;
+  customLeave?: CustomLeave;
   doneTasks: string[];
   /** Answers from the guide questionnaire that starts a new timeline. */
   guideAnswers: Answers;

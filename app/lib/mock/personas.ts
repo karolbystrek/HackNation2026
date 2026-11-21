@@ -53,6 +53,7 @@ export type Persona = {
   childEvents?: string[];
   /** Supplementary maternity leave the child's hospital stay gives, in weeks. */
   supplementaryWeeks?: number;
+  zaZyciem?: boolean;
   completedSteps?: Record<string, string>;
   kids: number;
   parents: Record<ParentKey, ParentProfile>;

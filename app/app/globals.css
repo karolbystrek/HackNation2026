@@ -9,6 +9,14 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-brand: var(--brand);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-foreground: var(--action-foreground);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-warning-soft: var(--warning-soft);
   --color-secondary: var(--secondary);
   --color-muted: var(--secondary);
   --color-muted-foreground: var(--muted-foreground);
@@ -26,6 +34,15 @@
   --primary: #007c36;
   --primary-hover: #00652c;
   --primary-foreground: #ffffff;
+  /* ZUS x gov.pl style tokens - see .agents/skills/zus-gov-ui */
+  --primary-soft: #e8f3ec;
+  --brand: #00993f;
+  --action: #ffb34f;
+  --action-hover: #f59f2a;
+  --action-foreground: #00416e;
+  --navy: #00416e;
+  --navy-foreground: #ffffff;
+  --warning-soft: #fff4e0;
   --secondary: #f3f4f3;
   --muted-foreground: #525252;
   --border: #d9dedb;

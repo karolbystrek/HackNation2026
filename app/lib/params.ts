@@ -1,4 +1,4 @@
-// Single source of every benefit rate and duration. The admin panel will override these from Supabase.
+// Single source of every benefit rate and duration. The admin panel stores overrides in Supabase.
 export const defaultParams = {
   // Maternity leave weeks by number of children born at once (index 0 = one child, 4 = five or more).
   maternityWeeks: [20, 31, 33, 35, 37],

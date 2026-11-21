@@ -1,7 +1,7 @@
+import type { TimelineEvent } from "@/lib/events";
 import type { ContractType } from "@/lib/calc/pregnancy";
 import { shiftIso, todayInWarsaw } from "@/lib/dates";
 import { activeAnswers, nextQuestion, supplementaryWeeks, test, type Answers } from "@/lib/guide/tree";
-import type { TimelineEvent } from "@/lib/events";
 import { findPersona, type ParentProfile, type Persona } from "@/lib/mock/personas";
 import { defaultParams } from "@/lib/params";
 
@@ -71,6 +71,7 @@ export function personaFromAnswers(answers: Answers): Persona {
     birthDate,
     // The questionnaire does not ask when paternity leave starts: at birth, or the first day a request can still reach the employer in time.
     paternityStart: [anchor, shiftIso(today, defaultParams.paternityRequestDays)].sort()[1],
+    zaZyciem: Array.isArray(a.special) && a.special.includes("zaZyciem"),
     wantsAveragedRate: a.wantsAveragedRate === true,
     // A starting split for the plan; the family can change it under /warianty.
     initialVariant: isFather ? "B" : "A",
@@ -83,7 +84,15 @@ export function personaFromAnswers(answers: Answers): Persona {
 }
 
 /** The logged-in persona: the questionnaire once it is complete, otherwise a demo profile. */
-export function currentPersona(plan: { personaId: string | null; guideAnswers: Answers }): Persona | null {
-  if (plan.personaId !== GUIDE_ID) return findPersona(plan.personaId);
-  return nextQuestion(plan.guideAnswers) ? null : personaFromAnswers(plan.guideAnswers);
+export function currentPersona(plan: { personaId: string | null; guideAnswers: Answers; events?: TimelineEvent[] }): Persona | null {
+  const persona = plan.personaId === GUIDE_ID
+    ? nextQuestion(plan.guideAnswers) ? null : personaFromAnswers(plan.guideAnswers)
+    : findPersona(plan.personaId);
+  const birth = plan.events?.slice().reverse().find((event) => event.source === "new" && event.type === "birth");
+  if (!persona || !birth) return persona;
+  return {
+    ...persona, birthDate: birth.date,
+    events: [...persona.events.filter((event) => event.type !== "birth"), birth],
+    paternityStart: persona.paternityStart < birth.date ? birth.date : persona.paternityStart,
+  };
 }

@@ -6,7 +6,7 @@ import { Button, ButtonLink, Chip } from "@/components/ui";
 import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { formatDate, parseIso } from "@/lib/dates";
 import type { EventType, EventWho, TimelineEvent } from "@/lib/events";
-import { timelineDate, type FamilyTimelineEntry } from "@/lib/family-timeline";
+import { canConfirmDocument, timelineDate, type FamilyTimelineEntry } from "@/lib/family-timeline";
 import { updatePlan, usePlan } from "@/lib/plan-store";
 import { attentionEntries, deadlineNotice } from "@/lib/timeline-view";
 
@@ -16,7 +16,7 @@ const statuses = {
   active: "W trakcie", ended: "Okres zakończony", review: "Do sprawdzenia",
 };
 
-const calculatorLabels: Record<EventType, string> = {
+const calculatorLabels: Partial<Record<EventType, string>> = {
   birth: "Oblicz zasiłek po narodzinach",
   adoption: "Oblicz zasiłek po przyjęciu dziecka",
   sickLeave: "Sprawdź zasiłek chorobowy",
@@ -129,8 +129,9 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
     const notice = deadlineNotice(entry, today);
     const isPeriod = entry.end !== undefined;
     const required = entries.filter((item) => entry.requires?.includes(item.id));
-    const birthCertificate = entry.id === "birth-certificate" && !entry.completedOn;
-    const certificateConfirmed = birthCertificate && plan.doneTasks.includes(entry.id);
+    const confirmDocument = canConfirmDocument(entry.id) && !entry.completedOn;
+    const birthCertificate = entry.id === "birth-certificate" && confirmDocument;
+    const certificateConfirmed = confirmDocument && plan.doneTasks.includes(entry.id);
     const showStatus = entry.kind === "application" && entry.status !== "blocked";
     const submission = submissions[entry.id];
 
@@ -161,17 +162,17 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                   ? "Najpierw zgłoście urodzenie i oznaczcie zgłoszenie jako wykonane na liście zadań."
                   : "Gdy USC sporządzi akt, potwierdźcie to tutaj, żeby odblokować powiązane zadania."}</p>
             )}
-            {birthCertificate && (certificateConfirmed || entry.status === "planned") && (
+            {confirmDocument && (certificateConfirmed || entry.status === "planned") && (
               <Button variant="outline" onClick={() => updatePlan((state) => ({
                 ...state,
                 doneTasks: certificateConfirmed
                   ? state.doneTasks.filter((id) => id !== entry.id)
                   : [...state.doneTasks, entry.id],
               }))}>
-                {certificateConfirmed ? "Cofnij potwierdzenie aktu" : "Potwierdź sporządzenie aktu"}
+                {certificateConfirmed ? "Cofnij potwierdzenie" : birthCertificate ? "Potwierdź sporządzenie aktu" : "Potwierdź wystawienie dokumentu"}
               </Button>
             )}
-            {event && (
+            {event && calculatorLabels[event.type] && (
               <ButtonLink variant="outline" href={profileBirth ? `/warianty?wydarzenie=${encodeURIComponent(event.id)}` : `/kalkulator?wydarzenie=${encodeURIComponent(event.id)}`}>
                 {profileBirth ? "Porównaj podział opieki" : calculatorLabels[event.type]}
               </ButtonLink>
@@ -221,7 +222,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                 {entry.form && (submission || entry.status !== "completed") && (
                   <div><dt>Wniosek</dt><dd>
                     {submission
-                      ? <>Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>. <Link href={`/wnioski/${entry.id}`} className="text-link">Zobacz wysłany wniosek</Link></>
+                      ? <>Symulacja z {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>. <Link href={`/wnioski/${entry.id}`} className="text-link">Zobacz wynik symulacji</Link></>
                       : <ButtonLink href={`/wnioski/${entry.id}`}>Wypełnij wniosek</ButtonLink>}
                   </dd></div>
                 )}

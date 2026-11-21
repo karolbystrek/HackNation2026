@@ -8,6 +8,8 @@ export type PregnancyInput = {
   insuredFrom: string;
   sickLeaveFrom: string;
   dueDate: string;
+  /** Last certified day of incapacity, inclusive. */
+  sickLeaveThrough?: string;
   basis: number;
   /** Contract ended in pregnancy because the employer went bankrupt, was liquidated or died. */
   employerInsolvent: boolean;
@@ -35,7 +37,8 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   const insured = parseIso(input.insuredFrom);
   const sickLeave = parseIso(input.sickLeaveFrom);
   const due = parseIso(input.dueDate);
-  const daily = input.basis / 30;
+  const certifiedEnd = parseIso(input.sickLeaveThrough);
+  const daily = input.basis * p.rates.full / 30;
   const rows: PregnancyRow[] = [];
   const warnings: string[] = [];
   const payer = input.employerInsolvent ? "ZUS" : PAYERS[input.contract];
@@ -51,9 +54,15 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   if (!input.employerInsolvent && sickLeave < eligibleFrom)
     warnings.push(`Prawo do zasiłku powstaje ${formatDate(eligibleFrom)} – po ${waiting} dniach ubezpieczenia. Za wcześniejsze dni zwolnienia nie przysługuje.`);
 
+  if (!input.employerInsolvent && input.sickLeaveThrough && (!certifiedEnd || certifiedEnd < sickLeave)) {
+    return { total: 0, days: 0, payer, rows, warnings: ["Ostatni dzień zwolnienia musi przypadać w dniu rozpoczęcia zwolnienia lub później."] };
+  }
+  const end = !input.employerInsolvent && certifiedEnd && certifiedEnd < due ? addDays(certifiedEnd, 1) : due;
+  if (!input.employerInsolvent && !certifiedEnd) warnings.push("Szacunek zakłada niezdolność do pracy do dnia poprzedzającego poród.");
+
   const count = { employer: 0, sickness: 0, rehab: 0, insolvency: 0 };
   const employerDaysByYear: Record<number, number> = {};
-  for (let d = payStart; d < due; d = addDays(d, 1)) {
+  for (let d = payStart; d < end; d = addDays(d, 1)) {
     if (input.employerInsolvent) {
       count.insolvency++;
       continue;

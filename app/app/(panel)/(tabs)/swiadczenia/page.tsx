@@ -8,21 +8,29 @@ import { resolveGuide } from "@/lib/guide/tree";
 import { useFamily } from "@/lib/use-family";
 
 export default function Benefits() {
-  const { plan, fromGuide, params } = useFamily();
+  const { plan, persona, entries, fromGuide, params } = useFamily();
 
   if (!fromGuide) {
     return (
       <main id="main-content" tabIndex={-1} className="page max-w-3xl">
         <PageTitle>Świadczenia</PageTitle>
         <Notice className="flex flex-col items-start gap-2">
-          <p>Lista świadczeń powstaje z odpowiedzi w formularzu. Profil demonstracyjny jej nie zawiera.</p>
-          <ButtonLink href="/nowa-os" variant="outline">Wypełnij formularz</ButtonLink>
+          <p>Sprawdź symulowane ubezpieczenie i dostępne formalności dla rodziny {persona.label}.</p>
+          <ButtonLink href="/rodzina?z=%2Fswiadczenia" variant="outline">Sprawdź ubezpieczenie rodziców</ButtonLink>
+          <ButtonLink href="/kalkulator?tryb=birth" variant="link">Oblicz zasiłek macierzyński</ButtonLink>
         </Notice>
+        <section aria-labelledby="demo-benefits">
+          <h2 id="demo-benefits" className="text-2xl font-bold">Świadczenia i urlopy w planie</h2>
+          <ul className="mt-3 grid gap-2">
+            {entries.filter((entry) => !entry.extra && (entry.kind === "period" || entry.form?.startsWith("ff."))).map((entry) =>
+              <li key={entry.id}><a href={`/plan#timeline-${entry.id}`} className="text-link">{entry.title}</a></li>)}
+          </ul>
+        </section>
       </main>
     );
   }
 
-  const { topics, benefits, risks } = resolveGuide(plan.guideAnswers);
+  const { topics, benefits, risks, orgs } = resolveGuide(plan.guideAnswers);
   const estimate = estimateAmounts(plan.guideAnswers, new Set(topics.map((t) => t.id)), params);
 
   return (
@@ -47,8 +55,9 @@ export default function Benefits() {
         <section aria-labelledby="kwoty" className="flex flex-col gap-3">
           <h2 id="kwoty" className="text-2xl font-bold">Ile możesz dostać</h2>
           <p className="text-muted-foreground">
-            Szacunek brutto z podstawy około {formatPln(estimate.basis)} miesięcznie. Dokładnie policzysz w zakładce Kalkulatory.
+            Szacunek brutto z podstawy około {formatPln(estimate.basis)} miesięcznie.
           </p>
+          <ButtonLink href={`/kalkulator?tryb=${plan.guideAnswers.placementDate ? "adoption" : plan.guideAnswers.situation === "pregnant" ? "pregnancy" : "birth"}`} variant="outline" className="self-start">Otwórz kalkulator</ButtonLink>
           <dl className="divide-y border-y">
             {estimate.rows.map((row) => (
               <div key={row.label} className="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:gap-4">
@@ -59,6 +68,16 @@ export default function Benefits() {
           </dl>
         </section>
       )}
+
+      {orgs.length > 0 && <section aria-labelledby="wsparcie" className="grid gap-3">
+        <h2 id="wsparcie" className="text-2xl font-bold">Gdzie szukać wsparcia</h2>
+        <ul className="grid gap-3">{orgs.map((org) => (
+          <li key={org.id}>
+            <h3 className="font-bold">{org.website ? <a href={org.website} className="text-link">{org.title_pl}</a> : org.title_pl}</h3>
+            <p>{org.summary_pl}</p>
+          </li>
+        ))}</ul>
+      </section>}
 
       {risks.length > 0 && (
         <Disclosure className="border-y" label={<span className="font-bold">Na co uważać ({risks.length})</span>}>
@@ -73,6 +92,12 @@ export default function Benefits() {
           </ul>
         </Disclosure>
       )}
+      <section aria-labelledby="informacje" className="grid gap-2">
+        <h2 id="informacje" className="text-2xl font-bold">Oficjalne informacje</h2>
+        <a className="text-link" href="https://www.zus.pl/wzory-formularzy/zasilki">ZUS – formularze dotyczące zasiłków</a>
+        <a className="text-link" href="https://www.gov.pl/web/rodzina/urlop-rodzicielski">Ministerstwo Rodziny – urlop rodzicielski</a>
+        <a className="text-link" href="https://www.pip.gov.pl/dla-pracodawcow/porady-prawne/rodzicielstwo">Państwowa Inspekcja Pracy – rodzicielstwo</a>
+      </section>
     </main>
   );
 }

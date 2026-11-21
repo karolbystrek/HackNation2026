@@ -10,7 +10,8 @@ setup: ## Install the pinned Supabase CLI
 	npm ci
 
 supabase:
-	npx --no-install supabase start
+	npx --no-install supabase start > /dev/null
+	npx --no-install supabase migration up
 	@umask 077; set -o pipefail; npx --no-install supabase status -o env | \
 		awk '/^(API_URL|PUBLISHABLE_KEY|SECRET_KEY)=/ { \
 			sub(/^API_URL=/, "NEXT_PUBLIC_SUPABASE_URL="); \

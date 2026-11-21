@@ -37,6 +37,14 @@ describe("analyzeCase", () => {
     expect(r.comparison[0]).toMatchObject({ label: "Prawo do zasiłku", match: true });
   });
 
+  it("leaves eligibility open when no sickness insurance dates were read", () => {
+    const missing = { ...base, sickInsurance: [] };
+    const result = analyzeCase(missing, defaultParams);
+    expect(result.eligible).toBeNull();
+    expect(result.comparison.some((row) => row.label === "Prawo do zasiłku")).toBe(false);
+    expect(analyzeCase({ ...missing, sickInsurance: base.sickInsurance }, defaultParams).eligible).toBe(true);
+  });
+
   it("tops a low parental benefit up to the parental allowance", () => {
     const low = { ...base, basisMonths: base.basisMonths.map((m) => ({ ...m, amount: 1400 })), requested: [{ kind: "parental" as const, from: "2026-07-28", to: "2026-09-21" }] };
     const r = analyzeCase(low, defaultParams);
@@ -48,6 +56,31 @@ describe("analyzeCase", () => {
     const sick: CaseExtraction = { ...base, benefit: "sickness_pregnancy", event: { ...base.event, kind: "pregnancy", date: null }, sickInsurance: [{ from: "2025-11-01", to: null, voluntary: true }], requested: [{ kind: "sickness", from: "2026-01-05", to: "2026-02-03" }] };
     expect(analyzeCase(sick, defaultParams).eligible).toBe(false);
     expect(analyzeCase({ ...sick, sickInsurance: [{ from: "2025-09-01", to: null, voluntary: true }] }, defaultParams).eligible).toBe(true);
+  });
+
+  it("does not treat missing dates or unsupported benefits as decisions", () => {
+    const missing = analyzeCase({ ...base, event: { ...base.event, date: null }, requested: [], decision: { ...base.decision, periods: [] } }, defaultParams);
+    expect(missing.eligible).toBeNull();
+    expect(missing.comparison.find((row) => row.label === "Prawo do zasiłku")).toBeUndefined();
+    expect(analyzeCase({ ...base, benefit: "other" }, defaultParams).eligible).toBeNull();
+  });
+
+  it("does not count an uninsured gap towards the waiting period", () => {
+    const r = analyzeCase({
+      ...base, benefit: "sickness_pregnancy", event: { ...base.event, date: "2026-03-10" },
+      requested: [{ kind: "sickness", from: "2026-03-10", to: "2026-03-15" }],
+      sickInsurance: [{ from: "2026-02-02", to: "2026-02-07", voluntary: false }, { from: "2026-02-28", to: null, voluntary: false }],
+    }, defaultParams);
+    expect(r.eligible).toBe(false);
+  });
+
+  it("distinguishes court-confirmed unlawful dismissal after birth from the pre-birth benefit", () => {
+    const dismissed: CaseExtraction = {
+      ...base, contract: "uop", sickInsurance: [],
+      insuranceEnd: { date: "2026-01-31", reason: "unlawful_dismissal" },
+    };
+    expect(analyzeCase(dismissed, defaultParams).eligible).toBe(true);
+    expect(analyzeCase({ ...dismissed, benefit: "equal_maternity" }, defaultParams).eligible).toBe(false);
   });
 
   it("grants zasiłek w wysokości macierzyńskiego only after employer insolvency", () => {
