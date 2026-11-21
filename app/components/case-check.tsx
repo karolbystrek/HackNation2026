@@ -205,7 +205,8 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                 {hint("basisMonths")}
                 <div className="grid gap-3 @lg:grid-cols-2 @3xl:grid-cols-3">
                   {c.basisMonths.map((m, i) => (
-                    <div key={i} className="grid gap-2">
+                    // The amount input is uncontrolled (saved on blur), so rows remount from state whenever one is added or removed.
+                    <div key={`${c.basisMonths.length}-${i}`} className="grid gap-2">
                       <Field label="Miesiąc" type="month" value={m.month}
                         onChange={(e) => set({ basisMonths: c.basisMonths.map((x, j) => j === i ? { ...x, month: e.target.value } : x) })} />
                       <Field label="Kwota podstawy lub wynagrodzenia" inputMode="decimal"
