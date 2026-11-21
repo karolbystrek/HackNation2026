@@ -15,6 +15,11 @@ export function addDays(date: Date, days: number): Date {
   return result;
 }
 
+/** ISO date plus a number of days, as an ISO date. */
+export function shiftIso(date: string, days: number): string {
+  return toIso(addDays(parseIso(date)!, days));
+}
+
 export function diffDays(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86_400_000);
 }

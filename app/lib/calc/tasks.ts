@@ -1,9 +1,6 @@
-import type { Variant } from "@/lib/calc/variants";
 import { formatDate } from "@/lib/dates";
-import type { EventWho, TimelineEvent } from "@/lib/events";
-import { buildFamilyTimeline } from "@/lib/family-timeline";
-import type { Persona } from "@/lib/mock/personas";
-import type { Params } from "@/lib/params";
+import type { EventWho } from "@/lib/events";
+import type { FamilyTimelineEntry } from "@/lib/family-timeline";
 
 export type Task = {
   id: string;
@@ -18,8 +15,8 @@ export type Task = {
   waitingFor: string[];
 };
 
-export function buildTasks(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[], today: string): Task[] {
-  const timeline = buildFamilyTimeline(persona, events, chosen, params, doneTasks, today);
+/** Applications from the timeline, as a checklist. */
+export function buildTasks(timeline: FamilyTimelineEntry[]): Task[] {
   const byId = new Map(timeline.map((entry) => [entry.id, entry]));
 
   return timeline.filter((entry) => entry.kind === "application").map((entry) => ({
@@ -33,7 +30,7 @@ export function buildTasks(persona: Persona, events: TimelineEvent[], chosen: Va
     done: entry.status === "completed",
     locked: !!entry.completedOn || entry.status === "blocked",
     waitingFor: (entry.requires ?? [])
-      .map((id) => byId.get(id)!)
+      .flatMap((id) => byId.get(id) ?? [])
       .filter((required) => required.status !== "confirmed" && required.status !== "completed")
       .map((required) => required.title),
   }));

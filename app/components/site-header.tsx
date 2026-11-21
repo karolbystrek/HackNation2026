@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { findPersona } from "@/lib/mock/personas";
+import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import { logOut, usePlan } from "@/lib/plan-store";
 
 export function SiteHeader() {
-  const persona = findPersona(usePlan().personaId);
+  const plan = usePlan();
+  const persona = currentPersona(plan);
   const router = useRouter();
 
   return (
@@ -18,7 +19,9 @@ export function SiteHeader() {
         </Link>
         {persona && (
           <nav aria-label="Konto demonstracyjne" className="flex flex-wrap items-center gap-x-5">
-            <Link href="/rodzina" className="text-link min-h-11 content-center">{persona.label}</Link>
+            {plan.personaId === GUIDE_ID
+              ? <Link href="/nowa-os" className="text-link min-h-11 content-center">Zmień odpowiedzi</Link>
+              : <Link href="/rodzina" className="text-link min-h-11 content-center">{persona.label}</Link>}
             <Button
               variant="link"
               onClick={() => {

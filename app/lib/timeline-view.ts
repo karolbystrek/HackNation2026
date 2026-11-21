@@ -1,13 +1,9 @@
-import { addDays, diffDays, parseIso, toIso } from "@/lib/dates";
+import { diffDays, parseIso, shiftIso } from "@/lib/dates";
 import type { FamilyTimelineEntry } from "@/lib/family-timeline";
-
-function daysFrom(date: string, days: number): string {
-  return toIso(addDays(parseIso(date)!, days));
-}
 
 function isUrgent(entry: FamilyTimelineEntry, today: string) {
   return entry.kind === "application" && !entry.estimated && !!entry.due &&
-    ["ready", "blocked", "late"].includes(entry.status) && entry.due <= daysFrom(today, 7);
+    ["ready", "blocked", "late"].includes(entry.status) && entry.due <= shiftIso(today, 7);
 }
 
 const relativeDate = new Intl.RelativeTimeFormat("pl-PL");
@@ -26,6 +22,6 @@ export function deadlineNotice(entry: FamilyTimelineEntry, today: string) {
 export function attentionEntries(entries: FamilyTimelineEntry[], today: string) {
   return entries.filter((entry) =>
     entry.status === "review" || isUrgent(entry, today) ||
-    (entry.status === "ready" && (!entry.due || entry.due <= daysFrom(today, 30)))
+    (entry.status === "ready" && (!entry.due || entry.due <= shiftIso(today, 30)))
   ).sort((a, b) => Number(isUrgent(b, today)) - Number(isUrgent(a, today)) || Number(a.status === "blocked") - Number(b.status === "blocked"));
 }

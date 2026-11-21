@@ -1,4 +1,4 @@
-import { addDays, formatDate, parseIso, toIso } from "@/lib/dates";
+import { formatDate, shiftIso } from "@/lib/dates";
 import type { EventWho, TimelineEvent } from "@/lib/events";
 import type { Variant } from "@/lib/calc/variants";
 import type { Persona } from "@/lib/mock/personas";
@@ -32,10 +32,6 @@ export function timelineDate(entry: FamilyTimelineEntry) {
   return entry.completedOn ?? entry.due ?? entry.date;
 }
 
-function shift(date: string, days: number) {
-  return toIso(addDays(parseIso(date)!, days));
-}
-
 export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, doneTasks: string[], today: string): FamilyTimelineEntry[] {
   const birth = persona.birthDate ?? persona.dueDate;
   const birthEvent = persona.events.find((event) => event.type === "birth")!;
@@ -44,7 +40,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
   const { birthCardDate, birthRegistrationDate, birthCertificateDate, parents } = persona;
   const cardDate = birthCardDate ?? birth;
   const rateDeadline = persona.wantsAveragedRate && (chosen?.result.flatRateAllowed ?? true)
-    ? shift(birth, params.flatRateRequestDays) : undefined;
+    ? shiftIso(birth, params.flatRateRequestDays) : undefined;
   const entries: Entry[] = events.map((event) => ({
     ...event,
     id: `event-${event.id}`,
@@ -62,7 +58,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     {
       id: "birth-registration", kind: "application", who: "both", title: "Zgłoszenie urodzenia",
       description: "Zgłoszenie umożliwia USC sporządzenie aktu urodzenia. Wystarczy zgłoszenie jednego rodzica.",
-      date: cardDate, due: shift(cardDate, 21), recipient: "Urząd stanu cywilnego",
+      date: cardDate, due: shiftIso(cardDate, 21), recipient: "Urząd stanu cywilnego",
       guide: "https://www.gov.pl/web/gov/zglos-urodzenie-dziecka",
       completedOn: birthRegistrationDate, requires: ["birth-card"], estimated: !birthCardDate,
     },
@@ -99,14 +95,14 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     {
       id: "paternity", kind: "application", who: "father", title: "Wniosek o urlop ojcowski",
       description: `Złóż co najmniej 7 dni przed planowanym startem (${formatDate(persona.paternityStart)}).`,
-      date: birth, due: shift(persona.paternityStart, -7), estimated: provisional,
+      date: birth, due: shiftIso(persona.paternityStart, -7), estimated: provisional,
       recipient: "Pracodawca", requires: ["birth-certificate"],
       guide: "https://www.gov.pl/web/rodzina/urlop-ojcowski",
     },
     {
       id: "paternity-period", kind: "period", who: "father", title: "Urlop ojcowski",
       description: "Może przypadać w tym samym czasie co urlop macierzyński.",
-      date: persona.paternityStart, end: shift(persona.paternityStart, params.paternityWeeks * 7 - 1),
+      date: persona.paternityStart, end: shiftIso(persona.paternityStart, params.paternityWeeks * 7 - 1),
       requires: ["paternity"], estimated: provisional,
     },
   );
@@ -116,7 +112,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     id: "maternity-period", kind: "period", who: "mother",
     title: parents.mother.contract === "uop" ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
     description: "Rozpoczęcie okresu wynika z daty porodu.",
-    date: maternity.from, end: shift(maternity.to, -1), estimated: provisional, requires: [birthId],
+    date: maternity.from, end: shiftIso(maternity.to, -1), estimated: provisional, requires: [birthId],
   });
 
   // The example cases use one parental period per parent.
@@ -125,7 +121,7 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
     if (!period) continue;
     const id = `parental-${parent}`;
     const employee = parents[parent].contract === "uop";
-    const due = shift(period.from, employee ? -21 : -1);
+    const due = shiftIso(period.from, employee ? -21 : -1);
     const review = !!persona.completedSteps?.[id] && chosen?.key !== persona.initialVariant;
     entries.push(
       {
@@ -140,23 +136,30 @@ export function buildFamilyTimeline(persona: Persona, events: TimelineEvent[], c
         id: `${id}-period`, kind: "period", who: parent,
         title: employee ? "Urlop rodzicielski" : "Okres zasiłku za rodzicielski",
         description: "Termin wynika z wybranego podziału opieki.",
-        date: period.from, end: shift(period.to, -1), requires: [id], estimated: provisional,
+        date: period.from, end: shiftIso(period.to, -1), requires: [id], estimated: provisional,
       },
     );
   }
 
+  return applyProgress(entries, doneTasks, today, persona.completedSteps);
+}
+
+/** Statuses from what is done: blocked until required entries are done, late after the deadline, active while a period runs. */
+export function applyProgress(entries: Entry[], doneTasks: string[], today: string, completedSteps: Record<string, string> = {}): FamilyTimelineEntry[] {
   const completed = new Set(entries.filter((entry) =>
-    entry.completedOn || (persona.completedSteps?.[entry.id] && !entry.review) ||
+    entry.completedOn || (completedSteps[entry.id] && !entry.review) ||
     (entry.kind === "event" && !entry.estimated && entry.date <= today) ||
     (entry.kind === "application" && doneTasks.includes(entry.id))
   ).map((entry) => entry.id));
+  // Guide steps may require an entry that this case leaves out; only present entries can block.
+  const present = new Set(entries.map((entry) => entry.id));
 
   return entries.map((entry): FamilyTimelineEntry => {
-    const completedOn = entry.completedOn ?? persona.completedSteps?.[entry.id];
+    const completedOn = entry.completedOn ?? completedSteps[entry.id];
     const status = entry.review ? "review"
       : completed.has(entry.id)
       ? entry.kind === "event" ? "confirmed" : "completed"
-      : entry.requires?.some((id) => !completed.has(id)) ? "blocked"
+      : entry.requires?.some((id) => present.has(id) && !completed.has(id)) ? "blocked"
       : entry.kind === "application" && entry.due && entry.due < today ? "late"
       : entry.kind === "application" ? "ready"
       : entry.kind === "period" && entry.end && entry.date <= today

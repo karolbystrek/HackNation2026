@@ -13,7 +13,9 @@ export default function Home() {
         Zaplanuj urlopy i zasiłki dla rodziców
       </PageTitle>
       <div className="flex flex-col items-start gap-3">
-        <ButtonLink href="/logowanie">Przejdź do logowania demo</ButtonLink>
+        <ButtonLink href="/nowa-os">Utwórz nową oś czasu</ButtonLink>
+        <p className="max-w-[70ch] text-muted-foreground">Odpowiedz na kilka prostych pytań. Pokażemy, co Ci przysługuje i kiedy złożyć dokumenty.</p>
+        <ButtonLink href="/logowanie" variant="outline">Przejdź do logowania demo</ButtonLink>
         <p className="max-w-[70ch] text-muted-foreground">Wersja demonstracyjna korzysta z przykładowych profili rodzin.</p>
       </div>
       <Card className="max-w-[70ch]">

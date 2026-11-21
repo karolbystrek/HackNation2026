@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { todayInWarsaw } from "@/lib/dates";
 import { buildVariants } from "@/lib/calc/variants";
-import { findPersona } from "@/lib/mock/personas";
+import { applyProgress, buildFamilyTimeline } from "@/lib/family-timeline";
+import { buildGuideTimeline } from "@/lib/guide/tree";
+import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import { defaultParams } from "@/lib/params";
 import { usePlan } from "@/lib/plan-store";
 
@@ -22,10 +24,15 @@ export function useFamily() {
     };
   }, []);
 
-  const persona = findPersona(plan.personaId)!;
+  const fromGuide = plan.personaId === GUIDE_ID;
+  const persona = useMemo(() => currentPersona(plan)!, [plan]);
   const params = defaultParams;
   const variants = useMemo(() => buildVariants(persona, params), [persona, params]);
   const chosen = variants.find((v) => v.key === plan.chosenVariant) ?? null;
   const names = { mother: persona.parents.mother.name, father: persona.parents.father.name, both: "Oboje" };
-  return { plan, persona, params, variants, chosen, names, today };
+  // A questionnaire plan follows the guide's steps; a demo profile its downloaded events and leave variant.
+  const entries = fromGuide
+    ? applyProgress(buildGuideTimeline(plan.guideAnswers, params, today), plan.doneTasks, today)
+    : buildFamilyTimeline(persona, plan.events, chosen, params, plan.doneTasks, today);
+  return { plan, persona, fromGuide, params, variants, chosen, names, entries, today };
 }

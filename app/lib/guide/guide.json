@@ -1,0 +1,2061 @@
+{
+  "$comment": "Guide questionnaire. Each question is shown when its showIf predicate holds; when several are visible and unanswered, the lowest priority is asked first. A predicate may only read answers to questions with a lower priority (checked in tests). Topics whose `when` holds are the result; their steps become timeline entries. Rates and durations live in lib/params.ts, steps name them with lengthParam.",
+  "version": 1,
+  "predicates": {
+    "voluntaryOnly": {
+      "all": [
+        {
+          "has": [
+            "insurance",
+            [
+              "mandate",
+              "business"
+            ]
+          ]
+        },
+        {
+          "not": {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          }
+        }
+      ]
+    },
+    "hasSickness": {
+      "any": [
+        {
+          "has": [
+            "insurance",
+            "employment"
+          ]
+        },
+        {
+          "all": [
+            {
+              "has": [
+                "insurance",
+                [
+                  "mandate",
+                  "business"
+                ]
+              ]
+            },
+            {
+              "eq": [
+                "voluntarySickness",
+                true
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "isChild": {
+      "in": [
+        "situation",
+        [
+          "planning",
+          "pregnant",
+          "born"
+        ]
+      ]
+    },
+    "isPlacement": {
+      "in": [
+        "situation",
+        [
+          "adoption",
+          "foster"
+        ]
+      ]
+    },
+    "notPlanning": {
+      "not": {
+        "eq": [
+          "situation",
+          "planning"
+        ]
+      }
+    },
+    "isMother": {
+      "eq": [
+        "role",
+        "mother"
+      ]
+    },
+    "isFather": {
+      "eq": [
+        "role",
+        "father"
+      ]
+    },
+    "lostChild": {
+      "has": [
+        "special",
+        [
+          "stillbirth",
+          "childDeath"
+        ]
+      ]
+    },
+    "supplementaryCase": {
+      "all": [
+        {
+          "eq": [
+            "situation",
+            "born"
+          ]
+        },
+        {
+          "has": [
+            "special",
+            [
+              "premature",
+              "hospitalized"
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "questions": [
+    {
+      "id": "situation",
+      "priority": 10,
+      "type": "single",
+      "label": "Na jakim etapie jesteś?",
+      "options": [
+        {
+          "value": "planning",
+          "label": "Planuję zostać rodzicem"
+        },
+        {
+          "value": "pregnant",
+          "label": "Jestem w ciąży lub moja partnerka jest w ciąży"
+        },
+        {
+          "value": "born",
+          "label": "Dziecko już się urodziło"
+        },
+        {
+          "value": "adoption",
+          "label": "Przyjmuję dziecko i składam wniosek o przysposobienie (adopcja)"
+        },
+        {
+          "value": "foster",
+          "label": "Przyjmuję dziecko jako [niezawodowa rodzina zastępcza](term.rodzina_zastepcza_niezawodowa)"
+        }
+      ]
+    },
+    {
+      "id": "role",
+      "priority": 20,
+      "type": "single",
+      "label": "Kim jesteś dla dziecka?",
+      "options": [
+        {
+          "value": "mother",
+          "label": "Matką lub przyszłą matką"
+        },
+        {
+          "value": "father",
+          "label": "Ojcem lub przyszłym ojcem"
+        }
+      ]
+    },
+    {
+      "id": "insurance",
+      "priority": 30,
+      "type": "multi",
+      "label": "Na jakiej podstawie pracujesz?",
+      "hint": "Zaznacz wszystko, co dotyczy Ciebie.",
+      "options": [
+        {
+          "value": "employment",
+          "label": "Umowa o pracę"
+        },
+        {
+          "value": "mandate",
+          "label": "Umowa zlecenia"
+        },
+        {
+          "value": "business",
+          "label": "[Własna działalność gospodarcza](term.jdg)"
+        },
+        {
+          "value": "none",
+          "label": "Nie pracuję",
+          "exclusive": true
+        }
+      ]
+    },
+    {
+      "id": "voluntarySickness",
+      "priority": 40,
+      "type": "boolean",
+      "label": "Czy opłacasz [dobrowolne ubezpieczenie chorobowe](term.dobrowolne_chorobowe)?",
+      "hint": "Przy umowie zlecenia i działalności gospodarczej ubezpieczenie chorobowe jest dobrowolne.",
+      "showIf": {
+        "ref": "voluntaryOnly"
+      }
+    },
+    {
+      "id": "insuredSince",
+      "priority": 50,
+      "type": "date",
+      "label": "Od kiedy masz [nieprzerwane](term.nieprzerwane_ubezpieczenie) ubezpieczenie chorobowe z umowy o pracę?",
+      "hint": "Przy umowie o pracę ubezpieczenie chorobowe jest obowiązkowe. Prawo do zasiłku chorobowego masz po 30 dniach ubezpieczenia.",
+      "showIf": {
+        "has": [
+          "insurance",
+          "employment"
+        ]
+      }
+    },
+    {
+      "id": "insuredSince",
+      "priority": 50,
+      "type": "date",
+      "label": "Od kiedy [nieprzerwanie](term.nieprzerwane_ubezpieczenie) opłacasz [dobrowolne ubezpieczenie chorobowe](term.dobrowolne_chorobowe)?",
+      "hint": "Prawo do zasiłku chorobowego masz po 90 dniach dobrowolnego ubezpieczenia.",
+      "showIf": {
+        "all": [
+          {
+            "ref": "voluntaryOnly"
+          },
+          {
+            "eq": [
+              "voluntarySickness",
+              true
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "dueDate",
+      "priority": 60,
+      "type": "date",
+      "label": "Jaka jest przewidywana data porodu?",
+      "showIf": {
+        "eq": [
+          "situation",
+          "pregnant"
+        ]
+      }
+    },
+    {
+      "id": "birthDate",
+      "priority": 60,
+      "type": "date",
+      "label": "Kiedy urodziło się dziecko?",
+      "showIf": {
+        "eq": [
+          "situation",
+          "born"
+        ]
+      }
+    },
+    {
+      "id": "placementDate",
+      "priority": 60,
+      "type": "date",
+      "label": "Kiedy przyjęto dziecko na wychowanie?",
+      "showIf": {
+        "ref": "isPlacement"
+      }
+    },
+    {
+      "id": "childAge",
+      "priority": 70,
+      "type": "number",
+      "min": 0,
+      "max": 18,
+      "label": "Ile lat ma dziecko?",
+      "showIf": {
+        "ref": "isPlacement"
+      }
+    },
+    {
+      "id": "multiplePregnancy",
+      "priority": 65,
+      "type": "boolean",
+      "label": "Czy to ciąża mnoga?",
+      "hint": "Na przykład bliźnięta albo trojaczki.",
+      "showIf": {
+        "eq": [
+          "situation",
+          "pregnant"
+        ]
+      }
+    },
+    {
+      "id": "multipleBirth",
+      "priority": 65,
+      "type": "boolean",
+      "label": "Czy przy jednym porodzie urodziło się więcej niż jedno dziecko?",
+      "showIf": {
+        "eq": [
+          "situation",
+          "born"
+        ]
+      }
+    },
+    {
+      "id": "multiplePlacement",
+      "priority": 65,
+      "type": "boolean",
+      "label": "Czy przyjmujesz więcej niż jedno dziecko w tym samym czasie?",
+      "showIf": {
+        "ref": "isPlacement"
+      }
+    },
+    {
+      "id": "childrenCount",
+      "priority": 66,
+      "type": "number",
+      "min": 2,
+      "max": 10,
+      "label": "Ile dzieci?",
+      "hint": "Wpisz liczbę wszystkich dzieci z tej ciąży, porodu albo przyjęcia.",
+      "showIf": {
+        "any": [
+          {
+            "eq": [
+              "multiplePregnancy",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "multipleBirth",
+              true
+            ]
+          },
+          {
+            "eq": [
+              "multiplePlacement",
+              true
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "special",
+      "priority": 90,
+      "type": "multi",
+      "label": "Czy dotyczy Cię któraś z tych sytuacji?",
+      "hint": "Zaznacz wszystko, co dotyczy Ciebie, albo przejdź dalej.",
+      "optional": true,
+      "showIf": {
+        "ref": "notPlanning"
+      },
+      "options": [
+        {
+          "value": "jobLostInPregnancy",
+          "label": "Straciłam pracę w ciąży przez upadłość, likwidację lub śmierć pracodawcy",
+          "showIf": {
+            "all": [
+              {
+                "eq": [
+                  "situation",
+                  "pregnant"
+                ]
+              },
+              {
+                "ref": "isMother"
+              }
+            ]
+          }
+        },
+        {
+          "value": "insuranceEnded",
+          "label": "Ubezpieczenie skończyło się w czasie ciąży, na przykład umowa wygasła",
+          "showIf": {
+            "all": [
+              {
+                "eq": [
+                  "situation",
+                  "pregnant"
+                ]
+              },
+              {
+                "ref": "isMother"
+              }
+            ]
+          }
+        },
+        {
+          "value": "miscarriage",
+          "label": "[Poronienie](term.martwe_urodzenie)",
+          "showIf": {
+            "eq": [
+              "situation",
+              "pregnant"
+            ]
+          }
+        },
+        {
+          "value": "premature",
+          "label": "Dziecko urodziło się przedwcześnie",
+          "showIf": {
+            "eq": [
+              "situation",
+              "born"
+            ]
+          }
+        },
+        {
+          "value": "hospitalized",
+          "label": "Dziecko wymaga pobytu w szpitalu",
+          "showIf": {
+            "eq": [
+              "situation",
+              "born"
+            ]
+          }
+        },
+        {
+          "value": "zaZyciem",
+          "label": "Dziecko ma zaświadczenie [„Za życiem”](term.za_zyciem)",
+          "showIf": {
+            "in": [
+              "situation",
+              [
+                "pregnant",
+                "born"
+              ]
+            ]
+          }
+        },
+        {
+          "value": "stillbirth",
+          "label": "[Martwe urodzenie](term.martwe_urodzenie)",
+          "showIf": {
+            "eq": [
+              "situation",
+              "born"
+            ]
+          }
+        },
+        {
+          "value": "childDeath",
+          "label": "Śmierć dziecka",
+          "showIf": {
+            "ref": "notPlanning"
+          }
+        },
+        {
+          "value": "motherIllOrHospital",
+          "label": "Matka dziecka jest w szpitalu, jest [niezdolna do samodzielnej egzystencji](term.orzeczenie_niezdolnosc_egzystencji), zmarła albo porzuciła dziecko",
+          "showIf": {
+            "eq": [
+              "situation",
+              "born"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "largeEmployer",
+      "priority": 100,
+      "type": "single",
+      "label": "Czy Twój pracodawca lub zleceniodawca zgłasza do ubezpieczenia chorobowego [więcej niż 20 osób](term.duzy_platnik)?",
+      "hint": "Od tego zależy, kto wypłaca zasiłek: pracodawca czy ZUS.",
+      "showIf": {
+        "any": [
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "mandate"
+                ]
+              },
+              {
+                "eq": [
+                  "voluntarySickness",
+                  true
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": [
+        {
+          "value": "yes",
+          "label": "Tak"
+        },
+        {
+          "value": "no",
+          "label": "Nie"
+        },
+        {
+          "value": "unknown",
+          "label": "Nie wiem"
+        }
+      ]
+    },
+    {
+      "id": "otherParentInsured",
+      "priority": 110,
+      "type": "boolean",
+      "label": "Czy drugi rodzic ma ubezpieczenie chorobowe?"
+    },
+    {
+      "id": "wantsAveragedRate",
+      "priority": 120,
+      "type": "boolean",
+      "label": "Czy chcesz od razu wnioskować o cały urlop macierzyński i rodzicielski ze [stawką 81,5%](term.wariant_81_5)?",
+      "hint": "Wniosek trzeba złożyć najpóźniej 21 dni po porodzie. Inaczej dostaniesz 100% za macierzyński i 70% za rodzicielski.",
+      "showIf": {
+        "all": [
+          {
+            "ref": "isMother"
+          },
+          {
+            "ref": "isChild"
+          },
+          {
+            "ref": "notPlanning"
+          },
+          {
+            "ref": "hasSickness"
+          },
+          {
+            "not": {
+              "ref": "lostChild"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "combineWithWork",
+      "priority": 130,
+      "type": "boolean",
+      "label": "Czy chcesz pracować w niepełnym wymiarze w czasie urlopu rodzicielskiego?",
+      "showIf": {
+        "all": [
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "not": {
+              "ref": "lostChild"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "over50",
+      "priority": 55,
+      "type": "boolean",
+      "label": "Czy masz ukończone 50 lat?",
+      "hint": "Od tego zależy, ile dni zwolnienia w roku [opłaca pracodawca](term.wynagrodzenie_chorobowe): 33 dni, a po 50. roku życia 14 dni.",
+      "showIf": {
+        "all": [
+          {
+            "ref": "isMother"
+          },
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "in": [
+              "situation",
+              [
+                "planning",
+                "pregnant"
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "gestationWeek",
+      "priority": 92,
+      "type": "number",
+      "min": 20,
+      "max": 45,
+      "label": "W którym tygodniu ciąży urodziło się dziecko?",
+      "showIf": {
+        "ref": "supplementaryCase"
+      }
+    },
+    {
+      "id": "birthWeight",
+      "priority": 94,
+      "type": "number",
+      "min": 200,
+      "max": 7000,
+      "label": "Ile gramów ważyło dziecko przy urodzeniu?",
+      "hint": "Przy kilkorgu dzieciach podaj najniższą masę urodzeniową.",
+      "showIf": {
+        "ref": "supplementaryCase"
+      }
+    },
+    {
+      "id": "hospitalWeeks",
+      "priority": 96,
+      "type": "number",
+      "min": 0,
+      "max": 52,
+      "label": "Ile tygodni dziecko jest lub było w szpitalu?",
+      "hint": "Zsumuj wszystkie pobyty, niepełny tydzień liczy się jako cały. Przy porodzie po 37. tygodniu liczy się pobyt od 5. dnia po porodzie, jeśli trwał co najmniej 2 kolejne dni i zaczął się do 28. dnia. Przy kilkorgu dzieciach podaj najdłuższy pobyt.",
+      "showIf": {
+        "ref": "supplementaryCase"
+      }
+    },
+    {
+      "id": "paternityParts",
+      "priority": 115,
+      "type": "single",
+      "label": "Jak chcesz wykorzystać urlop ojcowski?",
+      "showIf": {
+        "all": [
+          {
+            "ref": "isFather"
+          },
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "in": [
+              "situation",
+              [
+                "pregnant",
+                "born",
+                "adoption"
+              ]
+            ]
+          },
+          {
+            "not": {
+              "ref": "lostChild"
+            }
+          }
+        ]
+      },
+      "options": [
+        {
+          "value": "one",
+          "label": "Całe 2 tygodnie naraz"
+        },
+        {
+          "value": "two",
+          "label": "W dwóch częściach po tygodniu"
+        }
+      ]
+    },
+    {
+      "id": "monthlyIncome",
+      "priority": 140,
+      "type": "number",
+      "min": 0,
+      "max": 1000000,
+      "optional": true,
+      "label": "Ile średnio zarabiasz miesięcznie brutto?",
+      "hint": "[Średnia z ostatnich 12 miesięcy](term.podstawa_wymiaru). Przy działalności albo zleceniu z dobrowolnym ubezpieczeniem podaj zadeklarowaną podstawę składek. Możesz pominąć to pytanie.",
+      "showIf": {
+        "ref": "hasSickness"
+      }
+    }
+  ],
+  "topics": [
+    {
+      "id": "sicknessPregnancy",
+      "priority": 10,
+      "title": "Zasiłek chorobowy w ciąży",
+      "when": {
+        "all": [
+          {
+            "in": [
+              "situation",
+              [
+                "planning",
+                "pregnant"
+              ]
+            ]
+          },
+          {
+            "ref": "isMother"
+          },
+          {
+            "ref": "hasSickness"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "sick-ezla",
+          "kind": "document",
+          "who": "mother",
+          "anchor": "today",
+          "title": "e-ZLA z kodem B",
+          "description": "Przy niezdolności do pracy lekarz wystawia e-ZLA z kodem „B”. Zasiłek wynosi 100% podstawy, maksymalnie przez 270 dni. Zasiłek wypłaca ZUS od pierwszego dnia.",
+          "dateNote": "Gdy lekarz stwierdzi niezdolność do pracy",
+          "when": {
+            "not": {
+              "has": [
+                "insurance",
+                "employment"
+              ]
+            }
+          }
+        },
+        {
+          "id": "sick-ezla",
+          "kind": "document",
+          "who": "mother",
+          "anchor": "today",
+          "title": "e-ZLA z kodem B",
+          "description": "Przy niezdolności do pracy lekarz wystawia e-ZLA z kodem „B”. Zasiłek wynosi 100% podstawy, maksymalnie przez 270 dni. Pierwsze 33 dni zwolnienia w roku opłaca pracodawca jako wynagrodzenie chorobowe, potem zasiłek.",
+          "dateNote": "Gdy lekarz stwierdzi niezdolność do pracy",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "not": {
+                  "eq": [
+                    "over50",
+                    true
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "sick-ezla",
+          "kind": "document",
+          "who": "mother",
+          "anchor": "today",
+          "title": "e-ZLA z kodem B",
+          "description": "Przy niezdolności do pracy lekarz wystawia e-ZLA z kodem „B”. Zasiłek wynosi 100% podstawy, maksymalnie przez 270 dni. Pierwsze 14 dni zwolnienia w roku opłaca pracodawca jako wynagrodzenie chorobowe (po 50. roku życia), potem zasiłek.",
+          "dateNote": "Gdy lekarz stwierdzi niezdolność do pracy",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "eq": [
+                  "over50",
+                  true
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "sick-claim-zas53",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "today",
+          "requires": [
+            "sick-ezla"
+          ],
+          "title": "ZAS-53 · wniosek o zasiłek chorobowy",
+          "description": "Przy działalności gospodarczej składasz wniosek sama.",
+          "recipient": "ZUS",
+          "guide": "https://www.zus.pl/-/zaswiadczenie-zas-53",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "business"
+                ]
+              },
+              {
+                "not": {
+                  "has": [
+                    "insurance",
+                    [
+                      "employment",
+                      "mandate"
+                    ]
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "sick-claim-payer",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "today",
+          "requires": [
+            "sick-ezla"
+          ],
+          "title": "Poinformuj płatnika o nieobecności",
+          "description": "e-ZLA trafia do płatnika automatycznie. Jeśli płatnik nie wypłaca zasiłku sam, wysyła do ZUS Z-3 (umowa o pracę) albo Z-3a (zlecenie).",
+          "recipient": "Płatnik składek",
+          "when": {
+            "has": [
+              "insurance",
+              [
+                "employment",
+                "mandate"
+              ]
+            ]
+          }
+        }
+      ],
+      "benefitIds": [
+        "benefit.sickness_pregnancy",
+        "benefit.sick_pay_employer"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.employee_large_sickness",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "in": [
+                  "largeEmployer",
+                  [
+                    "yes",
+                    "unknown"
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.employee_small_sickness",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "in": [
+                  "largeEmployer",
+                  [
+                    "no",
+                    "unknown"
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.contractor",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "mandate"
+                ]
+              },
+              {
+                "eq": [
+                  "voluntarySickness",
+                  true
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.self_employed",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "business"
+                ]
+              },
+              {
+                "eq": [
+                  "voluntarySickness",
+                  true
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "riskIds": [
+        "risk.waiting_period",
+        "risk.sick_leave_misuse"
+      ],
+      "choices": [
+        {
+          "title": "Zwolnienie lekarskie albo praca do porodu",
+          "body": "Jeśli lekarz stwierdzi niezdolność do pracy, dostaniesz e-ZLA z kodem „B” i 100% podstawy. Jeśli czujesz się dobrze, możesz pracować aż do porodu."
+        }
+      ]
+    },
+    {
+      "id": "maternityEquivalent",
+      "priority": 20,
+      "title": "Zasiłek w wysokości zasiłku macierzyńskiego",
+      "when": {
+        "has": [
+          "special",
+          "jobLostInPregnancy"
+        ]
+      },
+      "steps": [
+        {
+          "id": "equivalent-claim",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "today",
+          "title": "Wniosek o zasiłek w wysokości zasiłku macierzyńskiego",
+          "description": "Przysługuje do dnia porodu, w wysokości 100% podstawy.",
+          "recipient": "ZUS"
+        }
+      ],
+      "benefitIds": [
+        "benefit.maternity_equivalent"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.job_loss_liquidation"
+        }
+      ],
+      "riskIds": [
+        "risk.unlawful_dismissal_no_equivalent"
+      ]
+    },
+    {
+      "id": "maternity",
+      "priority": 30,
+      "title": "Zasiłek macierzyński za urlop macierzyński",
+      "when": {
+        "all": [
+          {
+            "ref": "isChild"
+          },
+          {
+            "ref": "hasSickness"
+          },
+          {
+            "not": {
+              "ref": "lostChild"
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "birth",
+          "kind": "event",
+          "who": "both",
+          "anchor": "birth",
+          "title": "Poród",
+          "description": "Od tej daty liczą się terminy wniosków."
+        },
+        {
+          "id": "pre-birth-leave",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "birth",
+          "offsetDays": -42,
+          "title": "Wniosek o urlop macierzyński przed porodem",
+          "description": "Opcjonalnie: do 6 tygodni przed przewidywaną datą porodu. Dołącz zaświadczenie lekarskie o przewidywanej dacie porodu.",
+          "recipient": "Pracodawca",
+          "when": {
+            "all": [
+              {
+                "eq": [
+                  "situation",
+                  "pregnant"
+                ]
+              },
+              {
+                "ref": "isMother"
+              },
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "maternity-claim",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "birth",
+          "requires": [
+            "birth"
+          ],
+          "title": "Wniosek o zasiłek macierzyński",
+          "description": "Pracownica składa wniosek u pracodawcy, który wypłaca zasiłek albo wysyła Z-3 do ZUS. Pozostałe osoby składają ZAM.",
+          "recipient": "Pracodawca albo ZUS",
+          "guide": "https://www.zus.pl/wzory-formularzy/zasilki/zasilek-macierzynski",
+          "when": {
+            "ref": "isMother"
+          }
+        },
+        {
+          "id": "averaged-rate",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "birth",
+          "dueDays": 21,
+          "requires": [
+            "birth"
+          ],
+          "title": "Wniosek o stawkę 81,5%",
+          "description": "Wniosek o cały urlop macierzyński i rodzicielski. Stawka nie obejmuje 9 tygodni drugiego rodzica.",
+          "recipient": "Pracodawca albo ZUS",
+          "when": {
+            "eq": [
+              "wantsAveragedRate",
+              true
+            ]
+          }
+        },
+        {
+          "id": "maternity-period",
+          "kind": "period",
+          "who": "mother",
+          "anchor": "birth",
+          "lengthParam": "maternity",
+          "requires": [
+            "birth"
+          ],
+          "title": "Urlop macierzyński",
+          "description": "Zasiłek 100% podstawy. Pierwsze 14 tygodni matka wykorzystuje sama.",
+          "when": {
+            "ref": "isMother"
+          }
+        }
+      ],
+      "benefitIds": [
+        "benefit.maternity_leave"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.employee_large_birth",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "in": [
+                  "largeEmployer",
+                  [
+                    "yes",
+                    "unknown"
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.employee_small_birth",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "in": [
+                  "largeEmployer",
+                  [
+                    "no",
+                    "unknown"
+                  ]
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.contractor",
+          "when": {
+            "all": [
+              {
+                "all": [
+                  {
+                    "has": [
+                      "insurance",
+                      "mandate"
+                    ]
+                  },
+                  {
+                    "eq": [
+                      "voluntarySickness",
+                      true
+                    ]
+                  }
+                ]
+              },
+              {
+                "not": {
+                  "has": [
+                    "insurance",
+                    "employment"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.self_employed",
+          "when": {
+            "all": [
+              {
+                "all": [
+                  {
+                    "has": [
+                      "insurance",
+                      "business"
+                    ]
+                  },
+                  {
+                    "eq": [
+                      "voluntarySickness",
+                      true
+                    ]
+                  }
+                ]
+              },
+              {
+                "not": {
+                  "has": [
+                    "insurance",
+                    "employment"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "scenario.averaged_variant",
+          "when": {
+            "eq": [
+              "wantsAveragedRate",
+              true
+            ]
+          }
+        },
+        {
+          "id": "scenario.multiple_birth",
+          "when": {
+            "gte": [
+              "childrenCount",
+              2
+            ]
+          }
+        },
+        {
+          "id": "scenario.fixed_term_extended",
+          "when": {
+            "all": [
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
+              },
+              {
+                "eq": [
+                  "situation",
+                  "pregnant"
+                ]
+              },
+              {
+                "ref": "isMother"
+              }
+            ]
+          }
+        }
+      ],
+      "riskIds": [
+        "risk.no_insurance_on_birth_day",
+        "risk.late_81_5_request"
+      ],
+      "choices": [
+        {
+          "title": "Kiedy zacząć urlop macierzyński",
+          "body": "Możesz zacząć do 6 tygodni przed przewidywaną datą porodu, z zaświadczeniem lekarskim o tej dacie, albo w dniu porodu. Tygodnie wykorzystane przed porodem skracają urlop po porodzie.",
+          "when": {
+            "all": [
+              {
+                "ref": "isMother"
+              },
+              {
+                "eq": [
+                  "situation",
+                  "pregnant"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "title": "Stawka 81,5% albo 100% i 70%",
+          "body": "Wniosek o cały macierzyński i rodzicielski złożony do 21 dni po porodzie daje 81,5% za cały okres. Bez niego dostajesz 100% za macierzyński i 70% za rodzicielski. Łącznie wychodzi podobnie, różni się rozłożenie w czasie.",
+          "when": {
+            "all": [
+              {
+                "ref": "isMother"
+              },
+              {
+                "not": {
+                  "ref": "lostChild"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "title": "Przekazanie części macierzyńskiego ojcu",
+          "body": "Po 14 tygodniach od porodu możesz zrezygnować z reszty urlopu macierzyńskiego, jeśli przejmie ją ojciec dziecka. Wniosek składacie oboje.",
+          "when": {
+            "all": [
+              {
+                "ref": "isMother"
+              },
+              {
+                "eq": [
+                  "otherParentInsured",
+                  true
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "title": "Przejęcie macierzyńskiego przez ojca",
+          "body": "Gdy matka jest w szpitalu, jest niezdolna do samodzielnej egzystencji, zmarła albo porzuciła dziecko, ojciec może przejąć urlop wcześniej niż po 14 tygodniach.",
+          "when": {
+            "all": [
+              {
+                "ref": "isFather"
+              },
+              {
+                "has": [
+                  "special",
+                  "motherIllOrHospital"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "birthRegistration",
+      "priority": 35,
+      "title": "Zgłoszenie urodzenia i akt urodzenia",
+      "when": {
+        "all": [
+          {
+            "in": [
+              "situation",
+              [
+                "pregnant",
+                "born"
+              ]
+            ]
+          },
+          {
+            "not": {
+              "has": [
+                "special",
+                "miscarriage"
+              ]
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "birth-registration",
+          "kind": "application",
+          "who": "both",
+          "anchor": "birth",
+          "dueDays": 21,
+          "title": "Zgłoszenie urodzenia",
+          "description": "Wystarczy zgłoszenie jednego rodzica. Termin liczy się od wystawienia karty urodzenia.",
+          "recipient": "Urząd stanu cywilnego",
+          "guide": "https://www.gov.pl/web/gov/zglos-urodzenie-dziecka"
+        },
+        {
+          "id": "birth-certificate",
+          "kind": "document",
+          "who": "both",
+          "anchor": "birth",
+          "requires": [
+            "birth-registration"
+          ],
+          "title": "Odpis aktu urodzenia",
+          "description": "Skrócony odpis jest potrzebny m.in. do wniosków urlopowych u pracodawcy.",
+          "guide": "https://www.gov.pl/web/cyfryzacja/rejestr-stanu-cywilnego",
+          "dateNote": "Po zgłoszeniu do USC"
+        }
+      ]
+    },
+    {
+      "id": "supplementary",
+      "priority": 40,
+      "title": "Uzupełniający urlop macierzyński",
+      "when": {
+        "all": [
+          {
+            "ref": "hasSickness"
+          },
+          {
+            "ref": "supplementaryCase"
+          },
+          {
+            "gte": [
+              "hospitalWeeks",
+              1
+            ]
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "supplementary-request",
+          "kind": "application",
+          "who": "me",
+          "anchor": "birth",
+          "title": "Wniosek o uzupełniający urlop macierzyński",
+          "description": "Dla jednego z rodziców, bezpośrednio po macierzyńskim. Dołącz zaświadczenie ze szpitala o pobycie dziecka i oświadczenie drugiego rodzica.",
+          "recipient": "Pracodawca albo ZUS",
+          "dateNote": "Przed końcem urlopu macierzyńskiego"
+        },
+        {
+          "id": "supplementary-period",
+          "kind": "period",
+          "who": "me",
+          "anchor": "birth",
+          "startAfter": "maternity",
+          "lengthParam": "supplementary",
+          "requires": [
+            "supplementary-request"
+          ],
+          "title": "Uzupełniający urlop macierzyński",
+          "description": "Tydzień urlopu za każdy tydzień pobytu dziecka w szpitalu, do 15 tygodni przy porodzie przed 28. tygodniem ciąży lub masie do 1000 g, w innych przypadkach do 8 tygodni. Zasiłek 100% podstawy."
+        }
+      ],
+      "benefitIds": [
+        "benefit.supplementary_maternity"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.premature_hospitalised"
+        }
+      ],
+      "riskIds": [
+        "risk.supplementary_too_late"
+      ],
+      "choices": [
+        {
+          "title": "Kto weźmie uzupełniający urlop",
+          "body": "Przysługuje matce albo ojcu, tylko jednemu z Was. Zaczyna się od razu po macierzyńskim i nie dzieli się na części."
+        }
+      ]
+    },
+    {
+      "id": "parental",
+      "priority": 50,
+      "title": "Zasiłek macierzyński za urlop rodzicielski",
+      "when": {
+        "all": [
+          {
+            "ref": "hasSickness"
+          },
+          {
+            "not": {
+              "ref": "lostChild"
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "parental-request",
+          "kind": "application",
+          "who": "me",
+          "anchor": "birth",
+          "offsetDays": 140,
+          "dueDays": 119,
+          "title": "Wniosek o urlop rodzicielski",
+          "description": "Co najmniej 21 dni przed rozpoczęciem każdej części. Data zakłada start po 20 tygodniach macierzyńskiego. 9 tygodni przysługuje wyłącznie Tobie.",
+          "recipient": "Pracodawca albo ZUS (ZAM)",
+          "guide": "https://www.gov.pl/web/rodzina/urlop-rodzicielski"
+        },
+        {
+          "id": "parental-period",
+          "kind": "period",
+          "who": "me",
+          "anchor": "birth",
+          "offsetDays": 140,
+          "lengthParam": "parentalOwn",
+          "requires": [
+            "parental-request"
+          ],
+          "title": "Twoja część urlopu rodzicielskiego",
+          "description": "Zasiłek 70% podstawy (albo 81,5% przy wniosku złożonym do 21 dni po porodzie). Do wykorzystania do końca roku, w którym dziecko kończy 6 lat."
+        }
+      ],
+      "benefitIds": [
+        "benefit.parental"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.parental_both_parents",
+          "when": {
+            "eq": [
+              "otherParentInsured",
+              true
+            ]
+          }
+        }
+      ],
+      "riskIds": [
+        "risk.reserved_9_weeks_lost",
+        "risk.no_parental_first_year",
+        "risk.parental_use_by"
+      ],
+      "choices": [
+        {
+          "title": "Ile trwa urlop rodzicielski",
+          "body": "41 tygodni przy jednym dziecku, 43 przy kilkorgu. Z zaświadczeniem „Za życiem” 65 albo 67 tygodni. Z tego 9 tygodni przysługuje wyłącznie każdemu z rodziców, zasiłek wynosi 70% podstawy."
+        },
+        {
+          "title": "Podział urlopu rodzicielskiego",
+          "body": "Możecie korzystać jednocześnie albo na zmianę, w maksymalnie 5 częściach, do końca roku, w którym dziecko kończy 6 lat. 9 tygodni przysługuje wyłącznie każdemu z Was i nie można ich przekazać.",
+          "when": {
+            "eq": [
+              "otherParentInsured",
+              true
+            ]
+          }
+        },
+        {
+          "title": "Cały rodzicielski dla jednego rodzica",
+          "body": "Jeśli drugi rodzic nie ma ubezpieczenia chorobowego, z urlopu korzystasz sam(a). 9 tygodni drugiego rodzica przepada.",
+          "when": {
+            "eq": [
+              "otherParentInsured",
+              false
+            ]
+          }
+        },
+        {
+          "title": "Praca w czasie urlopu rodzicielskiego",
+          "body": "Możesz pracować do połowy etatu. Urlop wydłuża się proporcjonalnie, a zasiłek przysługuje za cały okres.",
+          "when": {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "paternity",
+      "priority": 60,
+      "title": "Urlop ojcowski",
+      "when": {
+        "all": [
+          {
+            "ref": "isFather"
+          },
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "not": {
+              "eq": [
+                "situation",
+                "foster"
+              ]
+            }
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "paternity-request",
+          "kind": "application",
+          "who": "father",
+          "anchor": "birth",
+          "dueDays": -7,
+          "title": "Wniosek o urlop ojcowski",
+          "description": "Co najmniej 7 dni przed startem. 14 dni, w całości albo w 2 częściach po min. 7 dni, do 12. miesiąca życia dziecka.",
+          "recipient": "Pracodawca",
+          "guide": "https://www.gov.pl/web/rodzina/urlop-ojcowski"
+        },
+        {
+          "id": "paternity-period",
+          "kind": "period",
+          "who": "father",
+          "anchor": "birth",
+          "lengthParam": "paternity",
+          "requires": [
+            "paternity-request"
+          ],
+          "title": "Urlop ojcowski",
+          "description": "Zasiłek 100% podstawy. Może pokrywać się z macierzyńskim.",
+          "when": {
+            "not": {
+              "eq": [
+                "paternityParts",
+                "two"
+              ]
+            }
+          }
+        },
+        {
+          "id": "paternity-part-1",
+          "kind": "period",
+          "who": "father",
+          "anchor": "birth",
+          "lengthParam": "paternityPart",
+          "requires": [
+            "paternity-request"
+          ],
+          "title": "Urlop ojcowski · część 1",
+          "description": "Zasiłek 100% podstawy. Może pokrywać się z macierzyńskim.",
+          "when": {
+            "eq": [
+              "paternityParts",
+              "two"
+            ]
+          }
+        },
+        {
+          "id": "paternity-part-2",
+          "kind": "period",
+          "who": "father",
+          "anchor": "birth",
+          "offsetDays": 7,
+          "requires": [
+            "paternity-request"
+          ],
+          "title": "Urlop ojcowski · część 2",
+          "description": "Drugi tydzień w wybranym terminie, do ukończenia przez dziecko 12 miesięcy. Złóż wniosek co najmniej 7 dni wcześniej.",
+          "dateNote": "Termin do ustalenia, do 12. miesiąca życia dziecka",
+          "when": {
+            "eq": [
+              "paternityParts",
+              "two"
+            ]
+          }
+        }
+      ],
+      "benefitIds": [
+        "benefit.paternity"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.paternity"
+        }
+      ],
+      "riskIds": [
+        "risk.paternity_expiry"
+      ],
+      "choices": [
+        {
+          "title": "Urlop ojcowski w całości albo w 2 częściach",
+          "body": "14 dni naraz albo w dwóch częściach po co najmniej 7 dni, do ukończenia przez dziecko 12 miesięcy. Może pokrywać się z macierzyńskim matki."
+        }
+      ]
+    },
+    {
+      "id": "adoptionLeave",
+      "priority": 70,
+      "title": "Urlop na warunkach urlopu macierzyńskiego",
+      "when": {
+        "all": [
+          {
+            "ref": "hasSickness"
+          },
+          {
+            "any": [
+              {
+                "all": [
+                  {
+                    "eq": [
+                      "situation",
+                      "adoption"
+                    ]
+                  },
+                  {
+                    "lt": [
+                      "childAge",
+                      14
+                    ]
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "eq": [
+                      "situation",
+                      "foster"
+                    ]
+                  },
+                  {
+                    "lt": [
+                      "childAge",
+                      10
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "$comment": "shortcut: foster limit is 7 years, or 10 with deferred schooling, which we don't ask about.",
+      "steps": [
+        {
+          "id": "placement",
+          "kind": "event",
+          "who": "both",
+          "anchor": "placement",
+          "title": "Przyjęcie dziecka na wychowanie",
+          "description": "Od tej daty liczą się terminy."
+        },
+        {
+          "id": "conditions-request",
+          "kind": "application",
+          "who": "me",
+          "anchor": "placement",
+          "dueDays": -7,
+          "requires": [
+            "placement"
+          ],
+          "title": "Wniosek o urlop na warunkach urlopu macierzyńskiego",
+          "description": "Dołącz dokument z sądu o wszczęciu przysposobienia albo o umieszczeniu w rodzinie zastępczej.",
+          "recipient": "Pracodawca albo ZUS (ZAM)"
+        },
+        {
+          "id": "conditions-period",
+          "kind": "period",
+          "who": "me",
+          "anchor": "placement",
+          "lengthParam": "maternity",
+          "requires": [
+            "conditions-request"
+          ],
+          "title": "Urlop na warunkach urlopu macierzyńskiego",
+          "description": "Zasiłek 100% podstawy."
+        }
+      ],
+      "benefitIds": [
+        "benefit.maternity_conditions"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.adoption",
+          "when": {
+            "eq": [
+              "situation",
+              "adoption"
+            ]
+          }
+        },
+        {
+          "id": "scenario.foster",
+          "when": {
+            "eq": [
+              "situation",
+              "foster"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "stillbirth",
+      "priority": 80,
+      "title": "Zasiłek po martwym urodzeniu lub śmierci dziecka",
+      "when": {
+        "all": [
+          {
+            "ref": "lostChild"
+          },
+          {
+            "ref": "hasSickness"
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "stillbirth-claim",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "birth",
+          "title": "Wniosek o zasiłek macierzyński",
+          "description": "8 tygodni po porodzie, nie krócej niż 7 dni od zgonu dziecka. Dołącz zaświadczenie o martwym urodzeniu albo akt zgonu.",
+          "recipient": "Pracodawca albo ZUS (ZAM)"
+        },
+        {
+          "id": "stillbirth-period",
+          "kind": "period",
+          "who": "mother",
+          "anchor": "birth",
+          "lengthParam": "stillbirth",
+          "title": "Okres zasiłku macierzyńskiego",
+          "description": "Zasiłek 100% podstawy."
+        }
+      ],
+      "benefitIds": [
+        "benefit.maternity_leave",
+        "benefit.funeral"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.stillbirth_or_death_lt8w"
+        },
+        {
+          "id": "scenario.child_death_gt8w",
+          "when": {
+            "has": [
+              "special",
+              "childDeath"
+            ]
+          }
+        },
+        {
+          "id": "scenario.funeral_stillbirth"
+        }
+      ]
+    },
+    {
+      "id": "partTime",
+      "priority": 90,
+      "title": "Łączenie urlopu rodzicielskiego z pracą",
+      "when": {
+        "all": [
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "eq": [
+              "combineWithWork",
+              true
+            ]
+          }
+        ]
+      },
+      "steps": [
+        {
+          "id": "combine-request",
+          "kind": "application",
+          "who": "me",
+          "anchor": "birth",
+          "offsetDays": 140,
+          "dueDays": 119,
+          "title": "Wniosek o łączenie urlopu rodzicielskiego z pracą",
+          "description": "Praca do połowy etatu. Urlop wydłuża się proporcjonalnie, zasiłek przysługuje za cały okres.",
+          "recipient": "Pracodawca"
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.combine_parental_work"
+        }
+      ]
+    },
+    {
+      "id": "noSickness",
+      "priority": 95,
+      "title": "Gdy nie masz ubezpieczenia chorobowego",
+      "when": {
+        "not": {
+          "ref": "hasSickness"
+        }
+      },
+      "benefitIds": [
+        "benefit.parental_allowance"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.uninsured_parental_allowance"
+        }
+      ],
+      "riskIds": [
+        "risk.no_insurance_on_birth_day"
+      ],
+      "steps": [],
+      "choices": [
+        {
+          "title": "Dobrowolne ubezpieczenie chorobowe",
+          "body": "Przy zleceniu albo działalności możesz zgłosić się do dobrowolnego ubezpieczenia chorobowego. Prawo do zasiłku chorobowego powstaje po 90 dniach, a macierzyński wymaga ubezpieczenia w dniu porodu. Zgłoszenia nie można złożyć wstecz.",
+          "when": {
+            "has": [
+              "insurance",
+              [
+                "mandate",
+                "business"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "risks",
+      "priority": 100,
+      "title": "Co może sprawić, że stracisz zasiłek",
+      "when": {
+        "any": [
+          {
+            "not": {
+              "ref": "hasSickness"
+            }
+          },
+          {
+            "in": [
+              "situation",
+              [
+                "planning",
+                "pregnant"
+              ]
+            ]
+          }
+        ]
+      },
+      "steps": [],
+      "riskIds": [
+        "risk.sham_contract",
+        "risk.base_inflation",
+        "risk.no_insurance_on_birth_day",
+        {
+          "id": "risk.jdg_debt",
+          "when": {
+            "has": [
+              "insurance",
+              "business"
+            ]
+          }
+        },
+        {
+          "id": "risk.start_relief_no_cover",
+          "when": {
+            "has": [
+              "insurance",
+              "business"
+            ]
+          }
+        },
+        {
+          "id": "risk.voluntary_no_backdating",
+          "when": {
+            "ref": "voluntaryOnly"
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.mother_uninsured",
+          "when": {
+            "all": [
+              {
+                "ref": "isFather"
+              },
+              {
+                "eq": [
+                  "otherParentInsured",
+                  false
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "employeeProtection",
+      "priority": 110,
+      "title": "Ochrona pracy w ciąży i na urlopie",
+      "when": {
+        "has": [
+          "insurance",
+          "employment"
+        ]
+      },
+      "steps": []
+    },
+    {
+      "id": "charity",
+      "priority": 120,
+      "title": "Gdzie szukać wsparcia",
+      "when": {
+        "has": [
+          "special",
+          [
+            "premature",
+            "hospitalized",
+            "zaZyciem",
+            "miscarriage",
+            "stillbirth",
+            "childDeath"
+          ]
+        ]
+      },
+      "steps": [],
+      "support": [
+        {
+          "situation": "prematurity",
+          "when": {
+            "has": [
+              "special",
+              [
+                "premature",
+                "hospitalized"
+              ]
+            ]
+          }
+        },
+        {
+          "situation": "stillbirth",
+          "when": {
+            "has": [
+              "special",
+              "stillbirth"
+            ]
+          }
+        },
+        {
+          "situation": "child_death",
+          "when": {
+            "has": [
+              "special",
+              "childDeath"
+            ]
+          }
+        },
+        {
+          "situation": "miscarriage",
+          "when": {
+            "has": [
+              "special",
+              "miscarriage"
+            ]
+          }
+        },
+        {
+          "situation": "severe_illness",
+          "when": {
+            "has": [
+              "special",
+              "zaZyciem"
+            ]
+          }
+        },
+        {
+          "situation": "lethal_diagnosis",
+          "when": {
+            "has": [
+              "special",
+              "zaZyciem"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sicknessAfterInsurance",
+      "priority": 15,
+      "title": "Zasiłek chorobowy po ustaniu ubezpieczenia",
+      "when": {
+        "has": [
+          "special",
+          "insuranceEnded"
+        ]
+      },
+      "steps": [
+        {
+          "id": "after-insurance-claim",
+          "kind": "application",
+          "who": "mother",
+          "anchor": "today",
+          "title": "ZAS-53 i Z-10 · zasiłek po ustaniu ubezpieczenia",
+          "description": "Jeśli niezdolność do pracy zaczęła się w czasie ubezpieczenia albo najpóźniej 14 dni po jego ustaniu, zasiłek wypłaca ZUS, w ciąży do 270 dni. Złóż ZAS-53 i Z-10 z e-ZLA.",
+          "recipient": "ZUS",
+          "dateNote": "Gdy masz e-ZLA"
+        }
+      ],
+      "benefitIds": [
+        "benefit.sickness_pregnancy"
+      ],
+      "scenarios": [
+        {
+          "id": "scenario.sickness_after_insurance"
+        }
+      ]
+    }
+  ]
+}

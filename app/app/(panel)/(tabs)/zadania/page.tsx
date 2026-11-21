@@ -10,9 +10,9 @@ import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { persona, params, chosen, plan, names, today } = useFamily();
+  const { fromGuide, chosen, names, entries } = useFamily();
 
-  const tasks = buildTasks(persona, plan.events, chosen, params, plan.doneTasks, today);
+  const tasks = buildTasks(entries);
   const remaining = tasks.filter((task) => !task.done);
   const completed = tasks.filter((task) => task.done);
 
@@ -65,12 +65,12 @@ export default function Tasks() {
       <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
         <div className="grow">
           <PageTitle>Wasza lista zadań</PageTitle>
-          <div className="text-[15px] text-muted-foreground">
+          {!fromGuide && <div className="text-[15px] text-muted-foreground">
             {chosen ? `Wariant ${chosen.key} · ${chosen.name} · ` : null}
             <Link href="/warianty" className="font-bold text-primary underline">
               {chosen ? "Zmień wariant" : "Wybierz wariant urlopu"}
             </Link>
-          </div>
+          </div>}
         </div>
         <Button variant="outline" onClick={downloadCalendar}>
           Dodaj terminy do kalendarza

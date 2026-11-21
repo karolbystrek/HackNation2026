@@ -58,7 +58,7 @@ Punktem odniesienia dla terminu jest konkretne zdarzenie lub planowana data. Zg�
 
 ## Oś czasu w demonstracji
 
-`app/lib/family-timeline.ts` składa zdarzenia, dokumenty, formalności i okresy opieki w jedną oś. Wpisy wskazują bezpośrednie zależności przez identyfikatory. Status wynika z daty profilu, potwierdzonych dokumentów, zapisanych czynności oraz wybranego wariantu. Z tych samych formalności powstaje lista zadań. Daty urlopów rodzicielskich pochodzą z wariantu, a dzień rozpoczęcia ojcowskiego jest danymi profilu i trafia też do porównania wariantów.
+`app/lib/family-timeline.ts` składa zdarzenia, dokumenty, formalności i okresy opieki w jedną oś. Wpisy wskazują bezpośrednie zależności przez identyfikatory. Status wynika z daty profilu, potwierdzonych dokumentów, zapisanych czynności oraz wybranego wariantu. Z tych samych formalności powstaje lista zadań. Plan z formularza `/nowa-os` (po symulowanym logowaniu) bierze kroki z `app/lib/guide/tree.ts`, a statusy liczy ta sama funkcja `applyProgress`. Daty urlopów rodzicielskich pochodzą z wariantu, a dzień rozpoczęcia ojcowskiego jest danymi profilu i trafia też do porównania wariantów.
 
 Profile w `app/lib/mock/personas.ts` pokazują ciążę, sprawę po porodzie przed rejestracją dziecka i sprawę z przyjętym podziałem opieki. Daty i dane dziecka są fikcyjne. Status dokumentu pochodzi z danych demonstracyjnych, bez symulowania przesłania pliku ani odpowiedzi urzędu.
 

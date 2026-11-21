@@ -11,6 +11,8 @@ export type PregnancyInput = {
   basis: number;
   /** Contract ended in pregnancy because the employer went bankrupt, was liquidated or died. */
   employerInsolvent: boolean;
+  /** 50 or older: the employer pays 14 sick days a year instead of 33. */
+  over50?: boolean;
 };
 
 export type PregnancyRow = { label: string; amount: number | null; note: string };
@@ -42,6 +44,7 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
     return { total: 0, days: 0, payer, rows, warnings: ["Uzupełnijcie daty. Termin porodu musi być po dacie zwolnienia."] };
   }
 
+  const employerDays = input.over50 ? p.employerPaidDaysOver50 : p.employerPaidDays;
   const waiting = p.waitingDays[input.contract];
   const eligibleFrom = addDays(insured, waiting);
   const payStart = input.employerInsolvent || sickLeave >= eligibleFrom ? sickLeave : eligibleFrom;
@@ -61,7 +64,7 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
     }
     const year = d.getUTCFullYear();
     employerDaysByYear[year] ??= 0;
-    if (input.contract === "uop" && employerDaysByYear[year] < p.employerPaidDays) {
+    if (input.contract === "uop" && employerDaysByYear[year] < employerDays) {
       employerDaysByYear[year]++;
       count.employer++;
     } else {
@@ -72,7 +75,7 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   if (count.insolvency)
     rows.push({ label: "Zasiłek w wysokości macierzyńskiego", amount: count.insolvency * daily, note: `${count.insolvency} dni · 100% · wniosek bezpośrednio do ZUS` });
   if (count.employer)
-    rows.push({ label: "Wynagrodzenie chorobowe", amount: count.employer * daily, note: `${count.employer} dni · 100% w ciąży · płaci pracodawca (do ${p.employerPaidDays} dni w roku)` });
+    rows.push({ label: "Wynagrodzenie chorobowe", amount: count.employer * daily, note: `${count.employer} dni · 100% w ciąży · płaci pracodawca (do ${employerDays} dni w roku)` });
   if (count.sickness) rows.push({ label: "Zasiłek chorobowy", amount: count.sickness * daily, note: `${count.sickness} dni · 100% (kod B)` });
   if (count.rehab) {
     rows.push({ label: "Świadczenie rehabilitacyjne", amount: count.rehab * daily, note: `${count.rehab} dni po ${p.benefitPeriodDays} dniach zwolnienia · wymaga decyzji ZUS` });

@@ -24,6 +24,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active }
     sickLeaveFrom: mother.sickLeaveFrom ?? persona.fetchedAt,
     dueDate: persona.dueDate,
     employerInsolvent: false,
+    over50: mother.age >= 50,
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
   const r = calcPregnancy({ ...form, basis: parseAmount(basis) }, params);

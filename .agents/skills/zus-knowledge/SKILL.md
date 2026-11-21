@@ -92,9 +92,10 @@ jq '.records[] | select(.verification.status=="unverified") | .id' knowledge/*.j
 | Recognising uploaded sample cases | `forms.aliases`, `recognition_hints_pl`, superseded forms |
 | Warnings | `risks` (`detection_condition`, `prevention_pl`) |
 | Help for difficult situations | `support_orgs` (`situations`) |
+| Guide panel (`/plan`, `/zadania`, `/swiadczenia` after the `/nowa-os` form and login) | `app/lib/guide/knowledge.json`, a trimmed snapshot of the records `guide.json` references. Regenerate with `node scripts/guide-knowledge.mjs` after editing either; `tests/tree.test.mjs` fails when it is stale. Mark a glossary term in a question label, hint or option as `[phrase](term.id)`: `TermText` renders it as a popup with `definition_pl`. |
 | AI answers / search | `faq`, `glossary.synonyms_pl` (query expansion), any record's `title/summary/body_pl` |
 
-`app/lib/params.ts` stays the runtime source of numbers (project rule). `knowledge/parameters.json` holds the same values with legal basis and validity. When you add or change a number in `params.ts`, take it from `parameters.json` and keep both in sync. Do not import JSON from `knowledge/` into the app unless the task needs it.
+`app/lib/params.ts` stays the runtime source of numbers (project rule). `knowledge/parameters.json` holds the same values with legal basis and validity. When you add or change a number in `params.ts`, take it from `parameters.json` and keep both in sync. Do not import JSON from `knowledge/` into the app: the app build only sees `app/`, so use a generated snapshot like the guide's.
 
 ## Editing rules
 

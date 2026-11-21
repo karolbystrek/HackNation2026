@@ -4,17 +4,20 @@
 import { useSyncExternalStore } from "react";
 import type { VariantKey } from "@/lib/calc/variants";
 import type { TimelineEvent } from "@/lib/events";
-import { findPersona } from "@/lib/mock/personas";
+import type { Answers } from "@/lib/guide/tree";
+import { currentPersona } from "@/lib/guide/persona";
 
 export type PlanState = {
   personaId: string | null;
   events: TimelineEvent[];
   chosenVariant: VariantKey | null;
   doneTasks: string[];
+  /** Answers from the guide questionnaire that starts a new timeline. */
+  guideAnswers: Answers;
 };
 
 const KEY = "przewodnik-rodzica-plan";
-const initial: PlanState = { personaId: null, events: [], chosenVariant: null, doneTasks: [] };
+const initial: PlanState = { personaId: null, events: [], chosenVariant: null, doneTasks: [], guideAnswers: {} };
 let state = initial;
 let loaded = false;
 const listeners = new Set<() => void>();
@@ -24,7 +27,7 @@ function read(): PlanState {
     loaded = true;
     try {
       const raw = sessionStorage.getItem(KEY);
-      if (raw) state = JSON.parse(raw);
+      if (raw) state = { ...initial, ...JSON.parse(raw) };
     } catch {
       // Storage unavailable: start with an empty plan.
     }
@@ -51,9 +54,11 @@ export function updatePlan(change: (s: PlanState) => PlanState) {
   listeners.forEach((l) => l());
 }
 
+/** Starts a plan for a demo profile or, with GUIDE_ID, for the questionnaire answers, which are kept. */
 export function logIn(personaId: string) {
-  const persona = findPersona(personaId)!;
-  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [] }));
+  const { guideAnswers } = read();
+  const persona = currentPersona({ personaId, guideAnswers })!;
+  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [], guideAnswers }));
 }
 
 export function logOut() {
