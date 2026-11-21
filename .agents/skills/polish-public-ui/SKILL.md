@@ -29,6 +29,8 @@ need. Use native controls where they provide the simplest usable interaction.
 
 ## Visual direction
 
+> Superseded: the `zus-gov-ui` skill now defines the visual direction and theme tokens. The two sections below are kept for history; follow `zus-gov-ui` where they differ.
+
 The user's ZUS screenshots establish the intended character:
 
 - White background, near-black text, institutional green links and navigation.
