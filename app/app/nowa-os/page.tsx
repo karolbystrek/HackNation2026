@@ -2,15 +2,47 @@
 
 // GOV.UK-style questionnaire: one question per page, then "check your answers", then the login simulation and the panel.
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { TermText } from "@/components/term-text";
-import { BackLink, Button, Checkbox, Field, PageTitle, RadioOption } from "@/components/ui";
+import { AlertCircle } from "lucide-react";
+import { BackLink, Breadcrumbs, Button, Checkbox, Field, RadioOption } from "@/components/ui";
+import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
 import { GUIDE_ID } from "@/lib/guide/persona";
 import { updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
 
 const heading = "text-2xl leading-tight font-bold sm:text-3xl";
+const STAGES = ["Odpowiedz na pytania", "Sprawdź odpowiedzi", "Zobacz swoją oś czasu"];
+
+/** Page frame: green band with breadcrumbs and progress, the task on the left, the stages on the right. */
+function Frame({ stage, band, children }: { stage: number; band: ReactNode; children: ReactNode }) {
+  return (
+    <main id="main-content" tabIndex={-1} className="flex flex-col">
+      <div className="bg-primary-soft">
+        <div className="shell flex flex-col gap-4 py-6 sm:py-8">
+          <Breadcrumbs items={[["Strona główna", "/"], ["Nowa oś czasu"]]} />
+          {band}
+        </div>
+      </div>
+      <div className="shell grid gap-10 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="flex max-w-[70ch] min-w-0 flex-col gap-6">{children}</div>
+        <aside aria-labelledby="stages-title" className="self-start border-t-4 border-t-brand bg-secondary p-5">
+          <h2 id="stages-title" className="text-lg font-bold">Jak to działa</h2>
+          <ol className="mt-3 flex flex-col gap-3">
+            {STAGES.map((title, i) => (
+              <li key={title} className="flex items-center gap-3" aria-current={i === stage ? "step" : undefined}>
+                <span aria-hidden className={`grid size-8 shrink-0 place-items-center font-bold ${i <= stage ? "bg-primary text-primary-foreground" : "border border-input bg-background text-muted-foreground"}`}>{i + 1}</span>
+                <span className={i === stage ? "font-bold" : "text-muted-foreground"}>{title}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 border-t pt-4 text-sm text-muted-foreground">Odpowiedzi zostają w tej przeglądarce. Nie musisz się logować, aby zobaczyć wynik.</p>
+        </aside>
+      </div>
+    </main>
+  );
+}
 
 function display(q: Question, a: Answers) {
   const value = a[q.id];
@@ -34,8 +66,10 @@ export default function NewTimeline() {
 
   if (!question) {
     return (
-      <main id="main-content" tabIndex={-1} className="page max-w-3xl">
-        <PageTitle lead="Sprawdź, czy wszystko się zgadza. Na tej podstawie przygotujemy Twoją oś czasu i listę zadań.">Sprawdź odpowiedzi</PageTitle>
+      <Frame stage={1} band={<>
+        <h1 className="text-3xl leading-tight font-bold sm:text-5xl">Sprawdź odpowiedzi</h1>
+        <p className="max-w-[60ch] text-lg">Sprawdź, czy wszystko się zgadza. Na tej podstawie przygotujemy Twoją oś czasu i listę zadań.</p>
+      </>}>
         <dl className="divide-y border-y">
           {visible.map((q) => (
             <div key={q.id} className="grid gap-1 py-3 sm:grid-cols-[1fr_1fr_auto] sm:gap-4">
@@ -51,11 +85,11 @@ export default function NewTimeline() {
         </dl>
         <div className="flex flex-wrap items-center gap-4">
           {plan.personaId === GUIDE_ID
-            ? <Button onClick={() => router.push("/plan")}>Wróć do planu</Button>
-            : <Button onClick={() => router.push("/logowanie")}>Dalej: zaloguj się</Button>}
+            ? <Button variant="action" onClick={() => router.push("/plan")}>Wróć do planu</Button>
+            : <Button variant="action" onClick={() => router.push("/logowanie")}>Dalej: zaloguj się</Button>}
           <Button variant="link" onClick={() => updatePlan((s) => ({ ...s, guideAnswers: {} }))}>Zacznij od nowa</Button>
         </div>
-      </main>
+      </Frame>
     );
   }
 
@@ -70,16 +104,19 @@ export default function NewTimeline() {
   };
 
   return (
-    <main id="main-content" tabIndex={-1} className="page max-w-3xl">
+    <Frame stage={0} band={<>
+      <p className="text-lg font-bold before:mb-3 before:block before:h-1 before:w-12 before:bg-brand">Nowa oś czasu</p>
+      <Progress label={`Pytanie ${index + 1} z ${visible.length}`} value={index + 1} total={visible.length} />
+    </>}>
       {previous
         ? <Button variant="link" className="self-start p-0 font-bold" onClick={() => setEditing({ id: previous.id, fromSummary: false })}><span aria-hidden="true">← </span>Wstecz</Button>
         : <BackLink href="/">Strona główna</BackLink>}
-      <QuestionForm key={question.id} progress={`Pytanie ${index + 1}`} question={question} answers={answers} onSave={save} />
-    </main>
+      <QuestionForm key={question.id} question={question} answers={answers} onSave={save} />
+    </Frame>
   );
 }
 
-function QuestionForm({ question: q, answers, onSave, progress }: { question: Question; answers: Answers; onSave: (v: Answer) => void; progress: string }) {
+function QuestionForm({ question: q, answers, onSave }: { question: Question; answers: Answers; onSave: (v: Answer) => void }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { titleRef.current?.focus(); }, []);
   const [value, setValue] = useState<Answer | undefined>(Array.isArray(answers[q.id]) && q.type !== "multi" ? undefined : answers[q.id] ?? (q.type === "multi" ? [] : undefined));
@@ -97,11 +134,19 @@ function QuestionForm({ question: q, answers, onSave, progress }: { question: Qu
     onSave(value ?? []);
   };
 
-  const errorText = error && <p id={`${q.id}-error`} role="alert" className="font-bold text-destructive">{error}</p>;
+  const errorText = error && <p id={`${q.id}-error`} className="font-bold text-destructive">{error}</p>;
 
   return (
-    <form noValidate onSubmit={submit} className="flex flex-col items-start gap-5">
-      <p className="text-sm text-muted-foreground">{progress}</p>
+    <form noValidate onSubmit={submit} className="flex flex-col items-start gap-6">
+      {error && (
+        <div role="alert" className="flex w-full gap-3 border-l-4 border-destructive bg-background p-4 outline outline-1 outline-destructive">
+          <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0 text-destructive" />
+          <div>
+            <p className="font-bold">Popraw odpowiedź</p>
+            <a href={`#${q.id}-error`} className="text-link text-destructive">{error}</a>
+          </div>
+        </div>
+      )}
       <h1 ref={titleRef} tabIndex={-1} className={heading}>{plainText(q.label)}</h1>
       {q.type === "date" || q.type === "number" ? (
         <div className="flex w-full flex-col gap-2">
@@ -131,7 +176,11 @@ function QuestionForm({ question: q, answers, onSave, progress }: { question: Qu
                 const checked = list.includes(o.value);
                 const exclusive = new Set(options.filter((x) => x.exclusive).map((x) => x.value));
                 const ticked = o.exclusive ? [o.value] : [...list.filter((v) => !exclusive.has(v)), o.value];
-                return <Checkbox key={o.value} title={plainText(o.label)} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />;
+                return (
+                  <div key={o.value} className="rounded-sm border border-input px-3 py-1 hover:bg-secondary has-checked:border-primary has-checked:bg-primary-soft">
+                    <Checkbox title={plainText(o.label)} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />
+                  </div>
+                );
               })
               : options.map((o) => (
                 <RadioOption
@@ -146,7 +195,7 @@ function QuestionForm({ question: q, answers, onSave, progress }: { question: Qu
           </div>
         </fieldset>
       )}
-      <Button type="submit">Dalej</Button>
+      <Button type="submit" className="min-w-32">Dalej</Button>
     </form>
   );
 }

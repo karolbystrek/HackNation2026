@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 338 48" width="338" height="48" role="img" aria-label="Zasiłkowy Przewodnik Przyszłego Rodzica">
+  <g transform="translate(8 0) skewX(-10)">
+  <g fill="#007c36">
+    <path d="M0 4h31v7.5L9.5 37H104v7H0v-7.5L21.5 11H0Z"/>
+    <text x="32" y="33" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" letter-spacing="-1">PPR</text>
+  </g>
+  <rect x="118" y="6" width="1.5" height="36" fill="#007c36" opacity=".35"/>
+  <text x="130" y="24" fill="#00652c" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" letter-spacing="-.2">Zasiłkowy Przewodnik</text>
+  <text x="131" y="41" fill="#007c36" font-family="Arial, Helvetica, sans-serif" font-size="10.5" font-weight="700" letter-spacing="2.35">PRZYSZŁEGO RODZICA</text>
+</g>
+</svg>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -22,8 +23,8 @@ export function SiteHeader() {
   return (
     <header className="border-t-4 border-t-primary border-b">
       <div className="shell flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3">
-        <Link href={persona ? "/plan" : "/"} className="min-h-11 content-center leading-tight font-bold text-primary hover:underline">
-          Zasiłkowy Przewodnik<br />Przyszłego Rodzica
+        <Link href={persona ? "/plan" : "/"} className="min-h-11 content-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+          <Image src="/logo-zppr.svg" alt="Zasiłkowy Przewodnik Przyszłego Rodzica – strona główna" width={338} height={48} priority className="h-12 w-auto" />
         </Link>
         {persona && (
           <nav aria-label="Konto demonstracyjne" className="flex flex-wrap items-center gap-x-5">

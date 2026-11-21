@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,6 +10,22 @@ type LinkVariant = Parameters<typeof buttonVariants>[0];
 
 export function ButtonLink({ variant, className, ...props }: ComponentProps<typeof Link> & Pick<NonNullable<LinkVariant>, "variant">) {
   return <Link className={cn(buttonVariants({ variant }), className)} {...props} />;
+}
+
+/** gov.pl-style trail; the last item is the current page. */
+export function Breadcrumbs({ items }: { items: [label: string, href?: string][] }) {
+  return (
+    <nav aria-label="Ścieżka nawigacji" className="text-sm">
+      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {items.map(([label, href], i) => (
+          <li key={label} className="flex items-center gap-2">
+            {i > 0 && <ChevronRight aria-hidden className="size-4 text-muted-foreground" />}
+            {href ? <Link href={href} className="text-link">{label}</Link> : <span aria-current="page">{label}</span>}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
 }
 
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
