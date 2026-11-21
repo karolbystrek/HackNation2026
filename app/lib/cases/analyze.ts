@@ -114,9 +114,9 @@ export function analyzeCase(c: CaseExtraction, p: Params): CaseAnalysis {
   } else {
     const insuredDays = insuredDaysUntil(c.sickInsurance, day, 30);
     const covered = coveredPeriods.length > 0;
-    if (!covered && c.uncertain.some((key) => key.startsWith("sickInsurance"))) {
+    if (!covered && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
       eligible = null;
-      eligibility = "Odczyt okresów ubezpieczenia jest niepewny. Sprawdź dokument i uzupełnij okresy.";
+      eligibility = "Sprawdź dokument i uzupełnij okresy ubezpieczenia chorobowego, aby ocenić prawo do zasiłku.";
     } else if (!covered) {
       eligibility = `W dniu ${formatDate(start)} osoba nie podlegała ubezpieczeniu chorobowemu, więc zasiłek nie przysługuje.`;
     } else if (c.benefit === "sickness_pregnancy") {

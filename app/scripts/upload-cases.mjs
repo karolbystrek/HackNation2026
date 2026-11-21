@@ -46,6 +46,6 @@ if (analyze) {
     const rows = body.analysis.comparison;
     const diff = rows.filter((r) => !r.match).map((r) => `${r.label}: nasze ${r.ours}, ZUS ${r.zus}`);
     const verdict = rows.length ? (diff.length ? `RÓŻNICE ${diff.join("; ")}` : "ZGODNE") : "brak decyzji w teczce";
-    console.log(`${id}\t${file}\t${body.analysis.eligible ? "przysługuje" : "nie przysługuje"}\t${verdict}\t${body.cached ? "cache" : `${Math.round((Date.now() - started) / 1000)} s`}`);
+    console.log(`${id}\t${file}\t${{ true: "przysługuje", false: "nie przysługuje" }[body.analysis.eligible] ?? "brak danych"}\t${verdict}\t${body.cached ? "cache" : `${Math.round((Date.now() - started) / 1000)} s`}`);
   }
 }

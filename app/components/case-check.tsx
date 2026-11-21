@@ -9,7 +9,6 @@ import { formatPln, parseAmount } from "@/lib/format";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import type { Params } from "@/lib/params";
 
-type Sample = { id: string; label: string };
 type Loaded = { extraction: CaseExtraction; cached: boolean; source: string; id: string; manual?: boolean };
 
 const EMPTY_CASE: CaseExtraction = {
@@ -39,30 +38,15 @@ const DOCUMENT_NAMES: Record<string, string> = {
   medical_certificate: "Zaświadczenie lekarskie",
 };
 
-/** Upload or pick a ZUS case file, let AI read it, correct the data and compare our calculation with the ZUS decision. */
+/** Upload a PDF or enter case data manually to check the benefit. */
 export function CaseCheck({ params }: { params: Params }) {
-  const [samples, setSamples] = useState<Sample[] | null>(null);
-  const [sampleError, setSampleError] = useState(false);
-  const [retry, setRetry] = useState(0);
   const [file, setFile] = useState<File | null>(null);
-  const [sampleId, setSampleId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = usePlanDraft<Loaded | null>("sprawa-odczyt", null);
   const activeRead = useRef<AbortController | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
-  const selectId = useId();
-  const fileInput = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/cases", { signal: controller.signal }).then(async (response) => {
-      if (!response.ok) throw new Error();
-      const body: { samples: Sample[] } = await response.json();
-      setSamples(body.samples);
-    }).catch(() => { if (!controller.signal.aborted) setSampleError(true); });
-    return () => controller.abort();
-  }, [retry]);
+  const fileId = useId();
 
   useEffect(() => {
     if (loaded) resultHeading.current?.focus();
@@ -74,18 +58,21 @@ export function CaseCheck({ params }: { params: Params }) {
     updatePlan((plan) => ({ ...plan, drafts: { ...plan.drafts, "sprawa-odczyt": null, "sprawa-korekta": null } }));
   }
 
-  async function read(init: RequestInit, source: string) {
+  async function upload() {
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
     setBusy(true);
     setError(null);
     clearCase();
     const controller = new AbortController();
     activeRead.current = controller;
     try {
-      const response = await fetch("/api/cases/analyze", { method: "POST", ...init, signal: controller.signal });
+      const response = await fetch("/api/cases/analyze", { method: "POST", body: form, signal: controller.signal });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Nie udało się odczytać dokumentów.");
       if (controller.signal.aborted) return;
-      setLoaded({ extraction: body.extraction, cached: body.cached, source, id: crypto.randomUUID() });
+      setLoaded({ extraction: body.extraction, cached: body.cached, source: "Wgrany PDF", id: crypto.randomUUID() });
     } catch (e) {
       if (!controller.signal.aborted) setError(e instanceof Error ? e.message : "Nie udało się odczytać dokumentów.");
     } finally {
@@ -93,56 +80,21 @@ export function CaseCheck({ params }: { params: Params }) {
     }
   }
 
-  function upload() {
-    if (!file) return;
-    const form = new FormData();
-    form.append("file", file);
-    read({ body: form }, "Wgrany PDF");
-  }
-
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex max-w-xl flex-col gap-5">
-        <div className="flex min-w-0 flex-col gap-2">
-
-          <p className="text-sm text-muted-foreground">Usuń dane osobowe przed przesłaniem. Plik może zostać przekazany do modelu Google Gemini w celu odczytu. Odczytane dane zapisujemy w pamięci podręcznej.</p>
-          <input
-            ref={fileInput}
-            id={`${selectId}-file`}
-            type="file"
-            accept="application/pdf"
-            disabled={busy}
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="min-h-11 rounded-sm border border-input bg-background px-3 py-2 file:mr-3 file:rounded-sm file:border-0 file:bg-secondary file:px-3 file:py-1 file:font-bold"
-          />
-          <Button variant="outline" className="self-start" disabled={busy} onClick={() => fileInput.current?.click()}>Wybierz dokumenty (PDF)</Button>
-          {file && <p className="text-sm text-muted-foreground">{file.name}</p>}
-          <Button variant="outline" className="self-start" disabled={busy || !file} onClick={upload}>Prześlij PDF do odczytu</Button>
-        </div>
-        <div className="flex min-w-0 flex-col gap-2">
-          <label htmlFor={selectId} className="font-bold">Nie masz dokumentów pod ręką? Wybierz przykładową sprawę</label>
-          <p className="text-sm text-muted-foreground">Zanonimizowane teczki udostępnione przez ZUS na potrzeby wyzwania.</p>
-          <div className="flex flex-wrap gap-2">
-            <select
-              id={selectId}
-              value={sampleId}
-              disabled={busy || !samples?.length}
-              onChange={(e) => setSampleId(e.target.value)}
-              className="min-h-11 min-w-0 grow basis-60 rounded-sm border border-input bg-background px-3 py-2"
-            >
-              <option value="">{sampleError ? "Lista niedostępna" : samples === null ? "Wczytuję listę…" : samples.length ? "Wybierz sprawę" : "Brak przykładów"}</option>
-              {samples?.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-            <Button
-              variant="outline"
-              disabled={busy || !sampleId}
-              onClick={() => read({ headers: { "content-type": "application/json" }, body: JSON.stringify({ sampleId }) }, samples?.find((s) => s.id === sampleId)?.label ?? sampleId)}
-            >
-              Sprawdź
-            </Button>
-          </div>
-          {sampleError && <Button variant="link" className="self-start" onClick={() => { setSampleError(false); setRetry(retry + 1); }}>Spróbuj ponownie wczytać przykłady</Button>}
-        </div>
+      <div className="flex max-w-xl flex-col gap-2">
+        <label htmlFor={fileId} className="font-bold">Wybierz dokumenty (PDF)</label>
+        <p id={`${fileId}-hint`} className="text-sm text-muted-foreground">Usuń dane osobowe przed przesłaniem. Plik może zostać przekazany do modelu Google Gemini w celu odczytu. Odczytane dane zapisujemy w pamięci podręcznej.</p>
+        <input
+          id={fileId}
+          aria-describedby={`${fileId}-hint`}
+          type="file"
+          accept="application/pdf"
+          disabled={busy}
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="min-h-11 min-w-0 rounded-sm border border-input bg-background px-3 py-2 file:mr-3 file:rounded-sm file:border-0 file:bg-secondary file:px-3 file:py-1 file:font-bold"
+        />
+        <Button className="self-start" disabled={busy || !file} onClick={upload}>Prześlij PDF do odczytu</Button>
       </div>
 
       <div aria-live="polite">
@@ -183,7 +135,7 @@ function CaseResult({ loaded, params, headingRef }: { loaded: Loaded; params: Pa
       </div>
 
       <Notice className={analysis.eligible === null ? undefined : analysis.eligible ? "border-primary" : "border-destructive"}>
-        <p className="text-lg font-bold">{analysis.eligible === null ? "Nie można ocenić prawa do zasiłku" : analysis.eligible ? "Zasiłek przysługuje" : "Zasiłek nie przysługuje"}</p>
+        <p className="text-lg font-bold">{analysis.eligible === null ? "Brakuje danych do oceny" : analysis.eligible ? "Zasiłek przysługuje" : "Zasiłek nie przysługuje"}</p>
         <p>{analysis.eligibility}</p>
         {analysis.basis && (
           <p className="mt-2">

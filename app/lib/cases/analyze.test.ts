@@ -37,6 +37,14 @@ describe("analyzeCase", () => {
     expect(r.comparison[0]).toMatchObject({ label: "Prawo do zasiłku", match: true });
   });
 
+  it("leaves eligibility open when no sickness insurance dates were read", () => {
+    const missing = { ...base, sickInsurance: [] };
+    const result = analyzeCase(missing, defaultParams);
+    expect(result.eligible).toBeNull();
+    expect(result.comparison.some((row) => row.label === "Prawo do zasiłku")).toBe(false);
+    expect(analyzeCase({ ...missing, sickInsurance: base.sickInsurance }, defaultParams).eligible).toBe(true);
+  });
+
   it("tops a low parental benefit up to the parental allowance", () => {
     const low = { ...base, basisMonths: base.basisMonths.map((m) => ({ ...m, amount: 1400 })), requested: [{ kind: "parental" as const, from: "2026-07-28", to: "2026-09-21" }] };
     const r = analyzeCase(low, defaultParams);
