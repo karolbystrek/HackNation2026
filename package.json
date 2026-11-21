@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "supabase": "3.2.0"
+  },
+  "name": "hacknation2026-local",
+  "private": true,
+  "scripts": {
+    "dev": "npm run supabase:start && docker compose up --build --watch",
+    "local:up": "npm run supabase:start && docker compose up --build -d --wait",
+    "local:stop": "docker compose down && supabase stop",
+    "supabase:start": "supabase start && node scripts/local-env.mjs",
+    "supabase:status": "supabase status",
+    "test:connection": "docker compose exec -T app npm run test:connection",
+    "test:auth": "node --test scripts/auth.test.mjs"
+  }
+}

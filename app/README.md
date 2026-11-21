@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Application
 
-## Getting Started
+Next.js App Router with Supabase browser and server clients.
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+From the repository root:
+
+```sh
+make setup
+make dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This starts CLI-managed local Supabase and Next.js in Docker with hot reload.
+See [local development instructions](../docs/local-development.md) for endpoints, checks and shutdown.
+No manual environment file is needed for this workflow.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase clients
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Client Components: import `createClient` from `@/lib/supabase/client`.
+- Server Components, Server Actions and Route Handlers: import `createClient` from `@/lib/supabase/server` and await it.
+- `proxy.ts` refreshes cookie sessions and propagates cookies and cache headers. It does not restrict routes. Verify claims with `auth.getClaims()` for protected features and enforce data authorization with RLS.
 
-## Learn More
+Local Docker server code uses `SUPABASE_INTERNAL_URL` to reach the host's Supabase API. Browser code uses `NEXT_PUBLIC_SUPABASE_URL`. Both clients use the same cookie name. Without the internal override, server code uses the public URL too.
 
-To learn more about Next.js, take a look at the following resources:
+`GET /api/health` checks Supabase Auth using the public API key. It returns 200 when connected and 503 on missing configuration, rejected credentials, timeout or upstream failure. Responses are never cached and contain no upstream details.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Hosted Supabase development outside Docker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+From this directory, install dependencies and copy `.env.example` to `.env.local`.
+Fill in the hosted project URL and publishable key from Supabase, then run `npm run dev`.
+The root local workflow does not modify this file or Vercel settings.
 
-## Deploy on Vercel
+Only public configuration belongs in `NEXT_PUBLIC_*` variables. Never put secret API keys, service-role keys or database passwords there. Commit schema changes as migrations under the root `supabase/migrations/`, enable RLS on exposed tables, and generate database types after introducing the application schema.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Setup follows the [Supabase local development guide](https://supabase.com/docs/guides/local-development) and [Next.js SSR guide](https://supabase.com/docs/guides/auth/server-side/nextjs).
