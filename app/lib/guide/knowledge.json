@@ -542,6 +542,18 @@
           "actor": "insured",
           "action_pl": "Przy późniejszym wniosku o przysposobienie – urlopy pomniejsza się o wykorzystane jako rodzina zastępcza.",
           "recipient": "employer"
+        },
+        {
+          "order": 5,
+          "actor": "insured",
+          "action_pl": "Po urlopie na warunkach urlopu macierzyńskiego: wniosek o urlop rodzicielski (W11) z dokumentem o umieszczeniu dziecka.",
+          "recipient": "employer",
+          "document_ids": [
+            "doc.foster_order_or_contract"
+          ],
+          "leave_request_ids": [
+            "lr.parental"
+          ]
         }
       ]
     },

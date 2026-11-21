@@ -139,7 +139,8 @@ export function buildFamilyTimeline(
 
   const maternity = periodOf("mother", "maternity");
   // shortcut: the leave engine plans a placement like a birth; its leave on maternity terms comes from conditions_leave instead.
-  if (maternity && !placed) entries.push({
+  // A mother without sickness insurance has no maternity leave or benefit (she gets the parental allowance instead).
+  if (maternity && !placed && factsFor(persona, "mother", events, variant).insured_type !== "uninsured") entries.push({
     id: "maternity-period", kind: "period", who: "mother",
     title: persona.parents.mother.contract === "uop" ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
     description: "Rozpoczęcie okresu wynika z daty porodu.",
