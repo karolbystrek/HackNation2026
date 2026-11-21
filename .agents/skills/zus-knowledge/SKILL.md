@@ -10,6 +10,7 @@ description: How to query and extend knowledge/ – the sourced, machine-readabl
 If they disagree, the base wins (every record cites a primary source), unless the record is `unverified`.
 
 Field-by-field reference: [knowledge/README.md](../../../knowledge/README.md). JSON Schemas: `knowledge/schema/`.
+Per-file guide with the user journey, money levers and engine gaps: [docs/knowledge-base.md](../../../docs/knowledge-base.md).
 Human-readable summary of the same domain: [docs/wnioski-i-dokumenty.md](../../../docs/wnioski-i-dokumenty.md).
 
 ## Architecture
