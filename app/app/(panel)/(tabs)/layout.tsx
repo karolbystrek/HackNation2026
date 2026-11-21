@@ -9,7 +9,7 @@ import { useFamily } from "@/lib/use-family";
 export default function TabsLayout({ children }: LayoutProps<"/">) {
   const pathname = usePathname();
   const { entries } = useFamily();
-  const remaining = buildTasks(entries).filter((task) => !task.done).length;
+  const remaining = buildTasks(entries).filter((task) => !task.done && !task.extra).length;
   const tabs = [
     { href: "/plan", label: "Oś czasu" },
     { href: "/zadania", label: `Do zrobienia (${remaining})` },

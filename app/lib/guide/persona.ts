@@ -9,6 +9,7 @@ export const GUIDE_ID = "guide";
 function parent(name: string, nameGenitive: string, contract: ContractType, monthly: number, insuredFrom: string, age: number): ParentProfile {
   return {
     name, nameGenitive, age, contract, insuredFrom,
+    lastName: "", pesel: "", address: "", phone: "", bankAccount: "", payerName: "", payerNip: "",
     employment: "Według odpowiedzi w formularzu", payer: "", insurance: "", contributions: "",
     sickLeaveFrom: null, monthlyGross: Array(12).fill(monthly),
   };

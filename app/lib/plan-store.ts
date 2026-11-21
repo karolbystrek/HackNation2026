@@ -6,6 +6,7 @@ import type { VariantKey } from "@/lib/calc/variants";
 import type { TimelineEvent } from "@/lib/events";
 import type { Answers } from "@/lib/guide/tree";
 import { currentPersona } from "@/lib/guide/persona";
+import type { FormValues } from "@/lib/forms/spec";
 
 export type PlanState = {
   personaId: string | null;
@@ -14,10 +15,14 @@ export type PlanState = {
   doneTasks: string[];
   /** Answers from the guide questionnaire that starts a new timeline. */
   guideAnswers: Answers;
+  /** Simulated submissions of applications, by timeline task id. */
+  submissions: Record<string, Submission>;
 };
 
+export type Submission = { number: string; sentAt: string; recipient: string; channel: string; values: FormValues };
+
 const KEY = "przewodnik-rodzica-plan";
-const initial: PlanState = { personaId: null, events: [], chosenVariant: null, doneTasks: [], guideAnswers: {} };
+const initial: PlanState = { personaId: null, events: [], chosenVariant: null, doneTasks: [], guideAnswers: {}, submissions: {} };
 let state = initial;
 let loaded = false;
 const listeners = new Set<() => void>();
@@ -58,7 +63,15 @@ export function updatePlan(change: (s: PlanState) => PlanState) {
 export function logIn(personaId: string) {
   const { guideAnswers } = read();
   const persona = currentPersona({ personaId, guideAnswers })!;
-  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [], guideAnswers }));
+  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [], guideAnswers, submissions: {} }));
+}
+
+export function submitApplication(taskId: string, submission: Submission) {
+  updatePlan((s) => ({
+    ...s,
+    submissions: { ...s.submissions, [taskId]: submission },
+    doneTasks: s.doneTasks.includes(taskId) ? s.doneTasks : [...s.doneTasks, taskId],
+  }));
 }
 
 export function logOut() {

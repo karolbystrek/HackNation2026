@@ -20,8 +20,8 @@ export function deadlineNotice(entry: FamilyTimelineEntry, today: string) {
 }
 
 export function attentionEntries(entries: FamilyTimelineEntry[], today: string) {
-  return entries.filter((entry) =>
+  return entries.filter((entry) => !entry.extra && (
     entry.status === "review" || isUrgent(entry, today) ||
-    (entry.status === "ready" && (!entry.due || entry.due <= shiftIso(today, 30)))
+    (entry.status === "ready" && (!entry.due || entry.due <= shiftIso(today, 30))))
   ).sort((a, b) => Number(isUrgent(b, today)) - Number(isUrgent(a, today)) || Number(a.status === "blocked") - Number(b.status === "blocked"));
 }

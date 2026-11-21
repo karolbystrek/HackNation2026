@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Chip, PageTitle } from "@/components/ui";
+import { Button, ButtonLink, Chip, PageTitle } from "@/components/ui";
+import { formatDate } from "@/lib/dates";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
@@ -10,14 +11,16 @@ import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { fromGuide, chosen, names, entries } = useFamily();
+  const { plan, fromGuide, chosen, names, entries } = useFamily();
 
   const tasks = buildTasks(entries);
-  const remaining = tasks.filter((task) => !task.done);
-  const completed = tasks.filter((task) => task.done);
+  const main = tasks.filter((task) => !task.extra);
+  const remaining = main.filter((task) => !task.done);
+  const completed = main.filter((task) => task.done);
+  const extras = tasks.filter((task) => task.extra);
 
   function downloadCalendar() {
-    const url = URL.createObjectURL(new Blob([tasksToIcs(tasks)], { type: "text/calendar" }));
+    const url = URL.createObjectURL(new Blob([tasksToIcs(main)], { type: "text/calendar" }));
     const link = Object.assign(document.createElement("a"), { href: url, download: "przewodnik-rodzica.ics" });
     link.click();
     URL.revokeObjectURL(url);
@@ -25,6 +28,7 @@ export default function Tasks() {
 
   function renderTask(task: (typeof tasks)[number]) {
     const inputId = `task-${task.id}`;
+    const submission = plan.submissions[task.id];
     return (
       <li key={task.id} className="flex items-start gap-3 border-t py-4">
         <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
@@ -32,7 +36,7 @@ export default function Tasks() {
             id={inputId}
             type="checkbox"
             checked={task.done}
-            disabled={task.locked}
+            disabled={task.locked || !!submission}
             aria-label={task.title}
             onChange={() => {
               updatePlan((state) => ({
@@ -51,6 +55,14 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
+          {submission ? (
+            <p className="text-sm">
+              Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>.{" "}
+              <Link href={`/wnioski/${task.id}`} className="text-link">Zobacz wysłany wniosek</Link>
+            </p>
+          ) : task.form && !task.done && (
+            <ButtonLink href={`/wnioski/${task.id}`} className="self-start">Wypełnij wniosek</ButtonLink>
+          )}
           {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {task.title}</a>}
           {task.waitingFor.length > 0 && !task.done && (
             <p className="text-sm text-muted-foreground">Wymaga: {task.waitingFor.join(", ")}.</p>
@@ -77,12 +89,21 @@ export default function Tasks() {
         </Button>
       </div>
 
-      <Progress label={`Ukończono ${completed.length} z ${tasks.length} zadań`} value={completed.length} total={tasks.length} />
+      <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
 
       <section aria-labelledby="pozostale-zadania">
         <h2 id="pozostale-zadania" tabIndex={-1} className="mb-3 text-xl font-bold">Pozostałe zadania ({remaining.length})</h2>
         {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}
       </section>
+
+      {extras.length > 0 && (
+        <Disclosure className="border-y" label={
+          <span><span className="block font-bold">Inne formularze ZUS ({extras.length})</span>
+            <span className="text-muted-foreground">Wypełnia pracodawca lub lekarz albo są potrzebne tylko w szczególnej sytuacji.</span></span>
+        }>
+          <ul role="list">{extras.map(renderTask)}</ul>
+        </Disclosure>
+      )}
 
       {completed.length > 0 && (
         <Disclosure className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>

@@ -48,6 +48,11 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 
+  /* Headings and landmarks receive focus only from code (step changes, skip link), so they need no ring. */
+  [tabindex="-1"]:focus-visible {
+    @apply outline-none;
+  }
+
   input[type="radio"],
   input[type="checkbox"],
   input[type="range"] {
@@ -66,5 +71,24 @@
 
   .text-link {
     @apply text-primary underline underline-offset-4 hover:text-foreground;
+  }
+}
+
+/* A printed application shows only its letter-style copy, which is hidden on screen. */
+.print-document {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 2cm;
+  }
+
+  body > :not(.print-document) {
+    display: none !important;
+  }
+
+  .print-document {
+    display: block;
   }
 }
