@@ -5,7 +5,11 @@ services:
       # Domain data read by the form wizard from ../knowledge.
       additional_contexts:
         knowledge: ./knowledge
-    env_file: .env.supabase.local
+    env_file:
+      - .env.supabase.local
+      # Optional secrets such as GEMINI_API_KEY (see docs/local-development.md).
+      - path: .env.local
+        required: false
     environment:
       SUPABASE_INTERNAL_URL: http://host.docker.internal:54321
       NEXT_TELEMETRY_DISABLED: "1"

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button, ButtonLink, Chip, PageTitle } from "@/components/ui";
-import { formatDate } from "@/lib/dates";
+import { ApplicationAction } from "@/components/application-action";
+import { Button, Chip, PageTitle } from "@/components/ui";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
@@ -17,7 +17,6 @@ export default function Tasks() {
   const main = tasks.filter((task) => !task.extra);
   const remaining = main.filter((task) => !task.done);
   const completed = main.filter((task) => task.done);
-  const extras = tasks.filter((task) => task.extra);
 
   function downloadCalendar() {
     const url = URL.createObjectURL(new Blob([tasksToIcs(main)], { type: "text/calendar" }));
@@ -55,14 +54,7 @@ export default function Tasks() {
           </div>
           <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
           <p className="text-muted-foreground">{task.description}</p>
-          {submission ? (
-            <p className="text-sm">
-              Wysłano {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>.{" "}
-              <Link href={`/wnioski/${task.id}`} className="text-link">Zobacz wysłany wniosek</Link>
-            </p>
-          ) : task.form && !task.done && (
-            <ButtonLink href={`/wnioski/${task.id}`} className="self-start">Wypełnij wniosek</ButtonLink>
-          )}
+          <ApplicationAction task={task} submission={submission} />
           {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Instrukcja · {task.title}</a>}
           {task.waitingFor.length > 0 && !task.done && (
             <p className="text-sm text-muted-foreground">Wymaga: {task.waitingFor.join(", ")}.</p>
@@ -94,16 +86,10 @@ export default function Tasks() {
       <section aria-labelledby="pozostale-zadania">
         <h2 id="pozostale-zadania" tabIndex={-1} className="mb-3 text-xl font-bold">Pozostałe zadania ({remaining.length})</h2>
         {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}
+        <p className="mt-4 text-muted-foreground">
+          Wnioski na szczególne sytuacje i sprawdzanie teczki ZUS znajdziesz w zakładce <Link href="/wnioski" className="text-link">Wnioski</Link>.
+        </p>
       </section>
-
-      {extras.length > 0 && (
-        <Disclosure className="border-y" label={
-          <span><span className="block font-bold">Inne formularze ZUS ({extras.length})</span>
-            <span className="text-muted-foreground">Wypełnia pracodawca lub lekarz albo są potrzebne tylko w szczególnej sytuacji.</span></span>
-        }>
-          <ul role="list">{extras.map(renderTask)}</ul>
-        </Disclosure>
-      )}
 
       {completed.length > 0 && (
         <Disclosure className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>

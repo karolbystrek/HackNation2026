@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { BIRTH_CERTIFICATE_REQUEST } from "@/lib/forms/civil";
 import type { Condition, FieldType, FormAttachment, FormField, FormSpec } from "@/lib/forms/spec";
 
 // knowledge/ sits next to app/ in the repo and is copied to /knowledge in the container.
@@ -7,7 +8,10 @@ const KNOWLEDGE_DIR = path.join(process.cwd(), "..", "knowledge");
 
 /** Applications the timeline can open in the form wizard. */
 export const FORM_IDS = [
-  "ff.zam", "ff.zas53", "lr.paternity", "lr.parental",
+  "ff.zam", "ff.zas53", "lr.paternity", "lr.parental", "lr.combine_parental_with_work", "lr.maternity_conditions",
+  "lr.supplementary_maternity", "lr.maternity_pre_birth", "lr.maternity_resign_14w", "lr.maternity_resign_incapacity",
+  "lr.maternity_takeover", "lr.maternity_mother_hospital", "lr.maternity_mother_death", "lr.maternity_abandonment",
+  "lr.maternity_uninsured_mother_incapacity", "lr.maternity_uninsured_mother_works", BIRTH_CERTIFICATE_REQUEST.id,
   "ff.z3", "ff.z3a", "ff.z10", "ff.znp7", "ff.zas55", "ff.zas15", "ff.zas24", "ff.zas23", "ff.zas26", "ff.zas33", "ff.zas40", "ff.zas2",
 ];
 
@@ -83,7 +87,7 @@ type RawRecord = {
   attachments?: RawAttachment[]; attachment_rules?: RawAttachment[];
 };
 
-async function records(file: string): Promise<RawRecord[]> {
+export async function records(file: string): Promise<RawRecord[]> {
   "use cache";
   return JSON.parse(await readFile(path.join(KNOWLEDGE_DIR, file), "utf8")).records;
 }
@@ -116,6 +120,10 @@ export async function loadSpecs(ids: string[]): Promise<Record<string, FormSpec>
 
   const specs: Record<string, FormSpec> = {};
   for (const id of ids) {
+    if (id === BIRTH_CERTIFICATE_REQUEST.id) {
+      specs[id] = BIRTH_CERTIFICATE_REQUEST;
+      continue;
+    }
     const leave = leaveRequests.find((record) => record.id === id);
     if (leave) {
       specs[id] = {

@@ -139,7 +139,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
             {s.title === ATTACHMENTS_STEP && attachments.map((a) => (
               <div key={a.id} data-field={attachmentKey(a.id)}>
                 <Checkbox checked={values[attachmentKey(a.id)] === true} onChange={() => set(attachmentKey(a.id))(values[attachmentKey(a.id)] !== true)} title={`Dołączam: ${a.title}`}>
-                  {a.note ?? (ctx.recipient === "zus" ? "W eZUS dodajesz skan lub zdjęcie dokumentu." : "Dokument przekazujesz pracodawcy razem z wnioskiem.")}
+                  {a.note ?? (ctx.recipient === "employer" ? "Dokument przekazujesz pracodawcy razem z wnioskiem." : "Do wniosku elektronicznego dodajesz skan lub zdjęcie dokumentu.")}
                 </Checkbox>
                 <FieldError message={errorFor(attachmentKey(a.id), i)} />
               </div>
@@ -185,7 +185,7 @@ function Wizard({ spec, ctx, doneTasks }: { spec: FormSpec; ctx: FormContext; do
             ? <ZusPdf specId={spec.id} ctx={ctx} values={values} doneTasks={doneTasks} />
             : <PrintButton spec={spec} ctx={ctx} values={values} date={ctx.today} />)}
           <Button className="self-start" disabled={sending} onClick={send}>
-            {sending ? "Wysyłanie…" : ctx.recipient === "zus" ? "Wyślij do ZUS" : "Wyślij do pracodawcy"}
+            {sending ? "Wysyłanie…" : SEND_LABELS[ctx.recipient]}
           </Button>
         </div>
       }
@@ -276,6 +276,8 @@ function PrintButton(props: { spec: FormSpec; ctx: FormContext; values: FormValu
   );
 }
 
+const SEND_LABELS: Record<FormContext["recipient"], string> = { zus: "Wyślij do ZUS", employer: "Wyślij do pracodawcy", usc: "Wyślij do urzędu stanu cywilnego" };
+
 /** Letter-style copy of the application, shown only when printing (see `.print-document` in globals.css). */
 function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormSpec; ctx: FormContext; values: FormValues; date: string; number?: string }) {
   const me = ctx.persona.parents[ctx.parent];
@@ -292,7 +294,7 @@ function PrintableApplication({ spec, ctx, values, date, number }: { spec: FormS
           <p>PESEL {me.pesel}</p>
         </div>
         <div>
-          <p className="font-bold">{ctx.recipient === "zus" ? "Zakład Ubezpieczeń Społecznych" : me.payerName}</p>
+          <p className="font-bold">{ctx.recipient === "employer" ? me.payerName : ctx.recipient === "zus" ? "Zakład Ubezpieczeń Społecznych" : ctx.recipientName}</p>
           {ctx.recipient === "employer" && <p>NIP {me.payerNip}</p>}
         </div>
       </div>

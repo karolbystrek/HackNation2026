@@ -17,6 +17,8 @@ export const defaultParams = {
   paternityUntilChildMonths: 12,
   // Notice to the employer before parental leave starts.
   parentalRequestDays: 21,
+  // Work during parental leave is limited to half of full time.
+  combineWorkMaxFraction: 0.5,
   rates: { full: 1, parental: 0.7, flat: 0.815 },
   flatRateRequestDays: 21,
   employeeContributionRate: 0.1371,

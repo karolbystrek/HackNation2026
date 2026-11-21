@@ -58,6 +58,8 @@ export function stepOf(field: FormField): string {
 export const ZUS_TEMPLATES: Record<string, string> = {
   "ff.zam": "zam", "ff.zas53": "zas53", "ff.z3": "z3", "ff.z3a": "z3a",
   "ff.z10": "z10", "ff.znp7": "znp7", "ff.zas55": "zas55", "ff.zas2": "zas2",
+  // shortcut: ZAS-15 and ZAS-24 are filled by the payer and ZAS-40 has no form fields, so they use the printable letter.
+  "ff.zas23": "zas23", "ff.zas26": "zas26", "ff.zas33": "zas33",
 };
 
 export const attachmentKey = (id: string) => `attachment:${id}`;

@@ -15,6 +15,7 @@ export default function TabsLayout({ children }: LayoutProps<"/">) {
     { href: "/zadania", label: `Do zrobienia (${remaining})` },
     { href: "/kalkulator", label: "Kalkulatory" },
     { href: "/swiadczenia", label: "Świadczenia" },
+    { href: "/wnioski", label: "Wnioski" },
   ];
 
   return (

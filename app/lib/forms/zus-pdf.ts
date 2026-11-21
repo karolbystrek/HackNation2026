@@ -113,6 +113,31 @@ function fills(specId: string, values: FormValues, ctx: FormContext): Fill {
         "2:Data2": date((values.equalising_period as DateRange | undefined)?.from), "2:Data3": date((values.equalising_period as DateRange | undefined)?.to),
         "2:Data4": today,
       };
+    case "ff.zas23": {
+      const reason = text(values.reason);
+      const reasons = ["powrot_do_pracy_po_14_tyg", "moj_pobyt_w_szpitalu_po_8_tyg", "pobyt_dziecka_w_szpitalu_po_8_tyg", "orzeczenie_po_8_tyg", "oddanie_dziecka_do_przysposobienia", "powrot_ojca_po_wypisie_matki"];
+      return {
+        "1:Imię": first, "1:Nazwisko": last, ...address(1), "1:Numertelefonu": me.phone, "1:PESEL2": insured.pesel, "1:NIP": me.payerNip,
+        "2:Nazwapłatnika": me.payerName, "2:Data": date(values.stop_from), "2:Tekst1": maternityRange,
+        ...Object.fromEntries(reasons.map((r, i) => [`2:ZaznaczX${i + 1}`, reason === r])),
+        "2:Tekst2": reason === "oddanie_dziecka_do_przysposobienia" ? children(values.children) : "", "2:Data2": today,
+      };
+    }
+    case "ff.zas26":
+      return {
+        "1:PESEL": insured.pesel, "1:Imię": first, "1:Nazwisko": last, "1:Ulica": addr.street, "1:Numerdomu": addr.house, "1:Numerlokalu": addr.flat,
+        "1:Kodpocztowy": addr.postcode, "1:Miejscowość": addr.city, "1:Numertelefonu": me.phone, "1:NIP": me.payerNip, "1:Nazwapłatnika": me.payerName,
+        "2:oswiadczenie1": values.intake_kind === "rodzina_zastepcza", "2:Data1": values.intake_kind === "rodzina_zastepcza" ? date(values.intake_date) : "",
+        "2:oswiadczenie2": values.intake_kind === "przysposobienie", "2:Data2": values.intake_kind === "przysposobienie" ? date(values.court_filing_date) : "",
+        "2:Tekst1": children(values.children), "2:Data3": today,
+      };
+    case "ff.zas33":
+      return {
+        "1:PESEL": insured.pesel, "1:Imię": first, "1:Nazwisko": last, "1:Ulica": addr.street, "1:Numerdomu": addr.house, "1:Numerlokalu": addr.flat,
+        "1:Kodpocztowy": addr.postcode, "1:Miejscowość": addr.city, "1:Numertelefonu": me.phone, "1:NIP": me.payerNip, "1:Nazwapłatnika": me.payerName,
+        "2:oswiadczenie1": values.event === "porzucenie", "2:oswiadczenie2": values.event === "smierc_matki",
+        "2:Data[1]": date(values.event_date), "2:Data2": date(values.care_from), "2:Tekst1": children(values.children), "2:Data[0]": today,
+      };
     case "ff.z10": {
       const sick = ctx.events.find((e) => e.type === "sickLeave" && e.who === ctx.parent);
       return {

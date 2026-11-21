@@ -105,6 +105,7 @@ function formatIssue(field: FormField, value: FieldValue | undefined): string | 
   if (field.type === "regon" && text && !validRegon(text)) return "Numer REGON jest niepoprawny. Sprawdź 9 albo 14 cyfr.";
   if (field.type === "bank_account" && text && !validIban(text)) return "Numer rachunku jest niepoprawny. Wpisz 26 cyfr polskiego rachunku.";
   if (field.type === "phone" && text && text.replace(/\D/g, "").length < 9) return "Wpisz numer telefonu, co najmniej 9 cyfr.";
+  if (field.type === "number" && text && !/^\d+([.,]\d+)?$/.test(text)) return "Wpisz liczbę, np. 1 albo 0,5.";
   if (field.type === "date_range" && value) {
     const range = value as DateRange;
     if (isFilled(range) && (!range.from || !range.to)) return "Podaj datę początku i końca.";
@@ -181,6 +182,37 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
       field: "full_leave_declaration",
       message: `Oświadczenie o zasiłku 81,5% można było złożyć do ${formatDate(deadline)} (${params.flatRateRequestDays} dni po porodzie). Odznacz je: zasiłek wyniesie 100% za macierzyński i 70% za rodzicielski.`,
     });
+  }
+
+  const afterMandatory = shift(birth, params.motherOnlyWeeks * 7);
+  if (spec.id === "lr.combine_parental_with_work" && isFilled(values.work_fraction)) {
+    const fraction = Number(String(values.work_fraction).replace(",", "."));
+    if (!(fraction > 0 && fraction <= params.combineWorkMaxFraction)) {
+      errors.push({ field: "work_fraction", message: `Podaj wymiar pracy większy od zera i nie wyższy niż ${String(params.combineWorkMaxFraction).replace(".", ",")} etatu, np. 0,5.` });
+    }
+    const period = range("period");
+    if (period && today > shift(period.from, -params.parentalRequestDays)) warnings.push(`Wniosek o łączenie urlopu z pracą składa się ${params.parentalRequestDays} dni przed podjęciem pracy. Pracodawca może nie zgodzić się na ten termin.`);
+  }
+  if (spec.id === "lr.maternity_resign_14w" && isFilled(values.return_date) && String(values.return_date) < afterMandatory) {
+    errors.push({ field: "return_date", message: `Z urlopu macierzyńskiego można zrezygnować po wykorzystaniu ${params.motherOnlyWeeks} tygodni, czyli od ${formatDate(afterMandatory)}.` });
+  }
+  if (spec.id === "lr.maternity_takeover") {
+    const period = range("period");
+    if (period && period.from < afterMandatory) errors.push({ field: "period", message: `Tata przejmuje urlop po ${params.motherOnlyWeeks} tygodniach wykorzystanych przez mamę, najwcześniej ${formatDate(afterMandatory)}.` });
+  }
+  if (spec.id === "lr.supplementary_maternity") {
+    const period = range("period");
+    const max = params.supplementary.capSevereWeeks;
+    if (period && days(period) > max * 7) errors.push({ field: "period", message: `Uzupełniający urlop macierzyński trwa najwyżej ${max} tygodni (${params.supplementary.capWeeks} tygodni, gdy dziecko urodziło się po 28. tygodniu ciąży z masą powyżej 1000 g).` });
+  }
+  if (spec.id === "lr.maternity_conditions") {
+    const limit = params.adoptionAgeLimit.adoption;
+    for (const child of (values.children as Child[] | undefined) ?? []) {
+      if (child.birthDate && diffDays(parseIso(child.birthDate)!, parseIso(today)!) / 365.25 >= limit) {
+        errors.push({ field: "children", message: `Urlop na warunkach macierzyńskiego przysługuje na dziecko do ${limit}. roku życia.` });
+        break;
+      }
+    }
   }
 
   const payerIds = ["payer_nip", "payer_regon", "payer_pesel"];
