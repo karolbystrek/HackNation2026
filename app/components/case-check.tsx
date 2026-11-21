@@ -84,10 +84,8 @@ export function CaseCheck({ params }: { params: Params }) {
     <div className="flex flex-col gap-5">
       <div className="flex max-w-xl flex-col gap-2">
         <label htmlFor={fileId} className="font-bold">Wybierz dokumenty (PDF)</label>
-        <p id={`${fileId}-hint`} className="text-sm text-muted-foreground">Usuń dane osobowe przed przesłaniem. Plik może zostać przekazany do modelu Google Gemini w celu odczytu. Odczytane dane zapisujemy w pamięci podręcznej.</p>
         <input
           id={fileId}
-          aria-describedby={`${fileId}-hint`}
           type="file"
           accept="application/pdf"
           disabled={busy}
