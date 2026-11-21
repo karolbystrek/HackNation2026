@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     agentFeedback: true,
+    // Panel pages render from browser session state, so only segments that declare `instant` are validated.
+    instantInsights: { validationLevel: "manual-warning" },
   },
   cacheComponents: true,
   partialPrefetching: true,

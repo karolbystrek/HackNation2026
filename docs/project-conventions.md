@@ -20,6 +20,15 @@ We have a few hours, not weeks.
 - Supabase for data (admin parameters, saved cases): `@supabase/supabase-js` + `@supabase/ssr`, SQL migrations in `supabase/migrations/`, keys in `app/.env.local` (never commit it).
 - Everything external is simulated: mObywatel login, ZUS data download, contribution debt, e-ZLA, PUE/eZUS, submitting applications. Use mocks/fixtures, no real integrations.
 
+## Application map
+
+The UI follows the team's design canvas (https://claude.ai/artifact/2TSCL1uxqkR2fxiWoQjm1w); its palette lives as Tailwind tokens in `app/app/globals.css`.
+- Benefit engine: pure functions in `app/lib/calc/` (`leave.ts` birth/adoption leave, `pregnancy.ts`, `basis.ts`, `variants.ts` A/B/C leave splits, `tasks.ts` to-do list). The calculator UI, the variants page and `POST /api/calculate` all call the same functions; add new benefit logic there, not in components.
+- Demo families returned by the simulated mObywatel login live in `app/lib/mock/personas.ts`. Add a persona there to get a new demo account.
+- The logged-in plan (persona, timeline events, chosen variant, done tasks) is client-only state in `app/lib/plan-store.ts`, kept in `sessionStorage`. Pages under `app/app/(panel)/` read it through `useFamily()` and are guarded by `components/session-guard.tsx`.
+- Because panel pages render from browser state, `next.config.ts` sets `instantInsights.validationLevel: "manual-warning"`; declare `instant` on a segment to opt it into validation.
+- Dates in code are ISO `YYYY-MM-DD` strings computed in UTC (`app/lib/dates.ts`); format them for display with `formatDate`.
+
 ## Conventions
 
 - UI copy in Polish, code (identifiers, comments) in English.
