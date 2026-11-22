@@ -253,8 +253,8 @@
         {
           "order": 6,
           "actor": "insured",
-          "action_pl": "Po zakończeniu zasiłku macierzyńskiego – ponowne zgłoszenie do dobrowolnego chorobowego.",
-          "recipient": "zus"
+          "action_pl": "Po zakończeniu zasiłku macierzyńskiego poproś zleceniodawcę o ponowne zgłoszenie do dobrowolnego chorobowego (ZUS ZUA) – w 7 dni, aby ubezpieczenie trwało bez przerwy.",
+          "recipient": "payer"
         }
       ],
       "risk_ids": [

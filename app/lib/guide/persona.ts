@@ -9,6 +9,15 @@ import { defaultParams } from "@/lib/params";
 export const GUIDE_ID = "guide";
 const AFTER_INSURANCE_ONSET_DAYS = 14;
 
+/**
+ * The questionnaire does not ask when paternity leave starts. The request needs the birth certificate (rozporządzenie
+ * w sprawie wniosków § 17 ust. 2), so the default leaves time to register the birth, then the 7-day notice (KP art. 182³ § 2).
+ */
+const defaultPaternityStart = (birth: string, today: string) => [
+  shiftIso(birth, defaultParams.birthRegistrationDays + defaultParams.paternityRequestDays),
+  shiftIso(today, defaultParams.paternityRequestDays),
+].sort()[1];
+
 function parent(
   name: string, nameGenitive: string, contract: ContractType, monthly: number, insuredFrom: string, age: number, payerSize: ParentProfile["payerSize"],
 ): ParentProfile {
@@ -86,8 +95,7 @@ export function personaFromAnswers(answers: Answers): Persona {
     fetchedAt: today,
     dueDate,
     birthDate,
-    // The questionnaire does not ask when paternity leave starts: at birth, or the first day a request can still reach the employer in time.
-    paternityStart: [anchor, shiftIso(today, defaultParams.paternityRequestDays)].sort()[1],
+    paternityStart: defaultPaternityStart(anchor, today),
     zaZyciem: Array.isArray(a.special) && a.special.includes("zaZyciem"),
     wantsAveragedRate: a.wantsAveragedRate === true,
     // A starting split for the plan; the family can change it under /warianty.
@@ -146,8 +154,9 @@ export function currentPersona(plan: { personaId: string | null; guideAnswers: A
         ...(details.zaZyciem ? ["za_zyciem"] : [])],
     }),
     events: birth.startsCase ? [birth] : [...persona.events.filter((event) => event.type !== "birth" && event.type !== "adoption"), birth],
-    paternityStart: birth.startsCase
-      ? [birth.date, shiftIso(todayInWarsaw(), defaultParams.paternityRequestDays)].sort()[1]
+    // A demo profile keeps the family's chosen date; the questionnaire's default follows the real birth.
+    paternityStart: birth.startsCase || plan.personaId === GUIDE_ID
+      ? defaultPaternityStart(birth.date, todayInWarsaw())
       : [birth.date, persona.paternityStart].sort()[1],
     ...(adoption && {
       // Older timeline events did not store a placement kind.

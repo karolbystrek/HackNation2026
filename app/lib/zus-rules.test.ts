@@ -65,12 +65,29 @@ const rows: Row[] = [
     expect: { "pre-birth-leave": { due: "2027-01-04" } },
   },
   {
+    name: "pregnant family: paternity request after the birth is registered",
+    source: "Rozporządzenie w sprawie wniosków § 17 ust. 2: the paternity request carries the birth certificate. Prawo o aktach stanu cywilnego art. 61: registration within 21 days. KP art. 182³ § 2: request ≥7 days before.",
+    answers: { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-04-15", multiplePregnancy: false, largeEmployer: "yes", otherParentInsured: true },
+    expect: {
+      "birth-registration": { due: "2027-05-06" },
+      paternity: { form: "lr.paternity", due: "2027-05-06", documents: ["aktu urodzenia"] },
+      "paternity-period": { date: "2027-05-13", end: "2027-05-26" },
+    },
+  },
+  {
+    name: "mandate contract: the payer re-registers voluntary sickness insurance",
+    source: "Poradnik p.35 and zus.pl (dobrowolne ubezpieczenie chorobowe): after maternity benefit the insurance must be reported again on ZUS ZUA, filed by the zleceniodawca, within 7 days.",
+    answers: { ...born, role: "mother", insurance: ["mandate"], voluntarySickness: true, largeEmployer: "no" },
+    expect: { "resume-sickness-mother": { recipient: "Zleceniodawca" } },
+  },
+  {
     name: "self-employed mother with voluntary sickness insurance",
     source: "Poradnik p.34: self-employed file ZAM with ZUS. Poradnik p.35: voluntary sickness insurance ends with maternity benefit and must be re-registered.",
     answers: { ...born, role: "mother", insurance: ["business"], voluntarySickness: true },
     expect: {
       "maternity-claim": { form: "ff.zam", recipient: "ZUS" },
-      "parental-mother": { form: "ff.zam", recipient: "ZUS" },
+      // No legal deadline before the period; the claim lapses 6 months after it (poradnik p.34).
+      "parental-mother": { form: "ff.zam", recipient: "ZUS", due: null },
       "arrears-check-mother": "present",
       "resume-sickness-mother": "present",
     },

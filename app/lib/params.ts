@@ -18,6 +18,8 @@ export const defaultParams = {
   paternityMinPartDays: 7,
   paternityRequestDays: 7,
   paternityUntilChildMonths: 12,
+  // Birth registration at the civil registry, counted from the birth card (Prawo o aktach stanu cywilnego art. 61).
+  birthRegistrationDays: 21,
   // Notice to the employer before parental leave starts.
   parentalRequestDays: 21,
   // Work during parental leave is limited to half of full time.

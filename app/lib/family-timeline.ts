@@ -130,7 +130,7 @@ export function buildFamilyTimeline(
     {
       id: "birth-registration", kind: "application", who: "both", title: stillbirth ? "Zgłoszenie martwego urodzenia" : "Zgłoszenie urodzenia",
       description: stillbirth ? "Jeśli wystawiono kartę martwego urodzenia, zgłoś urodzenie do USC. Bez aktu do zasiłku może wystarczyć zaświadczenie medyczne." : "Po zgłoszeniu otrzymasz pierwszy bezpłatny odpis skrócony aktu urodzenia.",
-      date: cardDate, due: stillbirth && !birthCardDate ? undefined : shiftIso(cardDate, stillbirth ? 3 : 21),
+      date: cardDate, due: stillbirth && !birthCardDate ? undefined : shiftIso(cardDate, stillbirth ? 3 : params.birthRegistrationDays),
       dateNote: stillbirth && !birthCardDate ? "Do 3 dni od sporządzenia karty martwego urodzenia" : undefined, recipient: "Urząd stanu cywilnego",
       guide: "https://www.gov.pl/web/gov/zglos-urodzenie-dziecka",
       completedOn: birthRegistrationDate, requires: ["birth-card"], estimated: !birthCardDate,
@@ -177,15 +177,14 @@ export function buildFamilyTimeline(
         : task === "maternity_claim" && facts.payer_size === "unknown" && employee
           ? "Zapytaj pracodawcę, kto wypłaca zasiłek i jakie dokumenty masz przekazać."
           : [...new Set(steps.map((step) => step.action))].join(" ");
+      // A step without a legal deadline (e.g. ZAM for a later period) is only best filed before the period; the claim lapses 6 months after it.
+      const due = (task === "maternity_claim" && facts.flags.chooses_averaged_rate ? shiftIso(birth, params.flatRateRequestDays) : undefined)
+        ?? (task === "supplementary_leave" && !employee ? undefined : dueDate(journey, steps, facts, plan.anchors));
       const entry: Entry = {
         id: plan.id, kind: "application", who: parent,
         title: form?.symbol ? `${plan.title} (${form.symbol})` : plan.title,
         description: plan.start ? `Planowany start: ${formatDate(plan.start)}. ${action}` : action,
-        date: plan.date, dateNote: plan.dateNote,
-        // Steps without a fixed deadline say "before the period starts".
-        due: (task === "maternity_claim" && facts.flags.chooses_averaged_rate ? shiftIso(birth, params.flatRateRequestDays) : undefined)
-          ?? (task === "supplementary_leave" && !employee ? undefined : dueDate(journey, steps, facts, plan.anchors))
-          ?? (plan.start && shiftIso(plan.start, -1)),
+        date: plan.date, dateNote: plan.dateNote ?? (!due && plan.start ? `Najlepiej przed ${formatDate(plan.start)}` : undefined), due,
         recipient: recipientLabel(steps[0].recipient, facts),
         guide: task === "parental_allowance" ? "https://www.gov.pl/web/gov/uzyskaj-swiadczenie-rodzicielskie"
           : task === "conditions_leave" ? "https://www.gov.pl/web/rodzina/okres-wyplaty-zasilku-macierzynskiego"

@@ -71,9 +71,9 @@ test("self-employed mother files ZAM with ZUS, checks arrears and re-registers",
   const lastEnd = chosen.result.periods.mother.map((p) => p.to).sort().at(-1)!;
   assert.equal(get("resume-sickness-mother")!.due, shift(lastEnd, 7));
   assert.equal(get("sickness-claim")!.form, "ff.zas53");
-  // The 21-day notice is a Labour Code rule for employees; ZAM only has to come before the period.
-  const parental = chosen.result.periods.mother.find((p) => p.kind === "parental")!;
-  assert.equal(get("parental-mother")!.due, shift(parental.from, -1));
+  // The 21-day notice is a Labour Code rule for employees; ZAM has no legal deadline, so it is only best filed before the period.
+  assert.equal(get("parental-mother")!.due, undefined);
+  assert.match(get("parental-mother")!.dateNote ?? "", /Najlepiej przed/);
 });
 
 test("self-employed father claims paternity benefit from ZUS before it starts", async () => {
@@ -81,7 +81,8 @@ test("self-employed father claims paternity benefit from ZUS before it starts", 
   const paternity = get("paternity")!;
   assert.equal(paternity.form, "ff.zam");
   assert.equal(paternity.recipient, "ZUS");
-  assert.equal(paternity.due, shift(anna.paternityStart, -1));
+  assert.equal(paternity.due, undefined);
+  assert.match(paternity.dateNote ?? "", /Najlepiej przed/);
   assert.equal(get("arrears-check-mother"), undefined);
   assert.ok(get("arrears-check-father"));
 });
