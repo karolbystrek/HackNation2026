@@ -149,7 +149,7 @@ function Calculators({ event }: { event?: TimelineEvent }) {
         <LeaveCalculator key="adoption" draftKey={`${draftKey}/adoption`} event={event?.type === "adoption" ? event : undefined} mode="adoption" bases={bases} setBases={setBases} onBasis={openBasis} onBack={chooseMode} active />
       )}
       {mode === "pregnancy" && !basisRequest && (
-        <PregnancyCalculator draftKey={`${draftKey}/pregnancy`} startDate={event?.type === "sickLeave" ? event.date : undefined} basis={bases.mother} setBasis={(v) => setBases((b) => ({ ...b, mother: v }))} onBasis={openBasis} onBack={chooseMode} active />
+        <PregnancyCalculator draftKey={`${draftKey}/pregnancy`} startDate={event?.type === "sickLeave" ? event.date : undefined} endDate={event?.type === "sickLeave" ? event.endDate ?? undefined : undefined} basis={bases.mother} setBasis={(v) => setBases((b) => ({ ...b, mother: v }))} onBasis={openBasis} onBack={chooseMode} active />
       )}
       {mode === "basis" && (
         <BasisCalculator key="basis" draftKey={`${draftKey}/basis`} initialParent={event?.type === "salary" && event.who !== "both" ? event.who : undefined} onUse={useBasis} onBack={chooseMode} active />

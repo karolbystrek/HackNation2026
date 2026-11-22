@@ -116,16 +116,53 @@ export function currentPersona(plan: { personaId: string | null; guideAnswers: A
     : findPersona(plan.personaId);
   // A birth or adoption recorded later replaces the expected birth, so the plan follows the real child.
   const birth = plan.events?.slice().reverse().find((event) => event.source === "new" && (event.type === "birth" || event.type === "adoption"));
-  if (!persona || !birth) return persona;
-  const adoption = birth.type === "adoption";
-  return {
-    ...persona, birthDate: birth.date,
-    events: [...persona.events.filter((event) => event.type !== "birth" && event.type !== "adoption"), birth],
-    paternityStart: persona.paternityStart < birth.date ? birth.date : persona.paternityStart,
+  if (!persona) return null;
+  const hospital = plan.events?.findLast((event) => event.circumstance === "supplementaryLeave" && event.hospitalStay && (!birth || event.date >= birth.date));
+  const updated = hospital?.hospitalStay ? {
+    ...persona,
+    supplementaryWeeks: supplementaryWeeks(hospital.hospitalStay, defaultParams),
+    supplementaryParent: hospital.who === "father" ? "father" as const : "mother" as const,
+  } : persona;
+  const adoption = birth?.type === "adoption";
+  const details = birth?.childDetails;
+  const child: Persona = birth ? {
+    ...updated, birthDate: birth.date,
+    ...(birth.startsCase && { completedSteps: undefined, wantsAveragedRate: undefined }),
+    ...(details && {
+      kids: details.count,
+      birthCardDate: details.birthCardDate,
+      birthRegistrationDate: undefined,
+      birthCertificateDate: undefined,
+      childName: undefined,
+      birthPlace: undefined,
+      childDeathDate: undefined,
+      zaZyciem: details.zaZyciem,
+      supplementaryWeeks: hospital ? updated.supplementaryWeeks : undefined,
+      adoptedChildBirthDate: details.childBirthDate,
+      adoptionOrderDate: details.adoptionOrderDate,
+      schoolDeferred: details.schoolDeferred,
+      placementParent: undefined,
+      childEvents: [adoption ? details.placement === "foster" ? "foster_placement" : "adoption" : details.stillbirth ? "stillbirth" : "birth",
+        ...(details.zaZyciem ? ["za_zyciem"] : [])],
+    }),
+    events: birth.startsCase ? [birth] : [...persona.events.filter((event) => event.type !== "birth" && event.type !== "adoption"), birth],
+    paternityStart: birth.startsCase
+      ? [birth.date, shiftIso(todayInWarsaw(), defaultParams.paternityRequestDays)].sort()[1]
+      : [birth.date, persona.paternityStart].sort()[1],
     ...(adoption && {
-      // shortcut: "Adopcja / rodzina zastępcza" is one event type, planned as adoption; the questionnaire tells them apart.
-      childEvents: ["adoption", ...(persona.childEvents ?? []).filter((event) => event === "za_zyciem")],
+      // Older timeline events did not store a placement kind.
+      ...(!details && { childEvents: ["adoption", ...(persona.childEvents ?? []).filter((event) => event === "za_zyciem")] }),
       placementParent: birth.who === "father" ? "father" : "mother",
     }),
-  };
+  } : updated;
+  const start = child.birthDate ?? child.dueDate;
+  const events = plan.events ?? [];
+  const certificate = events.findLast((event) => event.circumstance === "zaZyciem" && event.date >= start);
+  const death = events.findLast((event) => event.circumstance === "childLoss" && event.date >= start);
+  const childEvents = child.childEvents ?? ["birth"];
+  if (death && child.kids === 1 && child.birthDate) {
+    const early = death.date < shiftIso(child.birthDate, defaultParams.stillbirthWeeks * 7);
+    return { ...child, childDeathDate: death.date, childEvents: [early ? "child_death_lt8w" : "child_death_gt8w"] };
+  }
+  return certificate ? { ...child, zaZyciem: true, childEvents: [...new Set([...childEvents, "za_zyciem"])] } : child;
 }

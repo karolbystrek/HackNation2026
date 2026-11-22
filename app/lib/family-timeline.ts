@@ -216,7 +216,7 @@ export function buildFamilyTimeline(
     switch (task) {
       // Tasks of the mother's own benefit; scenarios without a parent_role would otherwise give them to both parents.
       case "maternity_claim":
-        if (parent !== (placed ? persona.placementParent ?? "mother" : "mother")) return null;
+        if (placed && periods.noRight || parent !== (placed ? persona.placementParent ?? "mother" : "mother")) return null;
         return {
           id: "maternity-claim", date: birth,
           title: hasForm ? "Wniosek o zasiłek macierzyński" : "Dokumenty do wypłaty zasiłku macierzyńskiego",
@@ -258,7 +258,7 @@ export function buildFamilyTimeline(
         };
       }
       case "conditions_leave":
-        if (parent !== (variant?.input.main ?? persona.placementParent ?? "mother")) return null;
+        if (periods.noRight || parent !== (variant?.input.main ?? persona.placementParent ?? "mother")) return null;
         return {
           id: "conditions-leave", title: "Wniosek o urlop na warunkach urlopu macierzyńskiego", date: birth,
           anchors: { adoption_intake_date: birth },
@@ -385,7 +385,7 @@ export function buildFamilyTimeline(
   for (const [form, who, title, description, date, recipient] of extras) {
     if (entries.some((entry) => entry.form === form)) continue;
     const trigger = recentEvents.find((event) => {
-      if (event.type === "adoption" && ["ff.zas26", "lr.maternity_conditions"].includes(form)) return true;
+      if (event.type === "adoption" && ["ff.zas26", "lr.maternity_conditions"].includes(form)) return !periods.noRight;
       const forms: readonly string[] | undefined = event.circumstance && Object.hasOwn(CIRCUMSTANCES, event.circumstance)
         ? CIRCUMSTANCES[event.circumstance].forms : undefined;
       return event.type === "circumstance" && forms?.includes(form);

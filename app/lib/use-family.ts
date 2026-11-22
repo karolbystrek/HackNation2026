@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useJourney } from "@/components/journey-provider";
-import { todayInWarsaw } from "@/lib/dates";
+import { formatDate, todayInWarsaw } from "@/lib/dates";
 import { buildVariants } from "@/lib/calc/variants";
 import { planTimeline } from "@/lib/guide/timeline";
 import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
@@ -36,5 +36,8 @@ export function useFamily() {
   // Demo profiles and questionnaire answers go through the same knowledge-driven timeline.
   const timeline = planTimeline(persona, plan.events, chosen, params, journey, plan.doneTasks, today);
   const entries = timeline.filter((entry) => entry.who === "both" || entry.who === viewer);
-  return { plan, persona, viewer, solo, fromGuide, params, journey, variants, chosen, names, entries, timeline, today };
+  const anchor = persona.birthDate ?? persona.dueDate;
+  const placement = persona.childEvents?.some((event) => event === "adoption" || event === "foster_placement");
+  const caseLabel = `${placement ? "Przyjęcie" : persona.birthDate ? "Poród" : "Planowany poród"} ${formatDate(anchor)}`;
+  return { caseLabel, plan, persona, viewer, solo, fromGuide, params, journey, variants, chosen, names, entries, timeline, today };
 }

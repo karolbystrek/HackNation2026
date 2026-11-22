@@ -179,8 +179,8 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
     if (period && days(period) > max * 7) errors.push({ field: "period", message: `Uzupełniający urlop macierzyński trwa najwyżej ${max} tygodni (${params.supplementary.capWeeks} tygodni, gdy dziecko urodziło się po 28. tygodniu ciąży z masą powyżej 1000 g).` });
   }
   if (spec.id === "lr.maternity_conditions") {
-    const limit = ctx.guideAnswers.situation === "foster"
-      ? ctx.guideAnswers.schoolDeferred === true ? params.adoptionAgeLimit.fosterDeferred : params.adoptionAgeLimit.foster
+    const limit = persona.childEvents?.includes("foster_placement")
+      ? persona.schoolDeferred === true ? params.adoptionAgeLimit.fosterDeferred : params.adoptionAgeLimit.foster
       : params.adoptionAgeLimit.adoption;
     const period = range("period");
     if (period && period.from > shift(birth, params.parentalRequestDays)) errors.push({

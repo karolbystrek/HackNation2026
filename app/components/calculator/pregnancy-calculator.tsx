@@ -10,7 +10,7 @@ import { formatPln, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 import { DateField } from "@/components/ui/date-field";
 
-export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, startDate, draftKey }: {
+export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, startDate, endDate, draftKey }: {
   basis: string;
   setBasis: (v: string) => void;
   onBasis: (parent: ParentKey, startMonth: string) => void;
@@ -18,6 +18,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
   active: boolean;
   draftKey: string;
   startDate?: string;
+  endDate?: string;
 }) {
   const { persona, params, names } = useFamily();
   const mother = persona.parents.mother;
@@ -25,6 +26,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
     contract: mother.contract,
     insuredFrom: mother.insuredFrom,
     waitingWaived: mother.waitingWaived,
+    sickLeaveThrough: endDate,
     sickLeaveFrom: startDate ?? mother.sickLeaveFrom ?? persona.fetchedAt,
     dueDate: startDate ? persona.birthDate ?? persona.dueDate : persona.dueDate,
     employerInsolvent: false,

@@ -9,6 +9,7 @@ import { planTimeline } from "@/lib/guide/timeline";
 import { nextQuestion, visibleOptions, type Answers } from "@/lib/guide/tree";
 import { loadJourney } from "@/lib/knowledge";
 import { defaultParams as params } from "@/lib/params";
+import { logIn, logOut, startChildCase, switchChildCase, updatePlan } from "@/lib/plan-store";
 import { personas } from "@/lib/mock/personas";
 
 const TODAY = "2026-11-22";
@@ -19,6 +20,7 @@ const EFFECTS: Record<string, Effect> = {
   sickLeave: "actions", birth: "dates", adoption: "actions", contract: "actions", contractEnd: "actions", business: "actions", returnToWork: "actions",
   salary: { none: "Changes only the pay used for the benefit basis; the steps and dates stay, the calculator recalculates the amount." },
   ...Object.fromEntries(Object.keys(CIRCUMSTANCES).map((key) => [`circumstance:${key}`, "actions" as Effect])),
+  "circumstance:zaZyciem": "dates",
 };
 
 const journey = loadJourney();
@@ -34,6 +36,9 @@ const event = (type: TimelineEvent["type"], who: TimelineEvent["who"], date: str
 /** The kinds of event to try for an EFFECTS key: each parent it can concern, dated during the pregnancy. */
 function variantsOf(key: string, childDate: string): TimelineEvent[] {
   const date = shiftIso(childDate, -60);
+  if (key === "circumstance:childLoss" || key === "circumstance:zaZyciem") {
+    return [event("circumstance", "both", shiftIso(childDate, 3), key.slice("circumstance:".length))];
+  }
   if (key.startsWith("circumstance:")) return [event("circumstance", "both", date, key.slice("circumstance:".length))];
   if (key === "sickLeave") return [event("sickLeave", "mother", date)];
   if (key === "birth" || key === "adoption") return [event(key, "mother", shiftIso(childDate, 3))];
@@ -143,3 +148,58 @@ for (const row of SAME_SITUATION) {
     }
   });
 }
+
+
+test("a recorded birth updates the count, registration deadline and leave pool", async () => {
+  const birth = { ...event("birth", "both", "2026-11-10"), childDetails: { count: 2, birthCardDate: "2026-11-12" } };
+  const answers = complete(pregnant);
+  const persona = currentPersona({ personaId: GUIDE_ID, guideAnswers: answers, events: [birth] })!;
+  expect(persona.kids).toBe(2);
+  expect(buildVariants(persona, params)[0].result.pool).toBe(params.parentalPoolWeeks.multiple);
+  const entries = await plan(GUIDE_ID, answers, [birth]);
+  expect(entries.find((entry) => entry.id === "birth-registration")?.due).toBe("2026-12-03");
+});
+
+test("a recorded foster placement uses the foster age limit and school deferral", () => {
+  const birth = {
+    ...event("adoption", "father", "2026-11-10"),
+    childDetails: { count: 1, placement: "foster" as const, childBirthDate: "2018-11-10", schoolDeferred: true },
+  };
+  const persona = currentPersona({ personaId: personas[0].id, guideAnswers: {}, events: [birth] })!;
+  const variant = buildVariants(persona, params)[0];
+  expect(variant.input).toMatchObject({ adoptionType: "foster", schoolDeferred: true, main: "father" });
+  expect(variant.result.noRight).toBe(false);
+});
+
+test("hospital information and parent entered in the event reach the leave calculation", () => {
+  const hospital = {
+    ...event("circumstance", "father", "2026-11-15", "supplementaryLeave"),
+    hospitalStay: { gestationWeek: 26, birthWeight: 900, hospitalWeeks: 10.2 },
+  };
+  const persona = currentPersona({ personaId: GUIDE_ID, guideAnswers: complete(born), events: [hospital] })!;
+  expect(buildVariants(persona, params)[0].input).toMatchObject({ supplementaryWeeks: 11, supplementaryParent: "father" });
+});
+
+
+test("a separate child case preserves the first case and its completed tasks", () => {
+  try {
+    logIn(personas[0].id);
+    updatePlan((state) => ({ ...state, doneTasks: ["birth-card"] }));
+    const birth = { ...event("birth", "both", "2027-04-12"), childDetails: { count: 2 } };
+    startChildCase(birth, "Pierwsza sprawa");
+    updatePlan((state) => {
+      expect(state.events).toEqual([{ ...birth, startsCase: true }]);
+      expect(state.doneTasks).toEqual([]);
+      expect(currentPersona(state)?.completedSteps).toBeUndefined();
+      return { ...state, doneTasks: ["birth-registration"] };
+    });
+    switchChildCase("initial", "Druga sprawa");
+    updatePlan((state) => {
+      expect(state.doneTasks).toEqual(["birth-card"]);
+      expect(state.savedCases?.[0].state.doneTasks).toEqual(["birth-registration"]);
+      return state;
+    });
+  } finally {
+    logOut();
+  }
+});

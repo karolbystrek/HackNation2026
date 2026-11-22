@@ -47,7 +47,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
     adoptionType: persona.childEvents?.includes("foster_placement") ? "foster" : "adoption",
     childBirthDate: persona.adoptedChildBirthDate ?? "",
     adoptionOrderDate: persona.adoptionOrderDate,
-    schoolDeferred: false,
+    schoolDeferred: persona.schoolDeferred ?? false,
     main,
     otherWeeks: persona.parents[otherParent(main)].insuredType === "uninsured" ? 0 : otherWeeks,
     paternity: father.insuredType !== "uninsured" && !persona.childEvents?.includes("foster_placement"),
@@ -73,10 +73,16 @@ export function buildVariants(persona: Persona, p: Params, custom?: CustomLeave,
   ];
 
   const preBirth = [...persona.events, ...events].reverse().find((event) => event.circumstance === "preBirthLeave");
+  const recordedChild = persona.events.some((event) => event.childDetails);
+  const recordedCertificate = events.some((event) => event.circumstance === "zaZyciem");
+  const recordedHospital = events.some((event) => event.hospitalStay);
   const variants = defs.filter((def) => canShare || def.key === "A" || def.key === "custom").map((def) => {
     const configured = leaveInputFor(persona, p, def.otherWeeks);
     const choice = def.key === "custom" ? custom : undefined;
-    const input = { ...configured, ...choice, supplementaryWeeks: choice?.supplementaryWeeks ?? configured.supplementaryWeeks,
+    const input = { ...configured, ...choice,
+      ...(recordedChild && { kids: configured.kids }),
+      ...((recordedChild || recordedCertificate) && { zaZyciem: configured.zaZyciem }),
+      supplementaryWeeks: recordedChild || recordedHospital ? configured.supplementaryWeeks : choice?.supplementaryWeeks ?? configured.supplementaryWeeks,
       preBirthStartDate: preBirth?.date ?? choice?.preBirthStartDate };
     if (!canShare && def.key !== "custom") input.otherWeeks = 0;
     const result = planLeave(input, p);

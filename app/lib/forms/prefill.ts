@@ -34,12 +34,18 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   const paternity = period("father", "paternity") ?? (fallbackPaternity
     ? { from: fallbackPaternity.from, to: toIso(addDays(parseIso(fallbackPaternity.to)!, -1)) }
     : { from: "", to: "" });
-  const sickLeave = ctx.events.find((event) => event.type === "sickLeave" && event.who === parent);
+  const sickLeave = parent === "mother"
+    ? ctx.events.find((event) => event.circumstance === "sicknessAfterInsurance") ??
+      ctx.events.find((event) => event.type === "sickLeave" && event.who === parent)
+    : undefined;
   const parental = period(parent, "parental");
   const isParental = taskId.startsWith("parental-");
   const birth = persona.birthDate ?? persona.dueDate;
   const shift = (date: string, days: number) => toIso(addDays(parseIso(date)!, days));
   const maternity = period("mother", "maternity") ?? { from: birth, to: shift(birth, params.maternityWeeks[Math.min(persona.kids, params.maternityWeeks.length) - 1] * 7 - 1) };
+  const placed = persona.childEvents?.some((event) => event === "adoption" || event === "foster_placement");
+  const recordedNames = persona.events.find((event) => event.childDetails)?.childDetails?.names;
+  const foster = persona.childEvents?.includes("foster_placement");
   const child = { name: `${persona.childName ?? "Dziecko"} ${persona.parents.father.lastName}`, birthDate: birth, birthPlace: persona.birthPlace ?? "" };
   const payerText = guide ? "" : `${me.payerName}, NIP ${me.payerNip}`;
   // Twelve calendar months before the birth month, oldest first, matching monthlyGross.
@@ -69,15 +75,19 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     request_kind: "pierwszorazowy",
     bank_account: me.bankAccount,
     employee_name: fullName,
-    basis: ctx.guideAnswers.situation === "foster" ? "1_rodzina_zastepcza"
-      : ctx.guideAnswers.situation === "adoption" ? "1_przysposobienie" : "1_urodzenie",
+    basis: foster ? "1_rodzina_zastepcza" : placed ? "1_przysposobienie" : "1_urodzenie",
     self_employed_sickness_insured: me.contract === "jdg",
-    children: persona.birthDate && !ctx.guideAnswers.placementDate
-      ? Array.from({ length: persona.kids }, () => ({ name: persona.childName ?? "", birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "" }))
-      : [],
+    children: persona.birthDate && !placed
+      ? Array.from({ length: persona.kids }, (_, index) => ({
+        name: recordedNames?.[index] ?? (index === 0 ? persona.childName ?? "" : ""), birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "",
+      }))
+      : placed && recordedNames
+        ? recordedNames.map((name) => ({ name, birthDate: persona.kids === 1 ? persona.adoptedChildBirthDate ?? "" : "", birthPlace: "" }))
+        : [],
     other_parent_data: { name: guide ? "" : `${other.name} ${other.lastName}`, pesel: other.pesel },
     used_so_far: parent === "mother" ? "Nie korzystałam dotąd z urlopu rodzicielskiego." : "Nie korzystałem dotąd z urlopu rodzicielskiego.",
-    period_relation: "w_okresie_ubezpieczenia",
+    period_relation: sickLeave?.circumstance === "sicknessAfterInsurance" ? "po_ustaniu" : "w_okresie_ubezpieczenia",
+    insurance_end_date: sickLeave?.insuranceEndDate ?? "",
     period_and_certificate: sickLeave ? { from: sickLeave.date, to: sickLeave.endDate ?? "" } : { from: "", to: "" },
   };
   if (["maternity-claim", "averaged-rate", "stillbirth-claim", "conditions-request"].includes(taskId)) {
@@ -171,8 +181,24 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     if (spec.id === "lr.maternity_resign_14w" || spec.id === "lr.maternity_resign_incapacity") known.return_date = date;
     if (spec.id === "lr.maternity_mother_death") known.death_date = date;
     if (spec.id === "lr.maternity_abandonment") known.abandonment_date = date;
-    if (spec.id === "ff.zas33") known.event = circumstance === "motherDeath" ? "smierc_matki" : "porzucenie";
-    if (spec.id === "ff.zas26") known.intake_date = date;
+    if (spec.id === "ff.zas33") {
+      known.event = circumstance === "motherDeath" ? "smierc_matki" : "porzucenie";
+      known.care_from = ctx.trigger.careFrom ?? "";
+    }
+    if (spec.id === "ff.zas40") {
+      known.admitted_on = date;
+      known.discharged_on = ctx.trigger.endDate ?? "";
+    }
+    if (spec.id === "lr.maternity_mother_hospital" || spec.id === "lr.maternity_mother_death" || spec.id === "lr.maternity_abandonment") {
+      known.start_date = ctx.trigger.careFrom ?? "";
+    }
+    if (spec.id === "lr.maternity_takeover" && maternity.to >= date) {
+      known.period = { from: date, to: maternity.to };
+    }
+    if (spec.id === "ff.zas26") {
+      known.intake_date = date;
+      known.intake_kind = foster ? "rodzina_zastepcza" : "przysposobienie";
+    }
     if (spec.id === "ff.zas55") known.maternity_equivalent_from = date;
     if (spec.id === "ff.zas12") {
       known.employment_continues = true;

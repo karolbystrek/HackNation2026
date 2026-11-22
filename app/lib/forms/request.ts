@@ -23,6 +23,10 @@ type Body = {
   viewer?: ParentKey;
 };
 
+const optionalDate = (value: unknown) => value === undefined || value === null ||
+  (typeof value === "string" && !!parseIso(value));
+const finiteNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** Parses an application request from the wizard and rebuilds its family context; returns an error Response when invalid. */
@@ -51,7 +55,16 @@ export async function readApplicationRequest(request: Request): Promise<{ spec: 
     return typeof answer !== "string";
   })) return Response.json({ error: "Invalid questionnaire answers" }, { status: 400 });
   if (events.some((event) => !isObject(event) || typeof event.id !== "string" ||
-    typeof event.date !== "string" || !parseIso(event.date) || typeof event.type !== "string")) {
+    typeof event.date !== "string" || !parseIso(event.date) || typeof event.type !== "string" ||
+    ![event.endDate, event.careFrom, event.insuranceEndDate].every(optionalDate) ||
+    (event.childDetails !== undefined && (!isObject(event.childDetails) ||
+      !Number.isInteger(event.childDetails.count) || event.childDetails.count < 1 || event.childDetails.count > 10 ||
+      ![event.childDetails.birthCardDate, event.childDetails.childBirthDate, event.childDetails.adoptionOrderDate].every(optionalDate) ||
+      (event.childDetails.names !== undefined && (!Array.isArray(event.childDetails.names) ||
+        event.childDetails.names.length > event.childDetails.count ||
+        event.childDetails.names.some((name) => typeof name !== "string"))))) ||
+    (event.hospitalStay !== undefined && (!isObject(event.hospitalStay) ||
+      ![event.hospitalStay.gestationWeek, event.hospitalStay.birthWeight, event.hospitalStay.hospitalWeeks].every(finiteNumber))))) {
     return Response.json({ error: "Invalid events" }, { status: 400 });
   }
   const persona = currentPersona({ personaId, guideAnswers, events });

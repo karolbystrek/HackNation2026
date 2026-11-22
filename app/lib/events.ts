@@ -4,6 +4,8 @@ export type EventType = "birth" | "adoption" | "contract" | "salary" | "contract
 export type EventWho = ParentKey | "both";
 
 export const CIRCUMSTANCES = {
+  childLoss: { label: "Śmierć dziecka", forms: [] },
+  zaZyciem: { label: "Otrzymanie zaświadczenia „Za życiem”", forms: [] },
   preBirthLeave: { label: "Rozpoczęcie urlopu macierzyńskiego przed porodem", forms: ["lr.maternity_pre_birth", "ff.zas2"] },
   maternityTakeover: { label: "Powrót matki po 14 tygodniach i przejęcie urlopu przez ojca", forms: ["lr.maternity_resign_14w", "lr.maternity_takeover", "ff.zas23", "ff.zas24"] },
   motherIncapacity: { label: "Przerwanie urlopu przez matkę z orzeczeniem o niezdolności do samodzielnej egzystencji", forms: ["lr.maternity_resign_incapacity"] },
@@ -30,12 +32,33 @@ export type TimelineEvent = {
   date: string;
   /** A period uses date as its start. A null end means the end is unknown. */
   endDate?: string | null;
+  grossPay?: number;
+  careFrom?: string;
+  parentalWorkFraction?: number;
+  insuranceEndDate?: string;
+  childDetails?: {
+    count: number;
+    names?: string[];
+    birthCardDate?: string;
+    stillbirth?: boolean;
+    placement?: "adoption" | "foster";
+    childBirthDate?: string;
+    adoptionOrderDate?: string;
+    schoolDeferred?: boolean;
+    zaZyciem?: boolean;
+  };
+  hospitalStay?: {
+    gestationWeek: number;
+    birthWeight: number;
+    hospitalWeeks: number;
+  };
   /** zus = downloaded from state systems, user = entered earlier, new = added in this session. */
   source: "zus" | "user" | "new";
   title: string;
   description: string;
   /** The event requires the family to choose a leave variant. */
   decision?: boolean;
+  startsCase?: boolean;
 };
 
 export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] = [

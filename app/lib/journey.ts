@@ -61,7 +61,7 @@ function eventFacts(parent: ParentKey, events: TimelineEvent[]): string[] {
     ...(has("supplementaryLeave") ? ["child_hospitalisation"] : []),
     ...(has("motherHospital") ? ["mother_hospitalisation"] : []),
     ...(parent === "mother" && has("employerInsolvency") ? ["job_loss_liquidation"] : []),
-    ...(events.some((event) => event.type === "returnToWork" && (event.who === parent || event.who === "both")) ? ["combine_parental_with_work"] : []),
+    ...(events.some((event) => event.type === "returnToWork" && event.parentalWorkFraction !== 0 && (event.who === parent || event.who === "both")) ? ["combine_parental_with_work"] : []),
   ];
 }
 
@@ -87,7 +87,7 @@ export function factsFor(persona: Persona, parent: ParentKey, events: TimelineEv
       shares_parental: takesParental("mother") && takesParental("father"),
       no_pesel: false,
       has_za_zyciem: childEvents.includes("za_zyciem"),
-      school_deferral: false,
+      school_deferral: persona.schoolDeferred ?? false,
       child_over_age_limit: !!chosen?.result.noRight,
     },
   };

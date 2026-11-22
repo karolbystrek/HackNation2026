@@ -9,10 +9,7 @@ import type { Answers } from "@/lib/guide/tree";
 import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import type { FormValues } from "@/lib/forms/spec";
 
-export type PlanState = {
-  personaId: string | null;
-  viewer?: ParentKey;
-  solo?: boolean;
+type CaseState = {
   events: TimelineEvent[];
   chosenVariant: VariantKey | null;
   customLeave?: CustomLeave;
@@ -23,6 +20,16 @@ export type PlanState = {
   submissions: Record<string, Submission>;
   drafts?: Record<string, unknown>;
   calculatorHref?: string;
+};
+
+type SavedCase = { id: string; label: string; state: CaseState };
+
+export type PlanState = CaseState & {
+  personaId: string | null;
+  viewer?: ParentKey;
+  solo?: boolean;
+  activeCaseId?: string;
+  savedCases?: SavedCase[];
 };
 
 export type Submission = { number: string; sentAt: string; recipient: string; channel: string; values: FormValues };
@@ -92,6 +99,45 @@ export function logIn(personaId: string, viewer: ParentKey = "mother", solo = fa
   updatePlan((plan) => plan.personaId === personaId ? { ...plan, viewer, solo } : {
     personaId, viewer, solo, events: persona.events, chosenVariant: persona.initialVariant ?? null,
     doneTasks: [], guideAnswers, submissions: {},
+  });
+}
+
+function snapshotCase(state: PlanState, label: string): SavedCase {
+  const { events, chosenVariant, customLeave, doneTasks, guideAnswers, submissions, drafts, calculatorHref } = state;
+  return {
+    id: state.activeCaseId ?? "initial",
+    label,
+    state: { events, chosenVariant, customLeave, doneTasks, guideAnswers, submissions,
+      drafts: { ...drafts, dodaj: undefined, "dodaj/szczegoly": undefined }, calculatorHref,
+    },
+  };
+}
+
+export function startChildCase(event: TimelineEvent, previousLabel: string) {
+  updatePlan((state) => ({
+    ...state,
+    activeCaseId: event.id,
+    savedCases: [...(state.savedCases ?? []), snapshotCase(state, previousLabel)],
+    events: [{ ...event, startsCase: true }],
+    chosenVariant: null,
+    customLeave: undefined,
+    doneTasks: [],
+    submissions: {},
+    drafts: {},
+    calculatorHref: undefined,
+  }));
+}
+
+export function switchChildCase(id: string, previousLabel: string) {
+  updatePlan((state) => {
+    const target = state.savedCases?.find((entry) => entry.id === id);
+    if (!target) return state;
+    return {
+      ...state,
+      ...target.state,
+      activeCaseId: id,
+      savedCases: [...(state.savedCases ?? []).filter((entry) => entry.id !== id), snapshotCase(state, previousLabel)],
+    };
   });
 }
 

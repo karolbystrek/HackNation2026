@@ -61,6 +61,7 @@ export type Persona = {
   /** Supplementary maternity leave the child's hospital stay gives, in weeks. */
   supplementaryWeeks?: number;
   adoptionOrderDate?: string;
+  schoolDeferred?: boolean;
   placementParent?: "mother" | "father";
   adoptedChildBirthDate?: string;
   supplementaryParent?: "mother" | "father";
