@@ -26,6 +26,7 @@ export type LeaveInput = {
   preBirthStartDate?: string;
   supplementaryWeeks?: number;
   monthlyPitAdvance?: Partial<Record<ParentKey, number>>;
+  uninsuredParents?: ParentKey[];
   paternity: boolean;
   /** Planned start for the family variant. Calculators may omit it. */
   paternityStartDate?: string;
@@ -89,6 +90,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   const kids = Math.min(Math.max(input.kids, 1), 5);
   const multiple = kids > 1;
   const zaZyciem = input.zaZyciem;
+  const hasRight = (parent: ParentKey) => !input.uninsuredParents?.includes(parent);
   const pools = p.parentalPoolWeeks;
   const start = parseIso(input.startDate);
   const childBirth = adoption ? parseIso(input.childBirthDate) : start;
@@ -99,12 +101,12 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   const shortIntake = !!(cap && start && !noRight && diffDays(start, cap) < p.intakeMinimumMaternityWeeks * 7);
   const pool = shortIntake ? (zaZyciem ? p.intakeShortParentalWeeks.zaZyciem : p.intakeShortParentalWeeks.standard)
     : zaZyciem ? (multiple ? pools.zaZyciemMultiple : pools.zaZyciemSingle) : multiple ? pools.multiple : pools.single;
-  const maxOtherWeeks = pool - p.parentalOwnWeeks;
+  const maxOtherWeeks = hasRight(other) ? pool - p.parentalOwnWeeks : 0;
   const otherWeeks = Math.min(Math.max(input.otherWeeks, 0), maxOtherWeeks);
-  const mainWeeks = pool - Math.max(otherWeeks, p.parentalOwnWeeks);
+  const mainWeeks = hasRight(main) ? pool - Math.max(otherWeeks, p.parentalOwnWeeks) : 0;
   const lostOwnWeeks = Math.max(0, p.parentalOwnWeeks - otherWeeks);
   // Sharing the pool does not cancel 81.5% (knowledge: uz.art31.ust3f); only the other parent's reserved weeks stay at 70%.
-  const flatRateAllowed = !zaZyciem;
+  const flatRateAllowed = !zaZyciem && hasRight(main);
   const flatRateApplied = input.flatRate && flatRateAllowed;
 
   const preBirth = adoption ? null : parseIso(input.preBirthStartDate);
@@ -116,7 +118,7 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   let toppedUp = false;
 
   function add(parent: ParentKey, label: string, kind: LeavePeriod["kind"], from: Date, weeks: number, rate: number, workFraction: number, limit = cap): Date {
-    if (weeks <= 0) return from;
+    if (weeks <= 0 || !hasRight(parent)) return from;
     let days = (weeks * 7) / (1 - workFraction);
     let end = addDays(from, days);
     let paid = weeks;
@@ -174,12 +176,21 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
     const parentalStart = add(input.supplementaryParent ?? main, "Uzupełniający urlop macierzyński", "supplementary", maternityEnd, supplementary, p.rates.full, 0);
     const parentalLimit = adoption && input.adoptionType === "adoption" && !shortIntake ? cap : null;
     const e2 = add(main, "Urlop rodzicielski", "parental", parentalStart, mainWeeks, parentalRate, work(main), parentalLimit);
-    const otherStart = input.parentalTogether ? parentalStart : e2;
+    let otherStart = input.parentalTogether ? parentalStart : e2;
     const reserved = flatRateApplied ? Math.min(otherWeeks, p.parentalOwnWeeks) : otherWeeks;
+    if (!adoption && other === "father" && !hasRight(main) && input.paternity && otherWeeks > 0) {
+      const plannedPaternity = parseIso(input.paternityStartDate) ?? start;
+      const limit = paternityEndLimit(start, null, p)!;
+      const availableDays = diffDays(plannedPaternity, limit);
+      const parentalEnd = addDays(otherStart, otherWeeks * 7 / (1 - work(other)));
+      if (plannedPaternity >= start && plannedPaternity < parentalEnd && availableDays >= p.paternityMinPartDays) {
+        otherStart = addDays(plannedPaternity, Math.min(p.paternityWeeks * 7, Math.floor(availableDays / p.paternityMinPartDays) * p.paternityMinPartDays));
+      }
+    }
     const reservedEnd = add(other, "Urlop rodzicielski", "parental", otherStart, reserved, p.rates.parental, work(other), parentalLimit);
     const e3 = add(other, "Urlop rodzicielski", "parental", reservedEnd, otherWeeks - reserved, parentalRate, work(other), parentalLimit);
     const showPaternity = !adoption || input.adoptionType === "adoption";
-    if (showPaternity && input.paternity) {
+    if (showPaternity && input.paternity && hasRight("father")) {
       // Paternity leave right after birth when the father is the "other" parent, else after the parental leave.
       const adoptedChildBirth = adoption ? parseIso(input.childBirthDate) : null;
       const order = adoption ? (adoptedChildBirth ? parseIso(input.adoptionOrderDate) : null) : start;
@@ -223,7 +234,10 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   if (!start) warnings.push("Wpiszcie datę.");
   if (input.preBirthStartDate && !validPreBirth) warnings.push(`Wcześniejszy macierzyński może zacząć się do ${p.preBirthMaxWeeks} tygodni przed porodem. Obliczenie zaczyna się od dnia porodu.`);
   if (noRight) warnings.push(`Dziecko ukończyło ${capYears} lat przed przyjęciem – urlop i zasiłek nie przysługują.`);
-  if (lostOwnWeeks > 0)
+  for (const parent of PARENTS.filter((parent) => !hasRight(parent))) {
+    warnings.push(`Brak prawa do zasiłku dla: ${input.names[parent]}.`);
+  }
+  if (lostOwnWeeks > 0 && hasRight(main))
     warnings.push(`${lostOwnWeeks} tyg. urlopu rodzicielskiego (${input.names[other]}) przepada – ${p.parentalOwnWeeks} tygodni każdego rodzica jest nieprzenoszalne.`);
   if (lostToCap > 0.05) warnings.push(`Urlop kończy się w dniu ${capYears}. urodzin dziecka – przepada ok. ${formatWeeks(lostToCap)} urlopu.`);
   if (toppedUp) warnings.push(`Uwzględniono wyrównanie do ${formatPln(p.parentalAllowanceMonthly)} miesięcznie według wpisanej zaliczki PIT. Puste pole oznacza zaliczkę 0 zł.`);

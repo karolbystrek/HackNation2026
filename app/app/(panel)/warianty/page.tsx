@@ -15,7 +15,7 @@ export default function VariantsPage() {
 }
 
 function Variants() {
-  const { persona, params, variants, chosen, plan, names } = useFamily();
+  const { params, variants, chosen, plan, names } = useFamily();
   const router = useRouter();
   const query = useSearchParams();
   const fromTasks = query.get("z") === "zadania";
@@ -25,14 +25,14 @@ function Variants() {
   const base = (chosen ?? variants.find((variant) => variant.key === "custom") ?? variants[0]).input;
   const main = base.main;
   const other = otherParent(main);
-  const canShare = persona.parents[other].insuredType !== "uninsured" && persona.parents[main].insuredType !== "uninsured";
-  const limit = canShare ? planLeave(base, params).maxOtherWeeks : 0;
+  const limit = planLeave(base, params).maxOtherWeeks;
+  const canShare = limit > 0;
   const [selectedWeeks, setSelectedWeeks] = useState<number>();
   const best = useMemo(() => {
-    if (!base.bases.mother || (canShare && !base.bases.father)) return null;
+    if ([main, other].some((parent) => !base.uninsuredParents?.includes(parent) && !base.bases[parent])) return null;
     const result = bestLeaveSplit(base, params, limit);
     return result.familyTotal > 0 ? result : null;
-  }, [base, canShare, limit, params]);
+  }, [base, main, other, limit, params]);
   const result = planLeave({
     ...base,
     otherWeeks: canShare ? selectedWeeks ?? (chosen || plan.customLeave ? base.otherWeeks : best?.otherWeeks ?? 0) : 0,

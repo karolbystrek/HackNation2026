@@ -185,6 +185,7 @@ personas.push(
         payer: "ZUS",
         payerSize: "na",
         insurance: "Od 01.03.2024 – dobrowolne",
+        insuredFrom: "2024-03-01",
         sickLeaveFrom: "2026-11-02",
         contributions: "Zaległość składkowa w symulacji",
         contributionDebt: { date: "2026-11-02", amount: 375 },

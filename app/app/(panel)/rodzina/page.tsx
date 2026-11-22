@@ -28,6 +28,10 @@ function FamilyData() {
   const from = useSearchParams().get("z") ?? "";
   const returnLabel = returnPages.get(from.split("?")[0]);
   const [question, setQuestion] = useState("insurance");
+  const [debtBenefit, setDebtBenefit] = useState<"maternity" | "sickness">("maternity");
+  const parent = persona.parents[viewer];
+  const debtDate = debtBenefit === "sickness" ? parent.sickLeaveFrom : persona.birthDate ?? persona.dueDate;
+  const debt = (parent.contributionDebt?.date === debtDate ? parent.contributionDebt?.amount : undefined) ?? (!fromGuide && parent.contributions.includes("brak zaległości") ? 0 : null);
   const [reply, setReply] = useState<string | null>(null);
 
   return (
@@ -89,13 +93,19 @@ function FamilyData() {
       </div>
       <Disclosure className="border-y" label={<strong>Sprawdź stan składek w symulacji eZUS</strong>}>
         <div className="grid gap-3 px-3 pb-4">
-          <p>Zaświadczenie o zadłużeniu składkowym (symulacja).</p>
-          <dl>{[viewer].map((key) => <div key={key} className="flex gap-2">
-            <dt>{persona.parents[key].name}</dt>
-            <dd>{persona.parents[key].contributionDebt
-              ? `${formatPln(persona.parents[key].contributionDebt!.amount, 2)} na dzień ${formatDate(persona.parents[key].contributionDebt!.date)}`
-              : !fromGuide && persona.parents[key].contributions.includes("brak zaległości") ? formatPln(0, 2) : "Brak danych w symulacji"}</dd>
-          </div>)}</dl>
+          <label className="grid gap-1 font-bold">
+            Dzień sprawdzenia zadłużenia
+            <select className="min-h-11 rounded-sm border border-input bg-background px-3 font-normal" value={debtBenefit}
+              onChange={(event) => setDebtBenefit(event.target.value === "sickness" ? "sickness" : "maternity")}>
+              <option value="maternity">Zasiłek macierzyński – dzień porodu</option>
+              <option value="sickness" disabled={!parent.sickLeaveFrom}>Zasiłek chorobowy – dzień rozpoczęcia zwolnienia</option>
+            </select>
+          </label>
+          {debtDate && <p>Przykładowe zaświadczenie o zadłużeniu na dzień {formatDate(debtDate)}.</p>}
+          <dl><div className="flex gap-2">
+            <dt>{parent.name}</dt>
+            <dd>{debtDate && debt !== null ? formatPln(debt, 2) : "Brak danych w symulacji"}</dd>
+          </div></dl>
           <Disclosure label={<strong>Zaświadczenia e-ZLA</strong>}>
             <ul className="space-y-2 px-3 pb-3">
               {entries.filter((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")).map((entry) =>

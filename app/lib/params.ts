@@ -35,6 +35,7 @@ export const defaultParams = {
   employerPaidDays: 33,
   employerPaidDaysOver50: 14,
   benefitPeriodDays: 270,
+  rehabilitationMaxMonths: 12,
   parentalUntilChildAge: 6,
   adoptionAgeLimit: { adoption: 14, foster: 7, fosterDeferred: 10 },
   intakeMinimumMaternityWeeks: 9,

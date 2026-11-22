@@ -26,12 +26,13 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
 }) {
   const router = useRouter();
   const { persona, params, names, chosen, plan, fromGuide, today } = useFamily();
-  const [form, setForm] = usePlanDraft(draftKey, {
+  const [draft, setForm] = usePlanDraft(draftKey, {
     startDate: mode === "birth"
       ? (event?.type === "birth" ? event.date : persona.birthDate ?? persona.dueDate)
       : event?.date ?? (typeof plan.guideAnswers.placementDate === "string" && fromGuide ? plan.guideAnswers.placementDate : persona.dueDate),
     kids: fromGuide || mode === "birth" ? persona.kids : 1,
-    zaZyciem: fromGuide && Array.isArray(plan.guideAnswers.special) && plan.guideAnswers.special.includes("zaZyciem"),
+    zaZyciem: persona.zaZyciem ?? false,
+    uninsuredParents: PARENTS.filter((parent) => persona.parents[parent].insuredType === "uninsured"),
     adoptionType: (fromGuide && plan.guideAnswers.situation === "foster" ? "foster" : "adoption") as LeaveInput["adoptionType"],
     childBirthDate: String(plan.guideAnswers.adoptedChildBirthDate ?? ""),
     adoptionOrderDate: String(plan.guideAnswers.adoptionOrderDate ?? ""),
@@ -47,6 +48,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
     preBirthStartDate: "",
     supplementaryWeeks: mode === "birth" ? persona.supplementaryWeeks ?? 0 : 0,
   });
+  const form = { ...draft, uninsuredParents: draft.uninsuredParents ?? PARENTS.filter((parent) => persona.parents[parent].insuredType === "uninsured") };
   const [advance, setAdvance] = usePlanDraft(`${draftKey}/zaliczka-pit`, { mother: "", father: "" });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -58,6 +60,10 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
     mode,
     names,
     flatRate: form.flatRate && (!flatExpired || !!form.filedOnTime),
+    workFractions: {
+      mother: persona.parents.mother.contract === "uop" ? form.workFractions.mother : 0,
+      father: persona.parents.father.contract === "uop" ? form.workFractions.father : 0,
+    },
     supplementaryWeeks: form.supplementaryWeeks ?? (matchesPlan ? persona.supplementaryWeeks : undefined),
     supplementaryParent: persona.supplementaryParent,
     paternityStartDate: form.paternityStartDate || (matchesPlan ? persona.paternityStart : undefined),
@@ -139,13 +145,19 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               options={PARENTS.map((p) => [p, names[p]])}
             />
           )}
+          {PARENTS.map((parent) => (
+            <Checkbox key={parent} checked={form.uninsuredParents.includes(parent)}
+              onChange={() => set("uninsuredParents", form.uninsuredParents.includes(parent)
+                ? form.uninsuredParents.filter((item) => item !== parent) : [...form.uninsuredParents, parent])}
+              title={`Brak prawa do zasiłku macierzyńskiego: ${names[parent]}`} />
+          ))}
           <div className="space-y-1">
             <p className="text-lg font-bold">Wspólna pula urlopu rodzicielskiego: {r.pool} tyg.</p>
             <p className="text-sm text-muted-foreground">Każdy rodzic ma w tej puli {params.parentalOwnWeeks} tygodni, których nie może przekazać drugiej osobie.</p>
           </div>
           <label className="flex flex-col gap-1.5 font-bold">
             <span>Podzielcie tygodnie między siebie</span>
-            <input type="range" min={0} max={r.maxOtherWeeks} step={1} value={r.otherWeeks}
+            <input type="range" disabled={!r.maxOtherWeeks} min={0} max={r.maxOtherWeeks} step={1} value={r.otherWeeks}
               aria-valuetext={`${names[main]}: ${formatWeeks(r.mainWeeks)}, ${names[other]}: ${formatWeeks(r.otherWeeks)}`}
               onChange={(e) => set("otherWeeks", Number(e.target.value))} className="min-h-11 w-full accent-primary" />
           </label>
@@ -157,10 +169,13 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               </div>
             ))}
           </dl>
-          {r.otherWeeks > 0 && <Checkbox checked={form.parentalTogether ?? false} onChange={() => set("parentalTogether", !form.parentalTogether)}
-            title="Rozpoczynamy urlop rodzicielski równocześnie" />}
 
-          {showPaternity && (
+          {r.mainWeeks > 0 && r.otherWeeks > 0 && (
+            <Checkbox checked={!!form.parentalTogether} onChange={() => set("parentalTogether", !form.parentalTogether)}
+              title="Rozpocznijcie urlop rodzicielski równocześnie" />
+          )}
+
+          {showPaternity && !form.uninsuredParents.includes("father") && (
             <div className="grid gap-2"><Checkbox checked={form.paternity} onChange={() => set("paternity", !form.paternity)} title={`Urlop ojcowski (${names.father})`}>
               {params.paternityWeeks * 7} dni, {formatRate(params.rates.full)}
             </Checkbox>
@@ -177,7 +192,8 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
           )}
           <div className="flex flex-col gap-4">
             <h3 className="font-bold">Praca podczas własnej części urlopu rodzicielskiego</h3>
-            {([main, other] as const).filter((parent) => (parent === main ? r.mainWeeks : r.otherWeeks) > 0).map((parent) => (
+            <p className="text-sm">Wybierz wymiar pracy u pracodawcy, który udziela urlopu rodzicielskiego.</p>
+            {([main, other] as const).filter((parent) => persona.parents[parent].contract === "uop" && (parent === main ? r.mainWeeks : r.otherWeeks) > 0).map((parent) => (
               <RadioGroup
                 key={parent}
                 label={`Wymiar pracy (${names[parent]})`}
@@ -195,7 +211,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
       content: (
         <>
           <p className="text-muted-foreground">Podstawa to kwota, od której naliczany jest zasiłek.</p>
-          {PARENTS.map((parent) => (
+          {PARENTS.filter((parent) => !form.uninsuredParents.includes(parent)).map((parent) => (
             <div key={parent}>
               <Field required label={`Podstawa zasiłku (zł) dla ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
                 title={amountHint} maxLength={24} value={bases[parent]} onChange={(e) => setBases({ ...bases, [parent]: e.target.value })} />
@@ -225,7 +241,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             <a className="text-link" href="https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-macierzynski/wysokosc">Zasady wypłaty zasiłku w ZUS</a>
             {form.flatRate && !r.flatRateAllowed && (
               <span className="text-sm leading-snug text-foreground">
-                Przy „Za życiem” kalkulator liczy wariant 100% / 70%.
+                W tym wariancie kalkulator stosuje stawki {formatRate(params.rates.full)} i {formatRate(params.rates.parental)}.
               </span>
             )}
           </div>

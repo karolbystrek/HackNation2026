@@ -110,3 +110,12 @@ describe("analyzeCase", () => {
     expect(analyzeCase({ ...eq, insuranceEnd: { date: "2026-01-31", reason: "other" } }, defaultParams).eligible).toBe(false);
   });
 });
+
+it("pays no more than two weeks of paternity benefit", () => {
+  const result = analyzeCase({
+    ...base, claimant: "father",
+    requested: [{ kind: "paternity", from: "2026-04-01", to: "2026-04-15" }],
+  }, defaultParams, 6000);
+  expect(result.periods[0]).toMatchObject({ days: 14, to: "2026-04-14" });
+  expect(result.total).toBe(2800);
+});

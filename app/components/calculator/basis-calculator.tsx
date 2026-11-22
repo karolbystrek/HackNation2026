@@ -74,6 +74,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
               } else {
                 setMonths(persona.parents[value].monthlyGross.map(String));
                 setIncomeType(persona.parents[value].contract);
+                setEmploymentPercent("100");
               }
             }}
             options={[...PARENTS.map((p): [ParentKey, string] => [p, `${names[p]} – z ZUS`]), ["manual", "Wpiszę ręcznie"]]}
@@ -84,8 +85,8 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
             onChange={setIncomeType}
             options={[["uop", "Umowa o pracę"], ["zlec", "Umowa zlecenie"], ["jdg", "Działalność – zadeklarowana podstawa"]]}
           />
-          {incomeType === "uop" && <Field required label="Wymiar etatu (%)" type="number" min={1} max={100} step="any"
-            value={employmentPercent} onChange={(e) => setEmploymentPercent(e.target.value)} />}
+          {incomeType === "uop" && <Field required label="Wymiar etatu (%)" type="number" min={0.01} max={100} step="any"
+            hint="Podaj np. 50 dla połowy etatu." value={employmentPercent} onChange={(e) => setEmploymentPercent(e.target.value)} />}
           <Field required label="Miesiąc startu zasiłku" type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} />
         </>
       ),

@@ -11,7 +11,7 @@ const inRange = (date: unknown) => typeof date !== "string" || date === "" || (d
 function invalid(body: Body): string | null {
   const input = body.input as Record<string, unknown> | undefined;
   if (!input || typeof input !== "object") return "input is required";
-  if (!["startDate", "childBirthDate", "paternityStartDate", "adoptionOrderDate", "preBirthStartDate", "insuredFrom", "sickLeaveFrom", "sickLeaveThrough", "dueDate"].every((key) => inRange(input[key])))
+  if (!["startDate", "childBirthDate", "paternityStartDate", "adoptionOrderDate", "preBirthStartDate", "insuredFrom", "sickLeaveFrom", "sickLeaveThrough", "dueDate", "employmentEnd"].every((key) => inRange(input[key])))
     return "dates must be between 2000-01-01 and 2100-12-31";
   if (body.type === "leave") {
     if (input.supplementaryWeeks !== undefined &&
@@ -19,6 +19,8 @@ function invalid(body: Body): string | null {
       return "supplementaryWeeks must be between 0 and 15";
     if (input.supplementaryParent !== undefined && input.supplementaryParent !== "mother" && input.supplementaryParent !== "father")
       return "supplementaryParent must be mother or father";
+    if (input.uninsuredParents !== undefined && (!Array.isArray(input.uninsuredParents) ||
+      input.uninsuredParents.some((parent) => parent !== "mother" && parent !== "father"))) return "invalid uninsuredParents";
     const fractions = input.workFractions;
     const allowed = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 0.5;
     if ((input.workFraction !== undefined && !allowed(input.workFraction)) ||

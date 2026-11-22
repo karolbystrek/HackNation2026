@@ -1,3 +1,4 @@
+import { paternityEndLimit } from "@/lib/calc/leave";
 import { computeBasis } from "@/lib/calc/basis";
 import type { CaseExtraction, CasePeriod, PeriodKind } from "@/lib/cases/schema";
 import { addDays, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
@@ -152,9 +153,21 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   if (eligible && !requested.length) notes.push("Uzupełnij okresy z wniosku, aby obliczyć łączną kwotę.");
 
   // Periods and amounts.
-  const periods: AnalyzedPeriod[] = (eligible === null ? [] : requested).map((r) => {
+  const birth = c.event.kind === "birth" ? parseIso(c.event.childBirthDate ?? c.event.date) : null;
+  const paternityLimit = paternityEndLimit(birth, null, p);
+  let paternityDaysLeft = p.paternityWeeks * 7;
+  const periods: AnalyzedPeriod[] = (eligible === null ? [] : [...requested].sort((a, b) => a.from.localeCompare(b.from))).flatMap((r) => {
     const rate = rateFor(r.kind, c, p);
-    const n = days(r);
+    let n = days(r);
+    if (r.kind === "paternity") {
+      const deadlineDays = paternityLimit ? diffDays(parseIso(r.from)!, paternityLimit) : n;
+      const available = birth && r.from < toIso(birth) ? 0 : Math.min(n, paternityDaysLeft, deadlineDays);
+      const payable = Math.max(0, Math.floor(available / p.paternityMinPartDays) * p.paternityMinPartDays);
+      if (payable < n) notes.push(`Urlop ojcowski: zgłoszono ${n} dni, w wyliczeniu uwzględniono ${payable} dni po zastosowaniu limitu i minimalnego wymiaru części.`);
+      if (!payable) return [];
+      n = payable;
+      paternityDaysLeft -= payable;
+    }
     let daily = basis ? round2((basis.value * rate) / 30) : 0;
     const topUp = MATERNITY_KINDS.includes(r.kind) && basis && basis.value * rate < p.parentalAllowanceMonthly;
     if (topUp) daily = round2(p.parentalAllowanceMonthly / 30);
@@ -163,19 +176,12 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
     if (weeks !== null && usedWeeks > weeks + 0.01 && r === requested.find((x) => x.kind === r.kind)) {
       notes.push(`${PERIOD_LABELS[r.kind]}: wniosek obejmuje ${usedWeeks.toFixed(1)} tyg., a przysługuje najwyżej ${weeks} tyg.`);
     }
-    return { ...r, days: n, rate, daily, total: eligible ? round2(daily * n) : 0 };
+    return [{ ...r, to: toIso(addDays(parseIso(r.from)!, n - 1)), days: n, rate, daily, total: eligible ? round2(daily * n) : 0 }];
   });
   if (periods.some((x) => x.daily === round2(p.parentalAllowanceMonthly / 30) && basis && basis.value * x.rate < p.parentalAllowanceMonthly)) {
     notes.push(`Zasiłek podwyższony do kwoty świadczenia rodzicielskiego (${formatPln(p.parentalAllowanceMonthly)} miesięcznie).`);
   }
   if (c.event.kind === "stillbirth" || c.event.kind === "child_death") notes.push(`Po martwym urodzeniu lub śmierci dziecka urlop macierzyński trwa co najmniej ${p.stillbirthWeeks} tygodni.`);
-  const paternity = periods.filter((x) => x.kind === "paternity");
-  if (paternity.length && c.event.childBirthDate) {
-    const limit = parseIso(c.event.childBirthDate)!;
-    limit.setUTCMonth(limit.getUTCMonth() + p.paternityUntilChildMonths);
-    if (paternity.some((x) => parseIso(x.to)! >= limit)) notes.push(`Urlop ojcowski trzeba wykorzystać do ukończenia przez dziecko ${p.paternityUntilChildMonths} miesięcy.`);
-  }
-
   const mainRate = periods[0]?.rate ?? (c.benefit === "sickness_pregnancy" ? p.rates.full : null);
   const monthly = eligible && basis && mainRate !== null ? round2(Math.max(basis.value * mainRate, MATERNITY_KINDS.includes(periods[0]?.kind ?? "sickness") ? p.parentalAllowanceMonthly : 0)) : null;
   const total = round2(periods.reduce((sum, x) => sum + x.total, 0));
