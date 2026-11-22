@@ -57,8 +57,8 @@ export default function Prezentacja() {
       </p>
 
       {/* Hero band */}
-      <section aria-labelledby="hero-title" className="bg-primary-soft">
-        <div className="shell grid gap-10 py-10 sm:py-14 lg:grid-cols-[1fr_20rem]">
+      <section aria-labelledby="hero-title">
+        <div className="shell grid gap-10 pt-8 pb-6 sm:pt-12 sm:pb-8 lg:grid-cols-[1fr_20rem]">
           <div className="max-w-[60ch]">
             <h1 id="hero-title" className="text-3xl leading-tight font-bold sm:text-5xl">
               Zasiłki i urlopy dla przyszłych rodziców
@@ -88,7 +88,7 @@ export default function Prezentacja() {
       </section>
 
       {/* Service tiles */}
-      <section aria-labelledby="services-title" className="shell py-10 sm:py-14">
+      <section aria-labelledby="services-title" className="shell pt-4 pb-10 sm:pt-6 sm:pb-14">
         <SectionHeading id="services-title">Załatw sprawę</SectionHeading>
         <p className="mt-2 max-w-[70ch] text-muted-foreground">Wybierz świadczenie, o które chcesz zapytać.</p>
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -109,7 +109,7 @@ In the app, use only `status: current` records valid on the relevant date. Show 
   - debt repayment for the self-employed;
   - ZNp-7 at least 6 weeks before the benefit period ends;
   - the 6-month claim limitation.
-- **In the app:** compute concrete dates from the user's dates for the task list, the calendar (.ics) and reminders. Use `kind` to style urgency.
+- **In the app:** compute concrete dates from the user's dates for the task list and reminders. Use `kind` to style urgency.
 - **When:** step 5. Challenge requirement (g): deadlines.
 
 ### `forms.json`: ZUS forms (32)

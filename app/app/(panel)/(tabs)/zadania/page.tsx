@@ -2,27 +2,19 @@
 
 import Link from "next/link";
 import { ApplicationAction } from "@/components/application-action";
-import { Button, Chip, PageBand, SectionTitle } from "@/components/ui";
+import { Chip, PageBand, SectionTitle } from "@/components/ui";
 import { buildTasks } from "@/lib/calc/tasks";
 import { canConfirmDocument } from "@/lib/family-timeline";
-import { tasksToIcs } from "@/lib/ics";
 import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { plan, chosen, names, viewer, timeline } = useFamily();
+  const { plan, names, viewer, timeline } = useFamily();
 
   const tasks = buildTasks(timeline).filter((task) => task.who === "both" || task.who === viewer);
   const main = tasks.filter((task) => !task.extra);
   const remaining = main.filter((task) => !task.done);
   const completed = main.filter((task) => task.done);
-
-  function downloadCalendar() {
-    const url = URL.createObjectURL(new Blob([tasksToIcs(main)], { type: "text/calendar" }));
-    const link = Object.assign(document.createElement("a"), { href: url, download: "przewodnik-rodzica.ics" });
-    link.click();
-    URL.revokeObjectURL(url);
-  }
 
   function renderTask(task: (typeof tasks)[number]) {
     const inputId = `task-${task.id}`;
@@ -138,16 +130,6 @@ export default function Tasks() {
       />
 
       <div className="page">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
-        <p className="text-sm font-bold text-muted-foreground">Ukończono {completed.length} z {main.length} zadań</p>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link href="/warianty?z=zadania" className="text-link font-bold">
-            {chosen ? "Zmień podział urlopu" : "Ustal podział urlopu"}
-          </Link>
-          <Button variant="outline" onClick={downloadCalendar}>Dodaj terminy do kalendarza</Button>
-        </div>
-      </div>
-
       <section aria-labelledby="pozostale-zadania">
         <SectionTitle id="pozostale-zadania" tabIndex={-1} className="mb-3">Pozostałe zadania ({remaining.length})</SectionTitle>
         {remaining.length > 0 ? <ul role="list">{remaining.map(renderTask)}</ul> : <p className="text-muted-foreground">Wszystkie zadania są wykonane.</p>}

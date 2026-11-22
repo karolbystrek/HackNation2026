@@ -33,8 +33,8 @@ export default function Home() {
         </FamilySettings>
       </Suspense>
       <main id="main-content" tabIndex={-1} className="flex flex-col">
-        <section aria-labelledby="hero-title" className="bg-primary-soft">
-          <div className="shell grid items-center gap-8 py-10 sm:py-14 lg:grid-cols-[1fr_auto] lg:gap-12">
+        <section aria-labelledby="hero-title">
+          <div className="shell grid items-center gap-8 pt-8 pb-6 sm:pt-12 sm:pb-8 lg:grid-cols-[1fr_auto] lg:gap-12">
             <div className="max-w-[60ch]">
               <h1 id="hero-title" className="text-3xl leading-tight font-bold sm:text-5xl">
                 Zasiłki i urlopy dla przyszłych rodziców
@@ -52,7 +52,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section aria-labelledby="services-title" className="shell py-10 sm:py-14">
+        <section aria-labelledby="services-title" className="shell pt-4 pb-10 sm:pt-6 sm:pb-14">
           <SectionTitle id="services-title">Załatw sprawę</SectionTitle>
           <p className="mt-2 max-w-[70ch] text-muted-foreground">Wybierz sprawę, którą chcesz załatwić. Możesz skorzystać z przykładowego profilu rodziny.</p>
           <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

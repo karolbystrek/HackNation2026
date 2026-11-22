@@ -37,7 +37,7 @@ write raw hex in components.
 | `foreground` | `#171717` | Text, headings | 17.9:1 |
 | `primary` | `#007c36` | Links, active nav, primary buttons, icons, overscroll | 5.3:1 on white |
 | `primary-hover` | `#00652c` | Hover of green controls | 7.3:1 |
-| `primary-soft` | `#e8f3ec` | Hero band, selected rows, icon tiles | green text 4.7:1 |
+| `primary-soft` | `#e8f3ec` | Selected rows and icon tiles | green text 4.7:1 |
 | `brand` | `#00993f` | Decorative only: tile accents | not for text |
 | `action` | `#ffb34f` | The single most important CTA per screen | – |
 | `action-hover` | `#f59f2a` | Hover of amber button | – |
@@ -83,8 +83,8 @@ Build pages from full-width **bands**, each with a `shell` inside:
    bold; right: account links. Compact, no mega-menu.
 3. **No breadcrumbs.** The project decided against them; panel pages rely on
    the tab bar and a "Wróć do…" link. Each sub-page opens with `PageBand`
-   (`components/ui.tsx`): light-green band with H1, lead and page actions.
-4. **Hero band** (home and section landing pages only) – `bg-primary-soft`,
+   (`components/ui.tsx`): H1, lead and page actions on the page background.
+4. **Hero band** (home and section landing pages only) – use the page background,
    H1 + lead + one amber action + one outline action. Optional right column
    "Na skróty" list. No illustrations, no carousel.
 5. **Service tiles** ("Załatw sprawę") – grid of tiles for top-level entry

@@ -15,16 +15,14 @@ import { logIn, updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
 const heading = "text-2xl leading-tight font-bold sm:text-3xl";
 const STAGES = ["Odpowiedz na pytania", "Sprawdź odpowiedzi", "Zobacz swoją oś czasu"];
 
-/** Page frame: optional green band, the task on the left, the stages on the right. */
+/** Page frame: optional heading, the task on the left, the stages on the right. */
 function Frame({ stage, band, children }: { stage: number; band?: ReactNode; children: ReactNode }) {
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       {band && (
-        <div className="bg-primary-soft">
-          <div className="shell flex flex-col gap-4 py-6 sm:py-8">
-            {band}
-          </div>
-        </div>
+        <header className="shell flex flex-col gap-4 pt-6 sm:pt-8">
+          {band}
+        </header>
       )}
       <div className="shell grid gap-10 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex max-w-[70ch] min-w-0 flex-col gap-6">{children}</div>

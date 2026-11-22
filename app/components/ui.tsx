@@ -12,23 +12,21 @@ export function ButtonLink({ variant, className, ...props }: ComponentProps<type
   return <Link className={cn(buttonVariants({ variant }), className)} {...props} />;
 }
 
-/** Light-green band that opens every panel page: H1, lead and page-level actions. */
+/** Shared panel page heading: H1, lead and page-level actions. */
 export function PageBand({ title, lead, actions, children }: {
   title: ReactNode; lead?: ReactNode; actions?: ReactNode; children?: ReactNode;
 }) {
   return (
-    <div className="bg-primary-soft">
-      <div className="shell flex flex-col gap-4 py-6 sm:py-8">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <div className="max-w-[70ch]">
-            <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{title}</h1>
-            {lead && <div className="mt-3 text-lg">{lead}</div>}
-          </div>
-          {actions && <div className="flex flex-wrap items-center gap-x-5 gap-y-2">{actions}</div>}
+    <header className="shell flex flex-col gap-4 pt-6 sm:pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="max-w-[70ch]">
+          <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{title}</h1>
+          {lead && <div className="mt-3 text-lg">{lead}</div>}
         </div>
-        {children}
+        {actions && <div className="flex flex-wrap items-center gap-x-5 gap-y-2">{actions}</div>}
       </div>
-    </div>
+      {children}
+    </header>
   );
 }
 
