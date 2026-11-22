@@ -41,6 +41,9 @@ export type ParentProfile = {
 export type Persona = {
   id: string;
   label: string;
+  demoDescription?: string;
+  demoStatus?: string;
+  demoOtherCase?: { label: string; status: string; event: TimelineEvent };
   /** Day the demo data was fetched. */
   fetchedAt: string;
   dueDate: string;
@@ -76,6 +79,8 @@ export const personas: Persona[] = [
   {
     id: "anna-tomasz",
     label: "Anna i Tomasz",
+    demoDescription: "Ciąża i zwolnienie lekarskie. Sprawdź zasiłek chorobowy i zaplanuj urlopy przed porodem.",
+    demoStatus: "Anna jest w ciąży i od 4 listopada korzysta ze zwolnienia lekarskiego. Oboje rodzice pracują na umowę o pracę. Podział urlopu po porodzie jest jeszcze do ustalenia.",
     fetchedAt: "2026-11-21",
     dueDate: "2027-03-15",
     paternityStart: "2027-04-01",
@@ -164,15 +169,18 @@ personas.push(
   {
     id: "maja-piotr",
     label: "Maja i Piotr",
+    demoDescription: "Bliźnięta i własna działalność. Porównaj dłuższy urlop oraz formalności osoby samozatrudnionej.",
+    demoStatus: "Zofia i Jan urodzili się 17 listopada. Karta urodzenia jest już w planie, a zgłoszenie w USC pozostaje do wykonania. Maja prowadzi działalność i złożyła już wniosek o zasiłek chorobowy za okres przed porodem.",
     fetchedAt: "2026-11-21",
     dueDate: "2026-11-20",
     birthDate: "2026-11-17",
     birthCardDate: "2026-11-18",
     birthPlace: "Kraków",
-    childName: "Zofia",
+    childName: "Zofia i Jan",
     paternityStart: "2026-12-01",
     wantsAveragedRate: true,
-    kids: 1,
+    initialVariant: "A",
+    kids: 2,
     parents: {
       mother: {
         ...employed.mother,
@@ -206,7 +214,7 @@ personas.push(
         endDate: "2026-11-16",
         source: "zus",
         title: "Zwolnienie w ciąży (e-ZLA, kod B)",
-        description: "Zwolnienie wystawione przed narodzinami Zofii.",
+        description: "Zwolnienie wystawione przed narodzinami bliźniąt.",
       },
       {
         id: "birth",
@@ -215,7 +223,8 @@ personas.push(
         date: "2026-11-17",
         source: "user",
         decision: true,
-        title: "Narodziny Zofii",
+        title: "Narodziny Zofii i Jana",
+        childDetails: { count: 2, names: ["Zofia Wiśniewska", "Jan Wiśniewski"] },
         description: "Rzeczywista data porodu wyznacza terminy spraw związanych z zasiłkiem.",
       },
     ],
@@ -224,6 +233,29 @@ personas.push(
   {
     id: "ola-marek",
     label: "Ola i Marek",
+    demoDescription: "Dwie osobne sprawy. Na osi czasu przełącz się między porodem Leona a adopcją Hanny.",
+    demoStatus: "Leon jest już zarejestrowany w USC. Wnioski o zasiłek macierzyński, urlop ojcowski i urlop rodzicielski Oli są oznaczone jako złożone. Rodzice wybrali wspólny podział urlopu.",
+    demoOtherCase: {
+      status: "Ola przyjęła trzyletnią Hannę na wychowanie 15 września. Postanowienie o przysposobieniu uprawomocniło się 13 października. Wnioski w tej sprawie są jeszcze do przygotowania.",
+      label: "Adopcja Hanny (15.09.2026)",
+      event: {
+        id: "hanna-adoption",
+        type: "adoption",
+        who: "mother",
+        date: "2026-09-15",
+        source: "new",
+        startsCase: true,
+        title: "Przyjęcie Hanny na wychowanie",
+        description: "Osobna sprawa związana z przysposobieniem Hanny.",
+        childDetails: {
+          count: 1,
+          names: ["Hanna Zielińska"],
+          placement: "adoption",
+          childBirthDate: "2023-04-18",
+          adoptionOrderDate: "2026-10-13",
+        },
+      },
+    },
     fetchedAt: "2026-11-21",
     dueDate: "2026-06-14",
     birthDate: "2026-06-10",

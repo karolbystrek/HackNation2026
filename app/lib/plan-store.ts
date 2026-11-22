@@ -96,9 +96,15 @@ export function logIn(personaId: string, viewer: ParentKey = "mother", solo = fa
     viewer = guideAnswers.role === "father" ? "father" : "mother";
     solo = true;
   }
+  const demoCase = persona.demoOtherCase;
   updatePlan((plan) => plan.personaId === personaId ? { ...plan, viewer, solo } : {
     personaId, viewer, solo, events: persona.events, chosenVariant: persona.initialVariant ?? null,
     doneTasks: [], guideAnswers, submissions: {},
+    savedCases: demoCase ? [{
+      id: demoCase.event.id,
+      label: demoCase.label,
+      state: { events: [demoCase.event], chosenVariant: "A", doneTasks: [], guideAnswers, submissions: {} },
+    }] : undefined,
   });
 }
 

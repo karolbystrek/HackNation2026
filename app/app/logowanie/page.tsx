@@ -35,7 +35,7 @@ function LoginForm() {
   const [viewer, setViewer] = useState<ParentKey>(plan.viewer ?? "mother");
   const [solo, setSolo] = useState(plan.solo ?? false);
   const demo = personas.find((persona) => persona.id === personaId);
-  const accounts = [...(formReady ? [{ id: GUIDE_ID, label: "Twoje dane z formularza" }] : []), ...personas];
+  const accounts = [...(formReady ? [{ id: GUIDE_ID, label: "Twoje dane z formularza", demoDescription: undefined }] : []), ...personas];
 
   const continueWithProfile = isClient && destination && currentPersona(plan);
   useEffect(() => {
@@ -63,6 +63,7 @@ function LoginForm() {
             {accounts.map((p) => (
               <RadioOption key={p.id} name="persona" checked={personaId === p.id} onChange={() => setPersonaId(p.id)} className="p-3">
                 <strong className="block">{p.label}</strong>
+                {p.demoDescription && <span className="block text-sm text-muted-foreground">{p.demoDescription}</span>}
               </RadioOption>
             ))}
           </div>
