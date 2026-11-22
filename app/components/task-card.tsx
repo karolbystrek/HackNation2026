@@ -10,39 +10,20 @@ import { updatePlan, usePlan } from "@/lib/plan-store";
 import { openRelated } from "@/lib/timeline-reveal";
 
 /** What to prepare and do for one application, shown inside its timeline entry. */
-export function TaskCard({ task, names, viewer }: { task: Task; names: Record<EventWho, string>; viewer: EventWho }) {
+export function TaskCard({ task, names, viewer, preparedBy }: { task: Task; names: Record<EventWho, string>; viewer: EventWho; preparedBy?: string }) {
   const submission = usePlan().submissions[task.id];
   const inputId = `task-${task.id}`;
   const statusId = `${inputId}-status`;
   const waiting = task.waitingFor;
 
-  if (submission) return <ApplicationReceipt id={task.id} submission={submission} origin="plan" />;
+  if (submission) return <ApplicationReceipt id={task.id} submission={submission} origin="plan" showDate={false} />;
 
   return (
     <div className="flex flex-col gap-4">
-      {(task.recipient || task.when !== "Po spełnieniu warunków") && (
-        <dl className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
-          {task.recipient && <div><dt className="text-muted-foreground">Gdzie załatwić</dt><dd className="font-semibold">{task.recipient}</dd></div>}
-          {task.when !== "Po spełnieniu warunków" && (
-            <div>
-              <dt className="text-muted-foreground">{task.done && task.locked ? "Ukończenie" : task.due ? "Termin" : "Kiedy"}</dt>
-              <dd className="font-semibold">{task.when}</dd>
-            </div>
-          )}
-        </dl>
-      )}
-      {task.description && <p>{task.description}</p>}
-      {task.deadlineDetail && <div><p className="font-bold">Po przekroczeniu terminu</p><p>{task.deadlineDetail}</p></div>}
-      {task.documents.length > 0 && (
-        <div>
-          <p className="font-bold">Dokumenty do przygotowania</p>
-          <DocumentList documents={task.documents} />
-        </div>
-      )}
       {waiting.length > 0 && (
-        <div id={statusId} className="border-l-4 border-action bg-warning-soft px-4 py-3 text-sm">
-          <p className="font-bold">Aby oznaczyć zadanie jako wykonane</p>
-          <ol className="list-decimal pl-5">
+        <div id={statusId}>
+          <p className="font-semibold">Do wykonania wcześniej</p>
+          <ul className="space-y-1">
             {waiting.map((entry) => {
               const plannedBirth = entry.kind === "event" && entry.estimated;
               const otherProfile = entry.who !== "both" && entry.who !== viewer;
@@ -57,15 +38,27 @@ export function TaskCard({ task, names, viewer }: { task: Task; names: Record<Ev
                 </li>
               );
             })}
-          </ol>
+          </ul>
+        </div>
+      )}
+      {preparedBy && <p>Wypełnia {preparedBy.toLowerCase()}.</p>}
+      {task.recipient && !task.done && (
+        <p>{task.form && !preparedBy && task.recipient === "Pracodawca" ? "Złóż u pracodawcy."
+          : task.form ? `Adresat: ${task.recipient}` : `Gdzie: ${task.recipient}`}</p>
+      )}
+      <ApplicationAction origin="plan" task={task} preview={!!preparedBy} />
+      {!task.form && task.description && <p>{task.description}</p>}
+      {!task.form && task.deadlineDetail && <p>{task.deadlineDetail}</p>}
+      {!task.done && task.documents.length > 0 && (
+        <div className="space-y-1">
+          <p className="font-semibold">Dokumenty do przygotowania</p>
+          <DocumentList documents={task.documents} />
         </div>
       )}
       {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start text-sm">Oficjalna instrukcja</a>}
-      <div id={waiting.length === 0 && task.locked ? statusId : undefined} className="flex flex-col items-start gap-3">
-        {task.done && task.locked && <p className="text-sm text-muted-foreground">Wykonanie zapisano w danych sprawy.</p>}
-        <ApplicationAction origin="plan" task={task} />
+      <div id={waiting.length === 0 && task.locked ? statusId : undefined} className="flex flex-col items-start">
         {!(task.done && task.locked) && (
-          <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
+          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
             <input
               id={inputId}
               type="checkbox"

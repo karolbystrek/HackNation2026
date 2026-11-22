@@ -1,11 +1,9 @@
 import type { MouseEvent } from "react";
 
-/** Opens the timeline entry a `#timeline-<id>` hash points to, unfolding "Wcześniejsze wpisy" if needed. */
+/** Opens the timeline entry a `#timeline-<id>` hash points to. */
 export function revealEntry(hash: string) {
   const entry = document.getElementById(hash.slice(1));
   if (!(entry instanceof HTMLDetailsElement)) return;
-  const history = entry.parentElement?.closest("details");
-  if (history) history.open = true;
   entry.open = true;
   return entry;
 }

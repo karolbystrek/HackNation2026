@@ -41,7 +41,7 @@ The public-service UI uses the light theme from `app/app/globals.css`. Use its s
 
 ## Conventions
 
-- UI copy in Polish, code (identifiers, comments) in English. Keep labels that help users understand a state or decide what to do next. Put administrative detail in expanded views and show each timeline status once. When a deadline notice applies, use it as the status label.
+- UI copy in Polish, code (identifiers, comments) in English. Keep labels that help users understand a state or decide what to do next. Put administrative detail in expanded views and show each timeline status once. Show only statuses that change what the user does next or confirm a completed action. Timeline entries expand once and show prerequisites, the primary action and documents in that order.
 - Show required documents directly on application lists and above the form. Link document names to the relevant service or official template. Use a short issuer hint for documents obtained from a person or institution.
 - Let page titles use the available header width. Apply reading-width limits to descriptive copy.
 - Show separate values in labelled rows or a responsive grid. Use spacing and typography to group information instead of middle-dot separators.

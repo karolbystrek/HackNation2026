@@ -5,14 +5,14 @@ import type { Submission } from "@/lib/plan-store";
 
 const receiptDate = new Intl.DateTimeFormat("pl-PL", { dateStyle: "short", timeZone: "Europe/Warsaw" });
 
-export function ApplicationReceipt({ id, submission, origin, title }: {
-  id: string; submission: Submission; origin: "plan" | "wnioski"; title?: string;
+export function ApplicationReceipt({ id, submission, origin, title, showDate = true }: {
+  id: string; submission: Submission; origin: "plan" | "wnioski"; title?: string; showDate?: boolean;
 }) {
   return (
     <div className="space-y-2">
       {title && <h4 className="font-bold">{title}</h4>}
       <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <div><dt className="text-muted-foreground">Zapisano w symulacji</dt><dd><time dateTime={submission.sentAt}>{receiptDate.format(new Date(submission.sentAt))}</time></dd></div>
+        {showDate && <div><dt className="text-muted-foreground">Zapisano w symulacji</dt><dd><time dateTime={submission.sentAt}>{receiptDate.format(new Date(submission.sentAt))}</time></dd></div>}
         <div><dt className="text-muted-foreground">Adresat</dt><dd>{submission.recipient}</dd></div>
         <div><dt className="text-muted-foreground">Numer potwierdzenia</dt><dd className="break-all font-mono">{submission.number}</dd></div>
       </dl>
