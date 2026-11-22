@@ -9,7 +9,7 @@ Browser clients use `NEXT_PUBLIC_SUPABASE_URL`. Docker server code uses
 Both clients share a cookie name. There is no local auth bypass.
 
 The Makefile exports the local API URL, the publishable key and the server-only
-`SUPABASE_SECRET_KEY`, used by `app/lib/supabase/admin.ts` for benefit settings
+`SUPABASE_SECRET_KEY`, used by `app/lib/supabase/admin.ts`
 and the `case_extractions` cache. Host
 `app/.env*` files are excluded from Docker builds and sync; Vercel configuration
 is separate. Never commit credentials or expose secret/service-role keys in
@@ -21,13 +21,11 @@ Generate database types when adding the application schema.
 `make down`, `make restart` and `make clean` preserve database data;
 `supabase stop --no-backup` and database resets delete it.
 
-The parameter editor is available at `/admin`. Provision a Supabase Auth user with
-`app_metadata.benefit_admin = true` through a trusted admin interface. The editor
-accepts that user’s email and password. The API checks the current user record
-before writing to `benefit_settings`. The calculator, case analyzer and form wizard
-read the same settings. Apply the migration before enabling the editor.
+The parameter editor is at `/admin`, deliberately unlinked from citizen screens and `noindex`; open it by URL.
+It needs no login or database: saved values go to a `benefit-settings` cookie (`app/lib/server-params.ts`),
+so each browser sees its own parameters. The calculator, case analyzer and form wizard read the same values.
 Editable fields are listed in `app/lib/benefit-settings.ts`, each mapped to a path in `app/lib/params.ts`.
-A field missing from the stored `overrides` keeps its default, so adding a field needs no migration.
+A field missing from the saved cookie keeps its default.
 
 See [local commands](local-development.md) and
 [client entry points](../app/README.md#supabase-clients).

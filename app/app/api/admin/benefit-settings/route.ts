@@ -1,17 +1,9 @@
-import { readSettings } from "@/lib/benefit-settings";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { cookies } from "next/headers";
+import { readSettings, SETTINGS_COOKIE } from "@/lib/benefit-settings";
 
 export async function PUT(request: Request) {
-  const token = request.headers.get("Authorization")?.match(/^Bearer (\S+)$/)?.[1];
-  if (!token) return Response.json({ error: "Zaloguj się jako administrator." }, { status: 401 });
-  const db = createAdminClient();
-  const { data: { user }, error: authError } = await db.auth.getUser(token);
-  if (authError || user?.app_metadata.benefit_admin !== true) {
-    return Response.json({ error: "Brak uprawnień do zmiany parametrów." }, { status: 403 });
-  }
   const settings = readSettings(await request.json().catch(() => null));
   if (!settings) return Response.json({ error: "Sprawdź zakres wartości. Pula dla wieloraczków nie może być mniejsza niż dla jednego dziecka, każda pula musi mieścić 2 części nieprzenoszalne, a część tylko dla matki nie może przekraczać macierzyńskiego." }, { status: 400 });
-  const { error } = await db.from("benefit_settings").upsert({ id: true, overrides: settings });
-  if (error) return Response.json({ error: "Nie udało się zapisać parametrów. Spróbuj ponownie." }, { status: 503 });
+  (await cookies()).set(SETTINGS_COOKIE, JSON.stringify(settings), { path: "/", sameSite: "lax", maxAge: 60 * 60 * 24 * 30 });
   return Response.json({ settings });
 }

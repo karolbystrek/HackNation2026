@@ -1,56 +1,86 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Button, Field, PageTitle } from "@/components/ui";
+import { Info } from "lucide-react";
+import { Button, Chip, Field, Notice, PageBand, SectionTitle } from "@/components/ui";
 import { settingsFields, type Settings } from "@/lib/benefit-settings";
-import { createClient } from "@/lib/supabase/client";
+
+const groups = [...new Set(settingsFields.map((field) => field.group))];
+const asText = (settings: Settings) => Object.fromEntries(settingsFields.map(({ key }) => [key, String(settings[key])]));
+const defaults = asText(Object.fromEntries(settingsFields.map(({ key, value }) => [key, value])));
 
 export function AdminSettings({ initial }: { initial: Settings }) {
-  const [message, setMessage] = useState("");
+  const [values, setValues] = useState(() => asText(initial));
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
     setBusy(true);
-    setMessage("");
+    setStatus("");
+    setError("");
     try {
-      const auth = createClient();
-      const { data, error } = await auth.auth.signInWithPassword({
-        email: String(form.get("email")), password: String(form.get("password")),
-      });
-      if (error || !data.session) {
-        setMessage("Nie udało się zalogować.");
-        return;
-      }
       const response = await fetch("/api/admin/benefit-settings", {
         method: "PUT",
-        headers: { Authorization: `Bearer ${data.session.access_token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(settingsFields.map(({ key }) => [key, Number(form.get(key))]))),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(settingsFields.map(({ key }) => [key, Number(values[key])]))),
       });
       const result = await response.json();
-      setMessage(response.ok ? "Zapisano parametry. Odśwież plan, aby zobaczyć zmiany." : result.error);
+      if (response.ok) setStatus("Zapisano parametry. Kalkulatory i plan używają ich od teraz w tej przeglądarce.");
+      else setError(result.error);
     } catch {
-      setMessage("Nie udało się połączyć. Spróbuj ponownie.");
+      setError("Nie udało się połączyć. Spróbuj ponownie.");
     } finally {
       setBusy(false);
     }
   }
 
-  return <main id="main-content" tabIndex={-1} className="page max-w-xl">
-    <PageTitle lead="Zmiany obowiązują w kalkulatorach i planach po ponownym wczytaniu.">Parametry świadczeń</PageTitle>
-    <form onSubmit={save} className="flex flex-col gap-4">
-      {[...new Set(settingsFields.map((field) => field.group))].map((group) => (
-        <fieldset key={group} className="flex flex-col gap-4 border-t pt-4">
-          <legend className="pr-2 text-lg font-bold">{group}</legend>
-          {settingsFields.filter((field) => field.group === group).map(({ key, label, min, max, step }) =>
-            <Field key={key} label={label} name={key} type="number" min={min} max={max} step={step} required defaultValue={initial[key]} />)}
-        </fieldset>
-      ))}
-      <Field label="E-mail administratora" name="email" type="email" autoComplete="username" required />
-      <Field label="Hasło administratora" name="password" type="password" autoComplete="current-password" required />
-      <Button className="self-start" type="submit" disabled={busy}>{busy ? "Zapisuję…" : "Zapisz parametry"}</Button>
-      <p role="status">{message}</p>
-    </form>
-  </main>;
+  return (
+    <main id="main-content" tabIndex={-1} className="pb-14">
+      <PageBand
+        title="Parametry świadczeń"
+        lead="Wartości używane przez kalkulatory, plan urlopów, analizę spraw i kreator wniosków."
+      >
+        <div className="flex max-w-[70ch] gap-4 border-l-4 border-action bg-warning-soft p-5">
+          <Info aria-hidden strokeWidth={1.75} className="size-6 shrink-0 text-action-foreground" />
+          <p><strong>Ważne:</strong> w wersji demonstracyjnej zmiany zapisują się tylko w tej przeglądarce. W systemie produkcyjnym objęłyby wszystkich użytkowników po zalogowaniu pracownika.</p>
+        </div>
+      </PageBand>
+      <form onSubmit={save} className="shell mt-10 flex flex-col gap-12">
+        {groups.map((group) => (
+          <section key={group} className="flex flex-col gap-6">
+            <SectionTitle>{group}</SectionTitle>
+            <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+              {settingsFields.filter((field) => field.group === group).map(({ key, label, min, max, step }) => (
+                <Field
+                  key={key}
+                  className="justify-end"
+                  label={<>{label}{values[key] !== defaults[key] && <Chip className="ml-2 bg-primary-soft text-primary">Zmieniono</Chip>}</>}
+                  hint={`Domyślnie: ${defaults[key].replace(".", ",")}`}
+                  name={key}
+                  type="number"
+                  min={min}
+                  max={max}
+                  step={step}
+                  required
+                  value={values[key]}
+                  onChange={(event) => setValues({ ...values, [key]: event.target.value })}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+        <div className="flex flex-col gap-4 border-t pt-6">
+          {error && <p role="alert" className="font-bold text-destructive">{error}</p>}
+          {status && <Notice role="status">{status}</Notice>}
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" disabled={busy}>{busy ? "Zapisuję…" : "Zapisz parametry"}</Button>
+            <Button type="button" variant="outline" onClick={() => { setValues(defaults); setStatus(""); }}>Przywróć domyślne</Button>
+          </div>
+          <p className="text-sm text-muted-foreground">„Przywróć domyślne” wypełnia pola wartościami z przepisów. Zapisz, aby je zastosować.</p>
+        </div>
+      </form>
+    </main>
+  );
 }

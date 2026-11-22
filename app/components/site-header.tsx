@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui";
 import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import { logOut, usePlan } from "@/lib/plan-store";
 
@@ -19,6 +20,7 @@ export function SiteHeader() {
   const plan = usePlan();
   const persona = currentPersona(plan);
   const router = useRouter();
+  const admin = usePathname().startsWith("/admin");
 
   return (
     <header className="border-b">
@@ -26,7 +28,8 @@ export function SiteHeader() {
         <Link href={persona ? "/plan" : "/"} className="min-h-11 cursor-pointer content-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
           <Image src="/logo-zppr.svg" alt="Zasiłkowy Przewodnik Przyszłego Rodzica – strona główna" width={360} height={60} priority className="h-12 w-auto" />
         </Link>
-        {persona && (
+        {admin && <Chip className="bg-navy font-bold text-navy-foreground">Panel administratora</Chip>}
+        {persona && !admin && (
           <nav aria-label="Konto demonstracyjne" className="flex flex-wrap items-center gap-x-5">
             {plan.personaId === GUIDE_ID
               ? <Link href="/nowa-os" className="text-link min-h-11 content-center">Zmień odpowiedzi</Link>

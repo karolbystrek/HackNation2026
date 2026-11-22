@@ -57,6 +57,8 @@ export const settingsFields = [
 
 export type Settings = Record<string, number>;
 
+export const SETTINGS_COOKIE = "benefit-settings";
+
 /** Current values for the form, read back from the effective parameters. */
 export function settingsFrom(params: Params): Settings {
   return Object.fromEntries(settingsFields.map((field) => [field.key, round(read(params, field.paths[0]) * (field.scale ?? 1), field.step)]));
