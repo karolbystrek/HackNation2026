@@ -426,6 +426,20 @@ export function applyProgress(entries: Entry[], doneTasks: string[], today: stri
   // Guide steps may require an entry that this case leaves out; only present entries can block.
   const present = new Set(entries.map((entry) => entry.id));
 
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  const order = new Map<string, string>();
+  // An entry never sorts before an entry it requires (e.g. the birth certificate after registering the birth).
+  const orderOf = (entry: Entry, seen = new Set<string>()): string => {
+    const known = order.get(entry.id);
+    if (known) return known;
+    seen.add(entry.id);
+    const own = entry.completedOn ?? completedSteps[entry.id] ?? entry.due ?? entry.date;
+    const key = (entry.requires ?? []).flatMap((id) => (byId.has(id) && !seen.has(id) ? [orderOf(byId.get(id)!, seen)] : []))
+      .reduce((latest, date) => (date > latest ? date : latest), own);
+    order.set(entry.id, key);
+    return key;
+  };
+
   return entries.map((entry): FamilyTimelineEntry => {
     const completedOn = entry.completedOn ?? completedSteps[entry.id];
     const status = entry.review ? "review"
@@ -438,5 +452,5 @@ export function applyProgress(entries: Entry[], doneTasks: string[], today: stri
         ? entry.end < today ? "ended" : "active"
         : "planned";
     return { ...entry, status, completedOn };
-  }).sort((a, b) => timelineDate(a).localeCompare(timelineDate(b)));
+  }).sort((a, b) => orderOf(a).localeCompare(orderOf(b)));
 }

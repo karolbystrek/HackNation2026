@@ -354,7 +354,7 @@ function formatValue(field: FormField, value: FieldValue | undefined): ReactNode
       const person = value as Person;
       return [person.name, person.pesel && `PESEL ${person.pesel}`].filter(Boolean).join(", ");
     }
-    case "child_list": return (value as Child[]).map((c) => `${c.name}, ur. ${formatDate(c.birthDate)}${c.birthPlace ? ` w ${c.birthPlace}` : ""}`).join("; ");
+    case "child_list": return (value as Child[]).map((c) => `${c.name}, ur. ${formatDate(c.birthDate)}${c.birthPlace ? `, miejsce urodzenia: ${c.birthPlace}` : ""}`).join("; ");
     default: return String(value);
   }
 }

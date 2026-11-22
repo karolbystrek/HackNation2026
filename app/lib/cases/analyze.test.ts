@@ -58,6 +58,32 @@ describe("analyzeCase", () => {
     expect(analyzeCase({ ...base, sickInsurance: [], uninsuredOnStart: true }, defaultParams).eligible).toBe(false);
   });
 
+  it("refuses when ZUS ruled the person uninsured before the right arose", () => {
+    const refusal = { ...base.decision, granted: false, periods: [{ kind: "maternity" as const, from: "2026-03-10", to: "2027-03-08" }] };
+    const r = analyzeCase({ ...base, sickInsurance: [], notInsuredFrom: "2025-10-04", decision: refusal }, defaultParams);
+    expect(r.eligible).toBe(false);
+    expect(r.eligibility).toContain("04.10.2025");
+    expect(r.comparison).toEqual([{ label: "Prawo do zasiłku", ours: "nie przysługuje", zus: "nie przysługuje", match: true }]);
+    // The ruling cuts periods read from payer documents too.
+    expect(analyzeCase({ ...base, notInsuredFrom: "2025-10-04" }, defaultParams).eligible).toBe(false);
+    expect(analyzeCase({ ...base, notInsuredFrom: "2026-05-01" }, defaultParams).eligible).toBe(true);
+  });
+
+  it("matches one ZUS period that spans maternity and parental leave", () => {
+    const requested = [{ kind: "maternity" as const, from: "2026-03-10", to: "2026-07-27" }, { kind: "parental" as const, from: "2026-07-28", to: "2027-03-08" }];
+    const decision = { ...base.decision, ratePercent: null, monthlyAmount: null, periods: [{ kind: "maternity" as const, from: "2026-03-10", to: "2027-03-08" }] };
+    const r = analyzeCase({ ...base, requested, decision }, defaultParams);
+    expect(r.comparison.at(-1)).toMatchObject({ label: "Zasiłek macierzyński (łącznie)", ours: "10.03.2026 – 08.03.2027", match: true });
+  });
+
+  it("pays the parental allowance when ZUS wrote about the top-up and the basis is unknown", () => {
+    const r = analyzeCase({ ...base, basisMonths: [], parentalAllowanceTopUp: true }, defaultParams);
+    expect(r.periods[0].daily).toBe(33.33);
+    expect(r.monthly).toBe(1000);
+    expect(r.total).toBe(4666.2);
+    expect(r.notes.join(" ")).toContain("art. 31 ust. 3a");
+  });
+
   it("leaves eligibility open when no sickness insurance dates were read", () => {
     const missing = { ...base, sickInsurance: [] };
     const result = analyzeCase(missing, defaultParams);

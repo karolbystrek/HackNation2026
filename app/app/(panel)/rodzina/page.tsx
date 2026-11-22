@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import { Disclosure } from "@/components/ui/disclosure";
 import { useFamily } from "@/lib/use-family";
+import { debtOn } from "@/lib/mock/personas";
 
 const returnPages = new Map([
   ["/plan", "Wróć do osi czasu"],
@@ -31,7 +32,7 @@ function FamilyData() {
   const [debtBenefit, setDebtBenefit] = useState<"maternity" | "sickness">("maternity");
   const parent = persona.parents[viewer];
   const debtDate = debtBenefit === "sickness" ? parent.sickLeaveFrom : persona.birthDate ?? persona.dueDate;
-  const debt = (parent.contributionDebt?.date === debtDate ? parent.contributionDebt?.amount : undefined) ?? (!fromGuide && parent.contributions.includes("brak zaległości") ? 0 : null);
+  const debt = fromGuide ? null : debtOn(parent, debtDate);
   const [reply, setReply] = useState<string | null>(null);
 
   return (
@@ -103,9 +104,12 @@ function FamilyData() {
           </label>
           {debtDate && <p>Przykładowe zaświadczenie o zadłużeniu na dzień {formatDate(debtDate)}.</p>}
           <dl><div className="flex gap-2">
-            <dt>{parent.name}</dt>
-            <dd>{debtDate && debt !== null ? formatPln(debt, 2) : "Brak danych w symulacji"}</dd>
+            <dt>Zadłużenie z tytułu składek ({parent.name})</dt>
+            <dd className="font-bold">{debtDate && debt !== null ? formatPln(debt, 2) : "Brak danych w symulacji"}</dd>
           </div></dl>
+          {!!debt && debt > params.minWage * params.contributionDebtLimitRate && parent.contract === "jdg" && (
+            <p className="text-sm">Zaległość przekracza {formatPln(params.minWage * params.contributionDebtLimitRate, 2)}, więc ZUS wypłaci zasiłek dopiero po jej spłacie.</p>
+          )}
           <Disclosure label={<strong>Zaświadczenia e-ZLA</strong>}>
             <ul className="space-y-2 px-3 pb-3">
               {entries.filter((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")).map((entry) =>
@@ -115,7 +119,11 @@ function FamilyData() {
           </Disclosure>
           <form className="flex flex-col items-start gap-2" onSubmit={(event) => {
             event.preventDefault();
-            setReply(question === "insurance" ? "Twoje ubezpieczenie znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Twoje zwolnienia znajdziesz w sekcji „Zwolnienia e-ZLA”.");
+            const sickNotes = entries.filter((entry) => entry.kind === "event" && entry.title.includes("e-ZLA"))
+              .map((entry) => `od ${formatDate(entry.date)}${entry.end ? ` do ${formatDate(entry.end)}` : ""}`);
+            setReply(question === "insurance"
+              ? `Ubezpieczenie chorobowe: ${parent.insurance}. Składki: ${parent.contributions}.`
+              : sickNotes.length ? `Zaświadczenia e-ZLA na koncie: ${sickNotes.join("; ")}.` : "Na koncie nie ma zaświadczeń e-ZLA.");
           }}>
             <label className="grid gap-1 font-bold">O co chcesz zapytać w symulacji?
               <select className="min-h-11 rounded-sm border border-input bg-background px-3 font-normal" value={question}

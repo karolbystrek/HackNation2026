@@ -19,6 +19,13 @@ describe("family plan handoffs", () => {
     expect(found?.ctx).toMatchObject({ recipient: "zus", waitingFor: [] });
   });
 
+  it("lists the birth certificate after registering the birth", async () => {
+    const profile = personas[0];
+    const ids = planTimeline(profile, profile.events, null, defaultParams, await loadJourney(), [], "2026-11-22").map((entry) => entry.id);
+    expect(ids.indexOf("birth-registration")).toBeLessThan(ids.indexOf("birth-certificate"));
+    expect(ids.indexOf("birth-card")).toBeLessThan(ids.indexOf("birth-registration"));
+  });
+
   it("anchors the demo birth-card prerequisite to the recorded birth", async () => {
     const profile = personas[0];
     const birth: TimelineEvent = { id: "recorded", type: "birth", who: "both", source: "new", date: "2027-03-14", title: "Poród", description: "" };

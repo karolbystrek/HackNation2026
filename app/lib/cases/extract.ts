@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 // Bump when the prompt or schema changes, so cached readings from the old prompt are read again.
-const CACHE_TAG = `${MODEL}#3`;
+const CACHE_TAG = `${MODEL}#4`;
 
 export class ExtractionUnavailable extends Error {}
 
@@ -32,7 +32,9 @@ Zasady:
 - decision: dane z decyzji lub pisma ZUS w teczce (przyznanie, odmowa, ustalenie uprawnień zgodnie z wnioskiem). present = false, jeśli takiego pisma nie ma.
 - uncertain: ścieżki pól, których nie dało się pewnie odczytać, np. "event.date".
 - sources: numery stron dla rodzaju świadczenia, okresów z wniosku, ubezpieczenia i podstawy. Przy pustych polach wskaż również strony, na których należy ich szukać.
-- uninsuredOnStart: ustaw tylko, gdy dokument o przebiegu ubezpieczenia potwierdza brak chorobowego na dzień rozpoczęcia świadczenia. Nie wnioskuj tego z decyzji odmownej.
+- uninsuredOnStart: ustaw tylko, gdy dokument o przebiegu ubezpieczenia potwierdza brak chorobowego na dzień rozpoczęcia świadczenia. Nie wnioskuj tego z samej odmowy zasiłku.
+- notInsuredFrom: data, od której ZUS ustalił niepodleganie ubezpieczeniu chorobowemu (np. umowa uznana za zawartą dla pozoru). Źródłem może być decyzja o niepodleganiu, pismo z postępowania wyjaśniającego albo uzasadnienie decyzji, które przytacza to ustalenie z datą. To ustalenie o ubezpieczeniu, a nie o zasiłku: sama odmowa zasiłku bez takiej daty nie wystarcza. Bez takiego ustalenia null.
+- parentalAllowanceTopUp: true, gdy pismo ZUS mówi o podwyższeniu zasiłku macierzyńskiego do kwoty świadczenia rodzicielskiego albo wzywa do oświadczenia potrzebnego do tego podwyższenia.
 
 Formularze ZUS (pole documents[].kind):
 ${catalog}
@@ -45,7 +47,7 @@ function unresolved(c: CaseExtraction): CaseSourceField[] {
   return [
     ...(c.benefit === "other" ? ["benefit" as const] : []),
     ...(!c.requested.length ? ["requested" as const] : []),
-    ...(!c.sickInsurance.length && !c.uninsuredOnStart && c.benefit !== "equal_maternity" ? ["sickInsurance" as const] : []),
+    ...(!c.sickInsurance.length && !c.uninsuredOnStart && !c.notInsuredFrom && c.benefit !== "equal_maternity" ? ["sickInsurance" as const] : []),
     ...(!c.basisMonths.length ? ["basisMonths" as const] : []),
   ];
 }
@@ -110,6 +112,7 @@ export async function extractCase(bytes: Uint8Array): Promise<{ extraction: Case
         if (field === "sickInsurance") {
           extraction.sickInsurance = second.sickInsurance;
           extraction.uninsuredOnStart = second.uninsuredOnStart;
+          extraction.notInsuredFrom ??= second.notInsuredFrom;
         }
       }
       extraction.sources = [

@@ -1,5 +1,6 @@
 import { paternityEndLimit } from "@/lib/calc/leave";
 import { computeBasis } from "@/lib/calc/basis";
+import { supplementaryLeave } from "@/lib/calc/supplementary";
 import type { CaseExtraction, CasePeriod, PeriodKind } from "@/lib/cases/schema";
 import { addDays, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
@@ -66,8 +67,8 @@ function statutoryWeeks(kind: PeriodKind, c: CaseExtraction, p: Params): number 
   }
   if (kind === "paternity") return p.paternityWeeks;
   if (kind === "supplementary") {
-    const early = (c.event.gestationWeek !== null && c.event.gestationWeek < 28) || (c.event.birthWeightG !== null && c.event.birthWeightG <= 1000);
-    return Math.min(c.event.hospitalWeeks ?? Infinity, early ? p.supplementary.capSevereWeeks : p.supplementary.capWeeks);
+    const { cap } = supplementaryLeave({ gestationWeek: c.event.gestationWeek, birthWeightG: c.event.birthWeightG, hospitalDays: 0 }, p);
+    return Math.min(c.event.hospitalWeeks ?? Infinity, cap);
   }
   if (kind === "parental") {
     const pool = p.parentalPoolWeeks;
@@ -82,7 +83,11 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   // Rows the user is still typing in are skipped until both dates are valid.
   const complete = (x: CasePeriod) => !!parseIso(x.from) && !!parseIso(x.to) && x.from <= x.to;
   const requested = c.requested.filter(complete);
-  c = { ...c, sickInsurance: c.sickInsurance.filter((s) => parseIso(s.from)) };
+  const ruling = parseIso(c.notInsuredFrom ?? "") ? c.notInsuredFrom! : null;
+  // A ZUS ruling on not being insured ends every insurance period read from other documents.
+  const ruledEnd = ruling && toIso(addDays(parseIso(ruling)!, -1));
+  c = { ...c, sickInsurance: c.sickInsurance.filter((s) => parseIso(s.from) && (!ruling || s.from < ruling))
+    .map((s) => (ruledEnd && (s.to === null || s.to > ruledEnd) ? { ...s, to: ruledEnd } : s)) };
   const start = c.benefit === "sickness_pregnancy"
     ? requested.find((r) => r.kind === "sickness")?.from ?? c.event.date
     : c.benefit === "equal_maternity"
@@ -115,7 +120,9 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   } else {
     const insuredDays = insuredDaysUntil(c.sickInsurance, day, 30);
     const covered = coveredPeriods.length > 0;
-    if (!covered && c.uninsuredOnStart !== true && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
+    if (ruling && start && ruling <= start) {
+      eligibility = `ZUS ustalił, że od ${formatDate(ruling)} osoba nie podlega ubezpieczeniu chorobowemu. W dniu ${formatDate(start)} nie miała ubezpieczenia, więc zasiłek nie przysługuje.`;
+    } else if (!covered && c.uninsuredOnStart !== true && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
       eligible = null;
       eligibility = "Sprawdź dokument i uzupełnij okresy ubezpieczenia chorobowego, aby ocenić prawo do zasiłku.";
     } else if (!covered && c.benefit === "sickness_pregnancy") {
@@ -149,7 +156,10 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
     basis = { months: r.months, value: r.basis, floored: r.floored, capped };
     if (r.months < 12) notes.push(`Podstawa z ${r.months} pełnych miesięcy ubezpieczenia (krócej niż 12).`);
   }
-  if (eligible && !basis) notes.push("Uzupełnij podstawę wymiaru, aby obliczyć kwotę.");
+  // ZUS wrote that the benefit is below the parental allowance, so the payout is the allowance even without the basis.
+  const allowanceOnly = !basis && c.parentalAllowanceTopUp === true;
+  if (allowanceOnly) notes.push(`ZUS ustalił zasiłek niższy niż świadczenie rodzicielskie, więc wypłaca ${formatPln(p.parentalAllowanceMonthly)} miesięcznie (art. 31 ust. 3a ustawy zasiłkowej).`);
+  else if (eligible && !basis) notes.push("Uzupełnij podstawę wymiaru, aby obliczyć kwotę.");
   if (eligible && !requested.length) notes.push("Uzupełnij okresy z wniosku, aby obliczyć łączną kwotę.");
 
   // Periods and amounts.
@@ -169,7 +179,7 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
       paternityDaysLeft -= payable;
     }
     let daily = basis ? round2((basis.value * rate) / 30) : 0;
-    const topUp = MATERNITY_KINDS.includes(r.kind) && basis && basis.value * rate < p.parentalAllowanceMonthly;
+    const topUp = MATERNITY_KINDS.includes(r.kind) && (basis ? basis.value * rate < p.parentalAllowanceMonthly : allowanceOnly);
     if (topUp) daily = round2(p.parentalAllowanceMonthly / 30);
     const weeks = statutoryWeeks(r.kind, c, p);
     const usedWeeks = requested.filter((x) => x.kind === r.kind).reduce((sum, x) => sum + days(x), 0) / 7;
@@ -183,7 +193,9 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   }
   if (c.event.kind === "stillbirth" || c.event.kind === "child_death") notes.push(`Po martwym urodzeniu lub śmierci dziecka urlop macierzyński trwa co najmniej ${p.stillbirthWeeks} tygodni.`);
   const mainRate = periods[0]?.rate ?? (c.benefit === "sickness_pregnancy" ? p.rates.full : null);
-  const monthly = eligible && basis && mainRate !== null ? round2(Math.max(basis.value * mainRate, MATERNITY_KINDS.includes(periods[0]?.kind ?? "sickness") ? p.parentalAllowanceMonthly : 0)) : null;
+  const allowanceFloor = MATERNITY_KINDS.includes(periods[0]?.kind ?? "sickness") ? p.parentalAllowanceMonthly : 0;
+  const monthly = !eligible || mainRate === null ? null
+    : basis ? round2(Math.max(basis.value * mainRate, allowanceFloor)) : allowanceOnly && allowanceFloor ? allowanceFloor : null;
   const total = round2(periods.reduce((sum, x) => sum + x.total, 0));
 
   return { eligible, eligibility, basis, monthly, periods, total, notes, comparison: compare(c, eligible, basis?.value ?? null, monthly, mainRate, periods) };
@@ -195,17 +207,32 @@ function compare(c: CaseExtraction, eligible: boolean | null, basis: number | nu
   const rows: Comparison[] = [];
   const yes = (x: boolean) => (x ? "przysługuje" : "nie przysługuje");
   if (d.granted !== null && eligible !== null) rows.push({ label: "Prawo do zasiłku", ours: yes(eligible), zus: yes(d.granted), match: eligible === d.granted });
+  // A refusal lists the claimed periods and amounts, not granted ones, so only the right itself is compared.
+  if (d.granted === false) return rows;
   if (d.basis !== null && basis !== null) rows.push({ label: "Podstawa wymiaru", ours: formatPln(basis, 2), zus: formatPln(d.basis, 2), match: Math.abs(basis - d.basis) < 1 });
   if (d.ratePercent !== null && rate !== null) rows.push({ label: "Stawka", ours: `${round2(rate * 100)}%`, zus: `${d.ratePercent}%`, match: Math.abs(rate * 100 - d.ratePercent) < 0.1 });
   if (d.monthlyAmount !== null && monthly !== null) rows.push({ label: "Kwota miesięczna", ours: formatPln(monthly, 2), zus: formatPln(d.monthlyAmount, 2), match: Math.abs(monthly - d.monthlyAmount) < 1 });
   for (const z of d.periods) {
-    const ours = periods.find((x) => x.kind === z.kind && x.from === z.from) ?? periods.find((x) => x.kind === z.kind);
+    const exact = periods.find((x) => x.kind === z.kind && x.from === z.from && x.to === z.to);
+    // ZUS often states one maternity benefit period covering maternity, supplementary and parental leave together.
+    const chain = exact ? null : maternityChain(periods, z);
+    const ours = exact ?? chain ?? periods.find((x) => x.kind === z.kind && x.from === z.from) ?? periods.find((x) => x.kind === z.kind);
     rows.push({
-      label: PERIOD_LABELS[z.kind],
+      label: chain ? "Zasiłek macierzyński (łącznie)" : PERIOD_LABELS[z.kind],
       ours: ours ? `${formatDate(ours.from)} – ${formatDate(ours.to)}` : "brak",
       zus: `${formatDate(z.from)} – ${formatDate(z.to)}`,
       match: !!ours && ours.from === z.from && ours.to === z.to,
     });
   }
   return rows;
+}
+
+/** Our consecutive maternity-benefit periods that together span exactly the ZUS period, or null. */
+function maternityChain(periods: AnalyzedPeriod[], z: CasePeriod): { from: string; to: string } | null {
+  if (!MATERNITY_KINDS.includes(z.kind)) return null;
+  const inside = periods.filter((x) => MATERNITY_KINDS.includes(x.kind) && x.from >= z.from && x.to <= z.to)
+    .sort((a, b) => a.from.localeCompare(b.from));
+  if (inside.length < 2 || inside[0].from !== z.from || inside.at(-1)!.to !== z.to) return null;
+  const contiguous = inside.every((x, i) => i === 0 || x.from === toIso(addDays(parseIso(inside[i - 1].to)!, 1)));
+  return contiguous ? { from: z.from, to: z.to } : null;
 }

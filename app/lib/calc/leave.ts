@@ -106,7 +106,8 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
   const mainWeeks = hasRight(main) ? pool - Math.max(otherWeeks, p.parentalOwnWeeks) : 0;
   const lostOwnWeeks = Math.max(0, p.parentalOwnWeeks - otherWeeks);
   // Sharing the pool does not cancel 81.5% (knowledge: uz.art31.ust3f); only the other parent's reserved weeks stay at 70%.
-  const flatRateAllowed = !zaZyciem && hasRight(main);
+  // Art. 30a and 31 ust. 3 u.z. cover parental leave "w pełnym wymiarze", so the extended "Za życiem" pool keeps 81.5% too.
+  const flatRateAllowed = hasRight(main);
   const flatRateApplied = input.flatRate && flatRateAllowed;
 
   const preBirth = adoption ? null : parseIso(input.preBirthStartDate);

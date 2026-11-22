@@ -46,7 +46,8 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
   const placed = persona.childEvents?.some((event) => event === "adoption" || event === "foster_placement");
   const recordedNames = persona.events.find((event) => event.childDetails)?.childDetails?.names;
   const foster = persona.childEvents?.includes("foster_placement");
-  const child = { name: `${persona.childName ?? "Dziecko"} ${persona.parents.father.lastName}`, birthDate: birth, birthPlace: persona.birthPlace ?? "" };
+  const childLastName = persona.childLastName ?? persona.parents.father.lastName;
+  const child = { name: `${persona.childName ?? "Dziecko"} ${childLastName}`, birthDate: birth, birthPlace: persona.birthPlace ?? "" };
   const payerText = guide ? "" : `${me.payerName}, NIP ${me.payerNip}`;
   // Twelve calendar months before the birth month, oldest first, matching monthlyGross.
   const months = me.monthlyGross.map((gross, i) => {
@@ -79,7 +80,7 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     self_employed_sickness_insured: me.contract === "jdg",
     children: persona.birthDate && !placed
       ? Array.from({ length: persona.kids }, (_, index) => ({
-        name: recordedNames?.[index] ?? (index === 0 ? persona.childName ?? "" : ""), birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "",
+        name: recordedNames?.[index] ?? (index === 0 && persona.childName ? `${persona.childName} ${childLastName}` : ""), birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "",
       }))
       : placed && recordedNames
         ? recordedNames.map((name) => ({ name, birthDate: persona.kids === 1 ? persona.adoptedChildBirthDate ?? "" : "", birthPlace: "" }))
@@ -169,7 +170,7 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
       extension_declaration: "Część urlopu wydłużona z powodu pracy też będzie łączona z pracą w tym samym wymiarze.",
     },
     "civil.birth_certificate": {
-      copy_kind: "skrocony", copies: "1", child_first_name: persona.childName ?? "", child_last_name: persona.parents.father.lastName,
+      copy_kind: "skrocony", copies: "1", child_first_name: persona.childName ?? "", child_last_name: childLastName,
       child_birth_date: persona.birthDate ?? "", child_birth_place: persona.birthPlace ?? "",
       applicant: { name: fullName, pesel: me.pesel }, applicant_address: me.address, legal_interest: "rodzic", delivery: "usc",
     },

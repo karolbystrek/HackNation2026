@@ -16,6 +16,14 @@ test("averaged rate splits the second parent's reserved and shared weeks", () =>
   expect(periods.father[1].from).toBe(periods.father[0].to);
 });
 
+test("averaged rate also covers the extended Za życiem pool", () => {
+  const { periods, flatRateApplied, pool } = planLeave({ ...input, kids: 2, zaZyciem: true, otherWeeks: 9 }, params);
+  expect(pool).toBe(67);
+  expect(flatRateApplied).toBe(true);
+  expect(periods.mother.map(({ kind, weeks, rate }) => [kind, weeks, rate])).toEqual([["maternity", 31, 0.815], ["parental", 58, 0.815]]);
+  expect(periods.father.map(({ weeks, rate }) => [weeks, rate])).toEqual([[9, 0.7]]);
+});
+
 test("paternity expires before the first birthday or the adoption age limit", () => {
   const plan = (patch: Partial<LeaveInput>) => planLeave({ ...input, otherWeeks: 0, paternity: true, ...patch }, params);
   expect(plan({ paternityStartDate: "2027-01-01" }).periods.father.some((p) => p.kind === "paternity")).toBe(false);
@@ -76,4 +84,8 @@ test("sets a proportional minimum basis for part-time employees", () => {
   // Art. 45 ust. 1 u.z. and KP art. 29² § 1.
   expect(computeBasis([2000], params, "uop", 0.5).basis).toBe(2073.55);
   expect(computeBasis([2000], params, "zlec").basis).toBe(1725.8);
+  // Empty months (under half the working time) are skipped; bonuses add 1/12 to the average (art. 42 u.z.).
+  expect(computeBasis([6000, 0, 6000], params).months).toBe(2);
+  expect(computeBasis(Array(12).fill(6000), params, "uop", 1, { quarterly: 4000, annual: 8000 }).basis).toBe(6040.3);
+  expect(computeBasis(Array(12).fill(6000), params, "jdg", 1, { annual: 8000 }).basis).toBe(5177.4);
 });

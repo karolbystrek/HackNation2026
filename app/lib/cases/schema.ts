@@ -29,6 +29,10 @@ export type CaseExtraction = {
   fullLeaveDeclaration: boolean;
   sickInsurance: { from: string; to: string | null; voluntary: boolean }[];
   uninsuredOnStart?: boolean;
+  /** Day from which ZUS ruled the person was not covered by sickness insurance (a ruling on insurance, not on the benefit). */
+  notInsuredFrom?: string | null;
+  /** A ZUS letter says the monthly maternity benefit is topped up to the parental allowance (art. 31 ust. 3a u.z.). */
+  parentalAllowanceTopUp?: boolean;
   sources?: { field: CaseSourceField; pages: number[] }[];
   insuranceEnd: { date: string | null; reason: "none" | "employer_insolvency" | "unlawful_dismissal" | "other" };
   debtOnDate: boolean | null;
@@ -74,6 +78,8 @@ export const caseExtractionSchema = {
     },
     benefit: { type: "string", enum: ["maternity", "sickness_pregnancy", "equal_maternity", "other"], description: "O jakie świadczenie toczy się sprawa" },
     uninsuredOnStart: { type: "boolean", description: "True wyłącznie gdy dokument ubezpieczeniowy potwierdza brak chorobowego w pierwszym dniu wnioskowanego okresu." },
+    notInsuredFrom: { ...nullableDate, description: "Data, od której ZUS ustalił, że osoba nie podlega ubezpieczeniu chorobowemu (RRRR-MM-DD), albo null." },
+    parentalAllowanceTopUp: { type: "boolean", description: "True, gdy pismo ZUS mówi o podwyższeniu zasiłku macierzyńskiego do kwoty świadczenia rodzicielskiego." },
     sources: {
       type: "array",
       items: {
@@ -159,6 +165,8 @@ export function assertExtraction(value: unknown): asserts value is CaseExtractio
   if (!v || typeof v !== "object") fail("root");
   if (!Array.isArray(v.documents) || !Array.isArray(v.requested) || !Array.isArray(v.sickInsurance) || !Array.isArray(v.basisMonths) || !Array.isArray(v.uncertain)) fail("arrays");
   if (v.uninsuredOnStart !== undefined && typeof v.uninsuredOnStart !== "boolean") fail("uninsuredOnStart");
+  if (v.notInsuredFrom !== undefined && v.notInsuredFrom !== null && !DATE.test(v.notInsuredFrom)) fail("notInsuredFrom");
+  if (v.parentalAllowanceTopUp !== undefined && typeof v.parentalAllowanceTopUp !== "boolean") fail("parentalAllowanceTopUp");
   if (v.sources !== undefined && (!Array.isArray(v.sources) || v.sources.some((s) => !s || !Array.isArray(s.pages) ||
     s.pages.some((n) => !Number.isInteger(n) || n < 1)))) fail("sources");
   if (v.sickInsurance.some((s) => !s || !DATE.test(s.from) || (s.to !== null && (!DATE.test(s.to) || s.to < s.from)) ||
