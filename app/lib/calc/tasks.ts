@@ -17,12 +17,28 @@ export type Task = {
   documents: { id: string; title: string; instruction?: string }[];
   done: boolean;
   locked: boolean;
-  waitingFor: { id: string; title: string }[];
+  waitingFor: FamilyTimelineEntry[];
 };
 
 /** Applications from the timeline, as a checklist. */
 export function buildTasks(timeline: FamilyTimelineEntry[]): Task[] {
   const byId = new Map(timeline.map((entry) => [entry.id, entry]));
+
+  function prerequisites(entry: FamilyTimelineEntry) {
+    const seen = new Set([entry.id]);
+    const pending: FamilyTimelineEntry[] = [];
+
+    function visit(id: string) {
+      const required = byId.get(id);
+      if (!required || seen.has(id) || required.status === "confirmed" || required.status === "completed") return;
+      seen.add(id);
+      required.requires?.forEach(visit);
+      pending.push(required);
+    }
+
+    entry.requires?.forEach(visit);
+    return pending;
+  }
 
   return timeline.filter((entry) => entry.kind === "application").map((entry) => ({
     id: entry.id,
@@ -39,9 +55,6 @@ export function buildTasks(timeline: FamilyTimelineEntry[]): Task[] {
     documents: entry.documents ?? [],
     done: entry.status === "completed",
     locked: !!entry.completedOn || entry.status === "blocked",
-    waitingFor: (entry.requires ?? [])
-      .flatMap((id) => byId.get(id) ?? [])
-      .filter((required) => required.status !== "confirmed" && required.status !== "completed")
-      .map(({ id, title }) => ({ id, title })),
+    waitingFor: entry.status === "blocked" ? prerequisites(entry) : [],
   }));
 }

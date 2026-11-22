@@ -17,7 +17,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </a>
           <SiteHeader />
           {children}
-          <footer className="mt-auto bg-navy text-navy-foreground [&_:focus-visible]:outline-navy-foreground">
+          <footer className="mt-auto bg-primary text-primary-foreground [&_:focus-visible]:outline-primary-foreground">
             <div className="shell grid gap-8 py-10 md:grid-cols-[1fr_auto]">
               <div className="max-w-[60ch]">
                 <p className="text-lg font-bold">Zasiłkowy Przewodnik Przyszłego Rodzica</p>
