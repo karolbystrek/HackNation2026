@@ -27,9 +27,13 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
     dueDate: startDate ? persona.birthDate ?? persona.dueDate : persona.dueDate,
     employerInsolvent: false,
     over50: mother.age > 50,
+    payerSize: mother.payerSize,
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const r = calcPregnancy({ ...form, basis: parseAmount(basis) }, params);
+  const [debt, setDebt] = usePlanDraft(`${draftKey}/zadluzenie`, "");
+  const debtFromProfile = mother.contributionDebt?.date === form.sickLeaveFrom ? mother.contributionDebt?.amount : undefined;
+  const debtInput = debt || (debtFromProfile === undefined ? "" : String(debtFromProfile));
+  const r = calcPregnancy({ ...form, basis: parseAmount(basis), contributionDebt: debtInput ? parseAmount(debtInput) : undefined }, params);
 
   const sickLeave = parseIso(form.sickLeaveFrom);
   const steps = [
@@ -43,6 +47,9 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
             onChange={(value) => set("contract", value)}
             options={[["uop", "Umowa o pracę"], ["zlec", "Umowa zlecenie"], ["jdg", "Działalność"]]}
           />
+          {form.contract !== "jdg" && <RadioGroup label="Ile osób płatnik zgłasza do ubezpieczenia chorobowego?"
+            value={form.payerSize ?? mother.payerSize} onChange={(value) => set("payerSize", value)}
+            options={[["le20", "Do 20 osób"], ["gt20", "Powyżej 20 osób"], ["unknown", "Nie wiem"]]} />}
           <Field required label="Ubezpieczenie chorobowe od" type="date" value={form.insuredFrom} onChange={(e) => set("insuredFrom", e.target.value)} />
           {form.contract === "uop" && <Field label="Rok ukończenia 50 lat (jeśli dotyczy)" type="number" min={1900} max={2100}
             value={form.yearTurned50 ?? ""} onChange={(e) => set("yearTurned50", e.target.value ? Number(e.target.value) : undefined)}
@@ -62,6 +69,8 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
             value={form.sickLeaveThrough ?? ""} onChange={(e) => set("sickLeaveThrough", e.target.value)} />}
           <Field required label="Termin porodu" type="date" min={sickLeave ? toIso(addDays(sickLeave, 1)) : undefined}
             hint="Po dacie rozpoczęcia zwolnienia" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+          {form.contract === "jdg" && <Field label="Zadłużenie składkowe na dzień powstania prawa (zł)" inputMode="decimal" pattern={amountPattern}
+            value={debtInput} onChange={(e) => setDebt(e.target.value)} />}
         </>
       ),
     },
@@ -72,6 +81,9 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
           <Field required label="Podstawa zasiłku (zł)" inputMode="decimal" pattern={amountPattern} title={amountHint} maxLength={24}
             hint="Kwota, od której naliczany jest zasiłek." value={basis} onChange={(e) => setBasis(e.target.value)} />
           <Button variant="link" className="self-start" onClick={() => onBasis("mother", form.sickLeaveFrom.slice(0, 7))}>Oblicz z 12 miesięcy</Button>
+          {!form.employerInsolvent && r.rows.some((row) => row.label.startsWith("Świadczenie rehabilitacyjne")) &&
+            <Checkbox checked={!!form.simulateRehabilitation} onChange={() => set("simulateRehabilitation", !form.simulateRehabilitation)}
+              title="Pokaż osobną kwotę rehabilitacyjnego przy założeniu przyznania go przez ZUS" />}
         </>
       ),
     },

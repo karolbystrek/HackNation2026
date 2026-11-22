@@ -68,10 +68,16 @@ test("every event type and special situation is listed in EFFECTS", () => {
 for (const [key, effect] of Object.entries(EFFECTS)) {
   test(`${key}: ${typeof effect === "string" ? `changes ${effect}` : "changes nothing"}`, async () => {
     const changed = { actions: false, dates: false };
-    for (const start of STARTS) {
-      const before = signature(await plan(start.id, {}, start.events));
+    const starts: { id: string; events: TimelineEvent[]; childDate: string; answers?: Answers }[] = [...STARTS];
+    if (key === "circumstance:laterSickLeave") {
+      const answers = complete({ ...pregnant, largeEmployer: "no" });
+      starts.push({ id: GUIDE_ID, events: currentPersona({ personaId: GUIDE_ID, guideAnswers: answers })!.events,
+        childDate: pregnant.dueDate, answers });
+    }
+    for (const start of starts) {
+      const before = signature(await plan(start.id, start.answers ?? {}, start.events));
       for (const added of variantsOf(key, start.childDate)) {
-        const after = signature(await plan(start.id, {}, [...start.events, added]));
+        const after = signature(await plan(start.id, start.answers ?? {}, [...start.events, added]));
         if (after.actions !== before.actions) changed.actions = true;
         if (after.dates !== before.dates) changed.dates = true;
       }

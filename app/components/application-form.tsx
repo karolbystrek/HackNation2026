@@ -401,7 +401,8 @@ function FieldInput({ field, value, onChange, required, error }: {
   switch (field.type) {
     case "signature":
       return wrap(
-        <Checkbox checked={value === true} onChange={() => onChange(value !== true)} title="Potwierdzam podpis w symulacji">
+        <Checkbox checked={value === true} onChange={() => onChange(value !== true)}
+          title={field.label.startsWith("Podpis upoważnionej") ? field.label : "Potwierdzam podpis w symulacji"}>
           Potwierdzam, że dane we wniosku są zgodne z prawdą. Podpis jest symulowany.
         </Checkbox>,
       );

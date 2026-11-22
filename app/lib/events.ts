@@ -16,6 +16,8 @@ export const CIRCUMSTANCES = {
   employerInsolvency: { label: "Ustanie zatrudnienia w ciąży z powodu upadłości, likwidacji lub śmierci pracodawcy, bez innego zatrudnienia", forms: ["ff.zas55"] },
   sicknessAfterInsurance: { label: "Zwolnienie lekarskie po ustaniu ubezpieczenia", forms: ["ff.z10"] },
   rehabilitation: { label: "Dalsze leczenie po wyczerpaniu zasiłku chorobowego", forms: ["ff.znp7"] },
+  laterSickLeave: { label: "Płatnik otrzymał kolejne e-ZLA po przekazaniu pierwszego zaświadczenia", forms: ["ff.zas12"] },
+  additionalBirthCertificate: { label: "Potrzebny kolejny odpis aktu urodzenia", forms: ["civil.birth_certificate"] },
 } as const;
 
 export type Circumstance = keyof typeof CIRCUMSTANCES;

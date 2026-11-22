@@ -43,7 +43,11 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
     paternity: true,
     flatRate: persona.wantsAveragedRate ?? false,
     workFractions: { mother: 0, father: 0 },
+    parentalTogether: false,
+    preBirthStartDate: "",
+    supplementaryWeeks: mode === "birth" ? persona.supplementaryWeeks ?? 0 : 0,
   });
+  const [advance, setAdvance] = usePlanDraft(`${draftKey}/zaliczka-pit`, { mother: "", father: "" });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   const flatDeadline = parseIso(form.startDate) ? shiftIso(form.startDate, params.flatRateRequestDays) : null;
@@ -54,14 +58,15 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
     mode,
     names,
     flatRate: form.flatRate && (!flatExpired || !!form.filedOnTime),
-    supplementaryWeeks: matchesPlan ? persona.supplementaryWeeks : undefined,
+    supplementaryWeeks: form.supplementaryWeeks ?? (matchesPlan ? persona.supplementaryWeeks : undefined),
     supplementaryParent: persona.supplementaryParent,
     paternityStartDate: form.paternityStartDate || (matchesPlan ? persona.paternityStart : undefined),
     bases: { mother: parseAmount(bases.mother), father: parseAmount(bases.father) },
+    monthlyPitAdvance: { mother: parseAmount(advance.mother), father: parseAmount(advance.father) },
   };
   const r = planLeave(input, params);
   const adoption = mode === "adoption";
-  const customLeave = !adoption && r.start === (persona.birthDate ?? persona.dueDate) &&
+  const customLeave = !adoption && form.startDate === (persona.birthDate ?? persona.dueDate) &&
     !(fromGuide && plan.guideAnswers.placementDate) ? readCustomLeave(input) : undefined;
   const main = adoption ? form.main : "mother";
   const other = otherParent(main);
@@ -92,28 +97,33 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
         <>
           <Field required label={adoption ? "Data przyjęcia dziecka" : "Data porodu"} type="date"
             value={form.startDate} onChange={(e) => setForm((draft) => ({ ...draft, startDate: e.target.value, filedOnTime: false }))} />
+          {!adoption && <>
+            <Field label="Początek macierzyńskiego przed porodem" type="date" max={form.startDate}
+              min={parseIso(form.startDate) ? addDays(parseIso(form.startDate)!, -params.preBirthMaxWeeks * 7).toISOString().slice(0, 10) : undefined}
+              value={form.preBirthStartDate ?? ""} onChange={(e) => set("preBirthStartDate", e.target.value)} />
+            <Field label="Tygodnie uzupełniającego urlopu macierzyńskiego" type="number" min={0} max={params.supplementary.capSevereWeeks}
+              hint="Wpisz wymiar wynikający z zaświadczenia o pobycie dziecka w szpitalu."
+              value={form.supplementaryWeeks ?? 0} onChange={(e) => set("supplementaryWeeks", Number(e.target.value))} />
+          </>}
           {adoption && (
             <Field required label="Data urodzenia dziecka" type="date" max={form.startDate || undefined}
               hint="Najpóźniej w dniu przyjęcia" value={form.childBirthDate} onChange={(e) => set("childBirthDate", e.target.value)} />
           )}
           <RadioGroup label={adoption ? "Liczba dzieci przyjętych jednocześnie" : "Liczba dzieci przy jednym porodzie"}
             value={form.kids} onChange={(v) => set("kids", v)} options={kidsOptions} />
-          {adoption ? (
-            form.adoptionType === "foster" && (
+          {adoption && form.adoptionType === "foster" && (
               <Checkbox checked={form.schoolDeferred} onChange={() => set("schoolDeferred", !form.schoolDeferred)} title="Odroczony obowiązek szkolny">
                 Urlop przysługuje wtedy do {params.adoptionAgeLimit.fosterDeferred}. roku życia zamiast do {params.adoptionAgeLimit.foster}.
               </Checkbox>
-            )
-          ) : (
+          )}
             <div>
               <Checkbox checked={form.zaZyciem} onChange={() => set("zaZyciem", !form.zaZyciem)} title="Dziecko ma zaświadczenie „Za życiem”">
-                Zaświadczenie zwiększa pulę urlopu rodzicielskiego do {form.kids > 1 ? params.parentalPoolWeeks.zaZyciemMultiple : params.parentalPoolWeeks.zaZyciemSingle} tygodni.
+                Zaświadczenie może zwiększyć pulę urlopu rodzicielskiego.
               </Checkbox>
               <a href="https://www.gov.pl/web/rodzina/urlop-rodzicielski" className="text-link ml-8 inline-flex min-h-11 items-center">
                 Zasady urlopu rodzicielskiego
               </a>
             </div>
-          )}
         </>
       ),
     },
@@ -147,6 +157,8 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               </div>
             ))}
           </dl>
+          {r.otherWeeks > 0 && <Checkbox checked={form.parentalTogether ?? false} onChange={() => set("parentalTogether", !form.parentalTogether)}
+            title="Rozpoczynamy urlop rodzicielski równocześnie" />}
 
           {showPaternity && (
             <div className="grid gap-2"><Checkbox checked={form.paternity} onChange={() => set("paternity", !form.paternity)} title={`Urlop ojcowski (${names.father})`}>
@@ -187,6 +199,9 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             <div key={parent}>
               <Field required label={`Podstawa zasiłku (zł) dla ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
                 title={amountHint} maxLength={24} value={bases[parent]} onChange={(e) => setBases({ ...bases, [parent]: e.target.value })} />
+              <Field label={`Miesięczna zaliczka PIT od zasiłku (zł) dla ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
+                hint="Opcjonalnie. Kwota służy do obliczenia wyrównania świadczenia."
+                maxLength={24} value={advance[parent]} onChange={(e) => setAdvance({ ...advance, [parent]: e.target.value })} />
               <Button variant="link" onClick={() => onBasis(parent, form.startDate.slice(0, 7))}>
                 Oblicz z 12 miesięcy
               </Button>

@@ -25,7 +25,7 @@ export default function FamilyPage() {
 }
 
 function FamilyData() {
-  const { persona, fromGuide, params } = useFamily();
+  const { persona, fromGuide, params, entries } = useFamily();
   const from = useSearchParams().get("z") ?? "";
   const returnLabel = returnPages.get(from.split("?")[0]);
   const [question, setQuestion] = useState("insurance");
@@ -90,11 +90,20 @@ function FamilyData() {
       </div>
       <Disclosure className="border-y" label={<strong>Sprawdź stan składek w symulacji eZUS</strong>}>
         <div className="grid gap-3 px-3 pb-4">
-          <p>Przykładowe zaświadczenie o zadłużeniu na dzień {formatDate(persona.birthDate ?? persona.dueDate)}.</p>
+          <p>Zaświadczenie o zadłużeniu składkowym (symulacja).</p>
           <dl>{PARENTS.map((key) => <div key={key} className="flex gap-2">
             <dt>{persona.parents[key].name}</dt>
-            <dd>{!fromGuide && persona.parents[key].contributions.includes("brak zaległości") ? formatPln(0, 2) : "Brak danych w symulacji"}</dd>
+            <dd>{persona.parents[key].contributionDebt
+              ? `${formatPln(persona.parents[key].contributionDebt!.amount, 2)} na dzień ${formatDate(persona.parents[key].contributionDebt!.date)}`
+              : !fromGuide && persona.parents[key].contributions.includes("brak zaległości") ? formatPln(0, 2) : "Brak danych w symulacji"}</dd>
           </div>)}</dl>
+          <Disclosure label={<strong>Zaświadczenia e-ZLA</strong>}>
+            <ul className="space-y-2 px-3 pb-3">
+              {entries.filter((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")).map((entry) =>
+                <li key={entry.id}>{entry.title}. Od {formatDate(entry.date)}{entry.end ? ` do ${formatDate(entry.end)}` : ""}.</li>)}
+              {!entries.some((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")) && <li>Brak zaświadczeń w symulacji.</li>}
+            </ul>
+          </Disclosure>
           <form className="flex flex-col items-start gap-2" onSubmit={(event) => {
             event.preventDefault();
             setReply(question === "insurance" ? "Ubezpieczenie każdego rodzica znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Zwolnienia każdego rodzica znajdziesz w sekcji „Zwolnienia e-ZLA”.");

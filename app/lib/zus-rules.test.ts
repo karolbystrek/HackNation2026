@@ -5,6 +5,7 @@
 // Run from app/: npm test
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { buildVariants } from "@/lib/calc/variants";
+import type { TimelineEvent } from "@/lib/events";
 import { buildFamilyTimeline, type FamilyTimelineEntry } from "@/lib/family-timeline";
 import { personaFromAnswers } from "@/lib/guide/persona";
 import type { Answers } from "@/lib/guide/tree";
@@ -15,9 +16,12 @@ const TODAY = "2026-11-22";
 
 /** Fields of one timeline entry that must match; null means none (no form, no fixed deadline). Documents match by substring. */
 type Want = { form?: string | null; recipient?: string; date?: string; end?: string; due?: string | null; documents?: string[] };
-type Row = { name: string; source: string; answers: Answers; expect: Record<string, Want | "present" | "absent">; gap?: string };
+type Row = { name: string; source: string; answers: Answers; expect: Record<string, Want | "present" | "absent">; gap?: string; events?: TimelineEvent[] };
 
 const born = { situation: "born", birthDate: "2026-11-01", multipleBirth: false, insurance: ["employment"] };
+
+const earlyLeave: TimelineEvent = { id: "early-leave", type: "circumstance", circumstance: "preBirthLeave",
+  who: "mother", date: "2027-01-18", source: "new", title: "Urlop przed porodem", description: "" };
 
 const rows: Row[] = [
   {
@@ -48,12 +52,14 @@ const rows: Row[] = [
   },
   {
     name: "pregnant employee: leave before birth",
+    events: [earlyLeave],
     source: "Poradnik p.27: maternity leave can start up to 6 weeks before the due date, with a doctor's certificate.",
     answers: { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", multiplePregnancy: false },
     expect: { "pre-birth-leave": { date: "2027-01-18", form: "lr.maternity_pre_birth", recipient: "Pracodawca", documents: ["przewidywanej dacie porodu"] } },
   },
   {
     name: "pregnant employee: request for leave before birth 14 days ahead",
+    events: [earlyLeave],
     source: "Poradnik p.27: the request for leave before birth goes in at least 14 days before it starts.",
     answers: { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", multiplePregnancy: false },
     expect: { "pre-birth-leave": { due: "2027-01-04" } },
@@ -231,10 +237,11 @@ const rows: Row[] = [
   },
 ];
 
-async function plan(answers: Answers): Promise<FamilyTimelineEntry[]> {
+async function plan(answers: Answers, addedEvents: TimelineEvent[] = []): Promise<FamilyTimelineEntry[]> {
   const persona = personaFromAnswers(answers);
-  const chosen = buildVariants(persona, params).find((v) => v.key === persona.initialVariant) ?? null;
-  return buildFamilyTimeline(persona, persona.events, chosen, params, await loadJourney(), [], TODAY);
+  const events = [...persona.events, ...addedEvents];
+  const chosen = buildVariants(persona, params, undefined, events).find((v) => v.key === persona.initialVariant) ?? null;
+  return buildFamilyTimeline(persona, events, chosen, params, await loadJourney(), [], TODAY);
 }
 
 // The questionnaire reads today's date (e.g. for when paternity leave can start), so freeze it.
@@ -246,7 +253,7 @@ afterAll(() => vi.useRealTimers());
 
 for (const row of rows) {
   (row.gap ? test.fails : test)(`${row.name}${row.gap ? ` [known gap: ${row.gap}]` : ""}`, async () => {
-    const entries = await plan(row.answers);
+    const entries = await plan(row.answers, row.events);
     for (const [id, want] of Object.entries(row.expect)) {
       const entry = entries.find((e) => e.id === id);
       if (want === "absent") { expect(entry, `${id} should not be in the plan`).toBeUndefined(); continue; }

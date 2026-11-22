@@ -5,7 +5,7 @@ import { amountPattern } from "@/components/calculator/calculator-steps";
 import { Button, Checkbox, Field, Notice, WarningBox } from "@/components/ui";
 import { Disclosure } from "@/components/ui/disclosure";
 import { analyzeCase, PERIOD_LABELS } from "@/lib/cases/analyze";
-import type { BenefitKind, CaseExtraction, ContractType, EventKind, PeriodKind } from "@/lib/cases/schema";
+import type { BenefitKind, CaseExtraction, CaseSourceField, ContractType, EventKind, PeriodKind } from "@/lib/cases/schema";
 import { formatDate } from "@/lib/dates";
 import { formatPln, parseAmount } from "@/lib/format";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
@@ -61,7 +61,7 @@ export function CaseCheck({ params }: { params: Params }) {
 
   function clearCase() {
     setPreviewUrl(null);
-    updatePlan((plan) => ({ ...plan, drafts: { ...plan.drafts, "sprawa-odczyt": null, "sprawa-korekta": null, "sprawa-podstawa": "" } }));
+    updatePlan((plan) => ({ ...plan, drafts: { ...plan.drafts, "sprawa-odczyt": null, "sprawa-korekta": null, "sprawa-podstawa": "", "sprawa-podstawa-zus": false } }));
   }
 
   async function readPdf(uploaded: File | null) {
@@ -132,6 +132,7 @@ export function CaseCheck({ params }: { params: Params }) {
 function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded; params: Params; headingRef: React.RefObject<HTMLHeadingElement | null>; previewUrl: string | null }) {
   const [c, setC] = usePlanDraft("sprawa-korekta", loaded.extraction);
   const [basisInput, setBasisInput] = usePlanDraft("sprawa-podstawa", "");
+  const [decisionBasis, setDecisionBasis] = usePlanDraft("sprawa-podstawa-zus", false);
   const basisAmount = parseAmount(basisInput);
   const invalidBasis = basisInput.trim() !== "" && (!validAmount.test(basisInput) || basisAmount <= 0);
   const analysis = analyzeCase(c, params, invalidBasis ? undefined : basisAmount);
@@ -139,7 +140,17 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
   const unsure = (path: string) => c.uncertain.some((u) => u === path || u.startsWith(`${path}.`) || u.startsWith(`${path}[`));
   const hint = (path: string) => (unsure(path) ? <span className="font-bold text-destructive">Odczyt niepewny, sprawdź ze skanem.</span> : undefined);
   const set = (patch: Partial<CaseExtraction>) => setC((prev) => ({ ...prev, ...patch }));
-  const setEvent = (patch: Partial<CaseExtraction["event"]>) => setC((prev) => ({ ...prev, event: { ...prev.event, ...patch } }));
+  const setEvent = (patch: Partial<CaseExtraction["event"]>) => setC((prev) => ({
+    ...prev, event: { ...prev.event, ...patch }, uninsuredOnStart: patch.date === undefined ? prev.uninsuredOnStart : undefined,
+  }));
+  const source = (field: CaseSourceField) => {
+    const pages = c.sources?.find((s) => s.field === field)?.pages ?? [];
+    return previewUrl && pages.length ? (
+      <a href={`${previewUrl}#page=${pages[0]}`} target="_blank" rel="noreferrer" className="text-link self-start text-sm">
+        Źródło odczytu (str. {pages.join(", ")})
+      </a>
+    ) : null;
+  };
 
   return (
     <section aria-labelledby="case-result" className="flex flex-col gap-6">
@@ -156,9 +167,10 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
           <div className="border-t pt-4">
             <div className="flex flex-col gap-3 pb-4">
               <div className="grid gap-3 @lg:grid-cols-2">
-                <CaseSelect label="Świadczenie" options={BENEFITS} value={c.benefit} onChange={(benefit) => set({ benefit })} />
+                <CaseSelect label="Świadczenie" options={BENEFITS} value={c.benefit} onChange={(benefit) => set({ benefit, uninsuredOnStart: undefined })} />
                 <CaseSelect label="Tytuł ubezpieczenia" options={CONTRACTS} value={c.contract} onChange={(contract) => set({ contract })} />
               </div>
+              {source("benefit")}
               <CaseSelect label="Zdarzenie" options={EVENTS} value={c.event.kind} onChange={(kind) => setEvent({ kind })} />
               <div className="grid gap-4 @lg:grid-cols-3">
                 <Field label="Data zdarzenia" type="date" value={c.event.date ?? ""} hint={hint("event.date")} onChange={(e) => setEvent({ date: e.target.value || null })} />
@@ -182,7 +194,10 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
               </>}
               <fieldset className="flex flex-col gap-3">
                 <legend className="mb-1 font-bold">Ubezpieczenie chorobowe</legend>
+                {source("sickInsurance")}
                 {hint("sickInsurance")}
+                {!c.sickInsurance.length && <Checkbox checked={c.uninsuredOnStart === true} onChange={() => set({ uninsuredOnStart: !c.uninsuredOnStart })}
+                  title="Potwierdzony brak ubezpieczenia w dniu rozpoczęcia świadczenia" />}
                 {c.sickInsurance.map((s, i) => (
                   <div key={i} className="grid items-end gap-3 @2xl:grid-cols-[1fr_1fr_auto_auto]">
                     <Field label="Od" type="date" value={s.from} onChange={(e) => set({ sickInsurance: c.sickInsurance.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)) })} />
@@ -191,24 +206,32 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                     <Button variant="outline" onClick={() => set({ sickInsurance: c.sickInsurance.filter((_, j) => j !== i) })}>Usuń</Button>
                   </div>
                 ))}
-                <Button variant="outline" className="self-start" onClick={() => set({ sickInsurance: [...c.sickInsurance, { from: "", to: null, voluntary: false }] })}>Dodaj okres ubezpieczenia</Button>
+                <Button variant="outline" className="self-start" onClick={() => set({ sickInsurance: [...c.sickInsurance, { from: "", to: null, voluntary: false }], uninsuredOnStart: undefined })}>Dodaj okres ubezpieczenia</Button>
               </fieldset>
             </div>
           </div>
           <div className="border-t pt-4">
             <h5 className="mb-3 font-bold">Okresy z wniosku</h5>
             <div className="pb-4">
-              <PeriodsEditor periods={c.requested} unsure={unsure("requested")} onChange={(requested) => set({ requested })} />
+              {source("requested")}
+              <PeriodsEditor periods={c.requested} unsure={unsure("requested")} onChange={(requested) => set({ requested, uninsuredOnStart: undefined })} />
             </div>
           </div>
           <div className="border-t pt-4">
             <h5 className="mb-3 font-bold">Podstawa wymiaru</h5>
             <Field label="Gotowa podstawa wymiaru (zł)" inputMode="decimal" value={basisInput} maxLength={24} aria-invalid={invalidBasis || undefined}
               hint={invalidBasis ? "Wpisz kwotę większą od zera, np. 4 200,50." : "Wpisz kwotę po odliczeniu składek. Jeśli zostawisz puste, wykorzystamy dane ze sprawy."}
-              className="mb-4 max-w-sm" onChange={(e) => setBasisInput(e.target.value)} />
+              className="mb-4 max-w-sm" onChange={(e) => { setBasisInput(e.target.value); setDecisionBasis(false); }} />
+            {!!c.decision.basis && !decisionBasis && (
+              <Button variant="outline" className="mb-4" onClick={() => {
+                setBasisInput(String(c.decision.basis).replace(".", ","));
+                setDecisionBasis(true);
+              }}>Użyj podstawy z decyzji ZUS</Button>
+            )}
             <div className="pb-4">
               <fieldset className="flex flex-col gap-3">
                 <legend className="mb-1 font-bold">Kwoty za poszczególne miesiące</legend>
+                {source("basisMonths")}
                 {hint("basisMonths")}
                 <div className="grid gap-3 @lg:grid-cols-2 @3xl:grid-cols-3">
                   {c.basisMonths.map((m, i) => (
@@ -239,7 +262,7 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                 ? "https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/prawo-do-zasilku-i-okres-przyslugiwania"
                 : "https://www.zus.pl/swiadczenia/zasilki/zasilek-macierzynski/niezbedne-dokumenty"}>Sprawdź zasady w ZUS</a>
               {(analysis.basis || analysis.monthly !== null || (hasAmounts && analysis.periods.length > 0)) && <dl className="flex flex-col gap-2 border-t pt-2">
-                {analysis.basis && <div><dt>Podstawa wymiaru</dt><dd className="font-bold">{formatPln(analysis.basis.value, 2)}</dd></div>}
+                {analysis.basis && <div><dt>{decisionBasis ? "Podstawa z decyzji ZUS (symulacja)" : "Podstawa wymiaru"}</dt><dd className="font-bold">{formatPln(analysis.basis.value, 2)}</dd></div>}
                 {analysis.monthly !== null && <div><dt>Zasiłek miesięcznie</dt><dd className="font-bold">{formatPln(analysis.monthly, 2)}</dd></div>}
                 {hasAmounts && analysis.periods.length > 0 && <div><dt>Razem za wskazane okresy</dt><dd className="font-bold">{formatPln(analysis.total, 2)}</dd></div>}
               </dl>}

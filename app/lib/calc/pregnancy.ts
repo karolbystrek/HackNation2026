@@ -16,6 +16,9 @@ export type PregnancyInput = {
   /** Legacy input: the reduced sick-pay limit already applies. */
   over50?: boolean;
   yearTurned50?: number;
+  payerSize?: "gt20" | "le20" | "na" | "unknown";
+  simulateRehabilitation?: boolean;
+  contributionDebt?: number;
 };
 
 export type PregnancyRow = { label: string; amount: number | null; note: string };
@@ -28,12 +31,6 @@ export type PregnancyResult = {
   warnings: string[];
 };
 
-const PAYERS: Record<ContractType, string> = {
-  uop: "Zasiłek wypłaca pracodawca zgłaszający ponad 20 osób do ubezpieczenia chorobowego albo ZUS",
-  zlec: "płatnik składek albo ZUS",
-  jdg: "ZUS – wniosek ZAS-53",
-};
-
 export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult {
   const insured = parseIso(input.insuredFrom);
   const sickLeave = parseIso(input.sickLeaveFrom);
@@ -42,7 +39,11 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   const daily = input.basis * p.rates.full / 30;
   const rows: PregnancyRow[] = [];
   const warnings: string[] = [];
-  const payer = input.employerInsolvent ? "ZUS" : PAYERS[input.contract];
+  const payer = input.employerInsolvent ? "ZUS"
+    : input.contract === "jdg" ? "ZUS – wniosek ZAS-53"
+    : input.payerSize === "le20" ? "ZUS"
+    : input.payerSize === "gt20" ? "Płatnik składek"
+    : "Płatnik składek albo ZUS (zależnie od liczby ubezpieczonych)";
 
   if (!insured || !sickLeave || !due || due <= sickLeave) {
     return { total: 0, days: 0, payer, rows, warnings: ["Uzupełnijcie daty. Termin porodu musi być po dacie zwolnienia."] };
@@ -59,16 +60,24 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
     return { total: 0, days: 0, payer, rows, warnings: ["Ostatni dzień zwolnienia musi przypadać w dniu rozpoczęcia zwolnienia lub później."] };
   }
   const end = !input.employerInsolvent && certifiedEnd && certifiedEnd < due ? addDays(certifiedEnd, 1) : due;
+  const debtLimit = p.minWage * p.contributionDebtLimitRate;
+  if (input.contract === "jdg" && (input.contributionDebt ?? 0) > debtLimit) {
+    warnings.push("Zadłużenie składkowe przekracza ustawowy próg. Wypłata świadczenia jest wstrzymana do spłaty całości.");
+    return { total: 0, days: 0, payer, rows, warnings };
+  }
   if (!input.employerInsolvent && !certifiedEnd) warnings.push("Szacunek zakłada niezdolność do pracy do dnia poprzedzającego poród.");
 
-  const count = { employer: 0, sickness: 0, insolvency: 0 };
+  const count = { employer: 0, sickness: 0, insolvency: 0, rehab: 0 };
   const employerDaysByYear: Record<number, number> = {};
   for (let d = payStart; d < end; d = addDays(d, 1)) {
     if (input.employerInsolvent) {
       count.insolvency++;
       continue;
     }
-    if (diffDays(sickLeave, d) + 1 > p.benefitPeriodDays) break;
+    if (diffDays(sickLeave, d) + 1 > p.benefitPeriodDays) {
+      count.rehab = diffDays(d, end);
+      break;
+    }
     const year = d.getUTCFullYear();
     employerDaysByYear[year] ??= 0;
     if (input.contract === "uop" && employerDaysByYear[year] < employerLimit(year)) {
@@ -87,6 +96,10 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   if (!input.employerInsolvent && diffDays(sickLeave, end) >= p.benefitPeriodDays - 6 * 7) {
     const recommendedDate = addDays(sickLeave, p.benefitPeriodDays - 1 - 6 * 7);
     warnings.push(`Jeśli nadal potrzebujesz leczenia po wyczerpaniu chorobowego, złóż ZNp-7 co najmniej 6 tygodni przed końcem okresu zasiłkowego (w tym szacunku do ${formatDate(recommendedDate)}). O świadczeniu decyduje ZUS.`);
+  }
+  if (count.rehab) {
+    rows.push({ label: "Świadczenie rehabilitacyjne (oddzielna symulacja)", amount: input.simulateRehabilitation ? count.rehab * daily : null, note: `${count.rehab} dni po wyczerpaniu chorobowego. Złóż ZNp-7 z dokumentacją medyczną. ZUS ocenia, czy dalsze leczenie rokuje odzyskanie zdolności do pracy.` });
+    warnings.push(`Po wyczerpaniu ${p.benefitPeriodDays} dni chorobowego dalsze świadczenie wymaga decyzji ZUS.`);
   }
   rows.push({ label: "Od dnia porodu", amount: null, note: "Sprawdź warunki zasiłku macierzyńskiego w kalkulatorze Narodziny." });
 

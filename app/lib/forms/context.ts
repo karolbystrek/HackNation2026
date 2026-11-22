@@ -29,7 +29,7 @@ export function formContext(
   persona: Persona, events: TimelineEvent[], chosenKey: VariantKey | null, params: Params, journey: Journey,
   doneTasks: string[], today: string, taskId: string, guideAnswers: Answers = {}, customLeave?: CustomLeave,
 ): { entry: FamilyTimelineEntry; ctx: FormContext } | null {
-  const chosen = buildVariants(persona, params, customLeave).find((variant) => variant.key === chosenKey) ?? null;
+  const chosen = buildVariants(persona, params, customLeave, events).find((variant) => variant.key === chosenKey) ?? null;
   const timeline = planTimeline(persona, events, chosen, params, journey, doneTasks, today);
   const entry = timeline.find((item) => item.id === taskId && item.form);
   if (!entry) return null;

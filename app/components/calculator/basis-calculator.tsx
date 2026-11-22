@@ -21,11 +21,12 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
   const { persona, params, names } = useFamily();
   const parent = request?.parent ?? initialParent;
   const [source, setSource] = usePlanDraft<ParentKey | "manual">(`${draftKey}/source`, parent);
-  const [incomeType, setIncomeType] = usePlanDraft<"uop" | "jdg">(`${draftKey}/incomeType`, persona.parents[parent].contract === "jdg" ? "jdg" : "uop");
+  const [incomeType, setIncomeType] = usePlanDraft(`${draftKey}/incomeType`, persona.parents[parent].contract);
   const [startMonth, setStartMonth] = usePlanDraft(`${draftKey}/startMonth`, request?.startMonth || persona.dueDate.slice(0, 7));
   const [months, setMonths] = usePlanDraft(`${draftKey}/months`, persona.parents[parent].monthlyGross.map(String));
+  const [employmentPercent, setEmploymentPercent] = usePlanDraft(`${draftKey}/etat`, "100");
 
-  const r = computeBasis(months.map(parseAmount), params, incomeType);
+  const r = computeBasis(months.map(parseAmount), params, incomeType, Number(employmentPercent) / 100);
   const [startYear, startMon] = startMonth.split("-").map(Number);
   const firstMonth = (startYear || 2027) * 12 + ((startMon || 1) - 1) - 12;
   const basisText = r.basis.toFixed(2).replace(".", ",");
@@ -33,7 +34,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
   const rows: [string, string][] = [
     [`Średnia z ${r.months} mies.`, formatPln(r.average, 2)],
     [`Minus składki ${formatRate(params.employeeContributionRate)}`, formatPln(-r.contributions, 2)],
-    ...(r.floored ? [["Podniesiono do minimum dla pełnego etatu", formatPln(r.basis, 2)] as [string, string]] : []),
+    ...(r.floored ? [["Podniesiono do minimum dla wymiaru etatu", formatPln(r.basis, 2)] as [string, string]] : []),
     ["Stawka dzienna (podstawa / 30)", formatPln(r.daily, 2)],
     [`Zasiłek ${formatRate(params.rates.full)} / mies.`, formatPln(r.basis * params.rates.full, 2)],
     [`Zasiłek ${formatRate(params.rates.flat)} / mies.`, formatPln(r.basis * params.rates.flat, 2)],
@@ -72,7 +73,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
                 setMonths(Array.from({ length: 12 }, () => ""));
               } else {
                 setMonths(persona.parents[value].monthlyGross.map(String));
-                setIncomeType(persona.parents[value].contract === "jdg" ? "jdg" : "uop");
+                setIncomeType(persona.parents[value].contract);
               }
             }}
             options={[...PARENTS.map((p): [ParentKey, string] => [p, `${names[p]} – z ZUS`]), ["manual", "Wpiszę ręcznie"]]}
@@ -81,8 +82,10 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
             label="Rodzaj przychodu"
             value={incomeType}
             onChange={setIncomeType}
-            options={[["uop", "Wynagrodzenie (umowa)"], ["jdg", "Działalność – zadeklarowana podstawa"]]}
+            options={[["uop", "Umowa o pracę"], ["zlec", "Umowa zlecenie"], ["jdg", "Działalność – zadeklarowana podstawa"]]}
           />
+          {incomeType === "uop" && <Field required label="Wymiar etatu (%)" type="number" min={1} max={100} step="any"
+            value={employmentPercent} onChange={(e) => setEmploymentPercent(e.target.value)} />}
           <Field required label="Miesiąc startu zasiłku" type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} />
         </>
       ),

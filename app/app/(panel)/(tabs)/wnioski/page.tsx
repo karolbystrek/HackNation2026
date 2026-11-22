@@ -2,16 +2,31 @@
 
 import { ApplicationAction } from "@/components/application-action";
 import { CaseCheck } from "@/components/case-check";
-import { Chip, PageBand, SectionTitle } from "@/components/ui";
+import { Button, ButtonLink, Chip, PageBand, SectionTitle } from "@/components/ui";
 import { buildTasks, type Task } from "@/lib/calc/tasks";
+import { formatDate, shiftIso } from "@/lib/dates";
+import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Applications() {
-  const { params, plan, names, entries } = useFamily();
+  const { params, plan, names, entries, persona, today } = useFamily();
   const forms = buildTasks(entries).filter((task) => task.form);
   const civil = forms.filter((task) => task.form!.startsWith("civil."));
   const yours = forms.filter((task) => !task.extra && !civil.includes(task));
   const special = forms.filter((task) => task.extra && !civil.includes(task));
+  const showPreBirth = !persona.birthDate && persona.parents.mother.contract === "uop" && !forms.some((task) => task.id === "pre-birth-leave");
+  const recordedBirth = !!persona.birthDate && !(persona.childEvents ?? []).some((event) => event === "adoption" || event === "foster_placement");
+
+  function requestCopy() {
+    const id = crypto.randomUUID();
+    updatePlan((previous) => previous.events.some((event) => event.circumstance === "additionalBirthCertificate") ? previous : ({
+      ...previous,
+      events: [...previous.events, {
+        id, type: "circumstance", who: "both", date: today, source: "new", circumstance: "additionalBirthCertificate",
+        title: "Potrzebny kolejny odpis aktu urodzenia", description: "Dodano wniosek o odpis do planu.",
+      }],
+    }));
+  }
 
   const row = (task: Task) => (
     <li key={task.id} className="flex flex-col gap-1.5 border-t py-4 sm:flex-row sm:items-center sm:gap-4">
@@ -27,7 +42,7 @@ export default function Applications() {
           <p>{task.description}</p>
           {task.deadlineDetail && <p>{task.deadlineDetail}</p>}
           {task.documents.length > 0 && <ul className="list-disc pl-5">{task.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>}
-          {task.guide && <a href={task.guide} className="text-link">Oficjalna instrukcja</a>}
+          {task.guide && <a href={task.guide} className="text-link">{task.form === "ff.zas12" ? "Wzór ZAS-12 w serwisie ZUS" : "Oficjalna instrukcja"}</a>}
         </details>
       </div>
       <div className="shrink-0 sm:max-w-xs"><ApplicationAction origin="wnioski" task={task} submission={plan.submissions[task.id]} /></div>
@@ -48,18 +63,24 @@ export default function Applications() {
         {yours.length ? <ul role="list">{yours.map(row)}</ul> : <p className="text-muted-foreground">Na razie nie ma wniosków do wypełnienia.</p>}
       </section>
 
-      {civil.length > 0 && (
+      {(civil.length > 0 || recordedBirth) && (
         <section aria-labelledby="usc">
           <SectionTitle id="usc" className="mb-3">Urząd stanu cywilnego</SectionTitle>
-          <ul role="list">{civil.map(row)}</ul>
+          {civil.length > 0 ? <ul role="list">{civil.map(row)}</ul> :
+            <Button variant="outline" onClick={requestCopy}>Dodaj wniosek o kolejny odpis</Button>}
         </section>
       )}
 
-      {special.length > 0 && (
+      {(special.length > 0 || showPreBirth) && (
         <section aria-labelledby="szczegolne">
           <SectionTitle id="szczegolne" className="mb-1">Wnioski w szczególnych sytuacjach</SectionTitle>
           <p className="mb-3 text-muted-foreground">Potrzebne tylko w określonej sytuacji albo wypełnia je pracodawca lub lekarz. Możesz podejrzeć każdy z nich.</p>
           <ul role="list">{special.map(row)}</ul>
+          {showPreBirth && <div className="flex flex-col items-start gap-2 border-t py-4">
+            <h3 className="text-lg font-bold">Macierzyński przed porodem</h3>
+            <p>Najwcześniejszy możliwy start to {formatDate(shiftIso(persona.dueDate, -params.preBirthMaxWeeks * 7))}.</p>
+            <ButtonLink href="/kalkulator?tryb=birth" variant="outline">Wybierz datę w kalkulatorze</ButtonLink>
+          </div>}
         </section>
       )}
       <details className="border-y py-4">

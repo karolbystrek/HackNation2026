@@ -3,7 +3,7 @@ import { planLeave, type LeaveInput } from "@/lib/calc/leave";
 import { calcPregnancy, type ContractType, type PregnancyInput } from "@/lib/calc/pregnancy";
 import { loadParams } from "@/lib/server-params";
 
-type Body = { type: "leave"; input: LeaveInput } | { type: "pregnancy"; input: PregnancyInput } | { type: "basis"; input: { monthlyGross: number[]; contract?: ContractType } };
+type Body = { type: "leave"; input: LeaveInput } | { type: "pregnancy"; input: PregnancyInput } | { type: "basis"; input: { monthlyGross: number[]; contract?: ContractType; employmentFraction?: number } };
 
 // Bounds keep the day-by-day pregnancy loop short and the leave engine away from dividing by zero.
 const inRange = (date: unknown) => typeof date !== "string" || date === "" || (date >= "2000-01-01" && date <= "2100-12-31");
@@ -11,7 +11,7 @@ const inRange = (date: unknown) => typeof date !== "string" || date === "" || (d
 function invalid(body: Body): string | null {
   const input = body.input as Record<string, unknown> | undefined;
   if (!input || typeof input !== "object") return "input is required";
-  if (!["startDate", "childBirthDate", "paternityStartDate", "adoptionOrderDate", "insuredFrom", "sickLeaveFrom", "sickLeaveThrough", "dueDate"].every((key) => inRange(input[key])))
+  if (!["startDate", "childBirthDate", "paternityStartDate", "adoptionOrderDate", "preBirthStartDate", "insuredFrom", "sickLeaveFrom", "sickLeaveThrough", "dueDate"].every((key) => inRange(input[key])))
     return "dates must be between 2000-01-01 and 2100-12-31";
   if (body.type === "leave") {
     if (input.supplementaryWeeks !== undefined &&
@@ -26,8 +26,14 @@ function invalid(body: Body): string | null {
         !["mother", "father"].every((parent) => allowed((fractions as Record<string, unknown>)[parent]))))) {
       return "work fractions must be between 0 and 0.5";
     }
+    if (body.input.parentalTogether !== undefined && typeof body.input.parentalTogether !== "boolean") return "parentalTogether must be a boolean";
+    const advance = body.input.monthlyPitAdvance;
+    if (advance !== undefined && (!advance || typeof advance !== "object" ||
+      Object.values(advance).some((n) => !Number.isFinite(n) || n < 0))) return "monthlyPitAdvance must contain nonnegative amounts";
   }
   if (body.type === "basis" && !Array.isArray(input.monthlyGross)) return "monthlyGross must be an array";
+  if (body.type === "basis" && body.input.employmentFraction !== undefined &&
+    (!Number.isFinite(body.input.employmentFraction) || body.input.employmentFraction <= 0 || body.input.employmentFraction > 1)) return "employmentFraction must be greater than 0 and at most 1";
   return null;
 }
 
@@ -48,7 +54,7 @@ export async function POST(request: Request) {
     case "pregnancy":
       return Response.json(calcPregnancy(body.input, params));
     case "basis":
-      return Response.json(computeBasis(body.input.monthlyGross, params, body.input.contract));
+      return Response.json(computeBasis(body.input.monthlyGross, params, body.input.contract, body.input.employmentFraction));
     default:
       return Response.json({ error: "type must be leave, pregnancy or basis" }, { status: 400 });
   }

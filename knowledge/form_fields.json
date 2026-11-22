@@ -1,6 +1,27 @@
 {
   "$schema": "./schema/form_fields.schema.json",
   "records": [
+    {"id": "ff.zas12", "title_pl": "Zaświadczenie płatnika składek ZAS-12", "applies_to_form_ids": ["form.zas12"], "fields": [
+      {"key": "payer_nip", "label_pl": "NIP płatnika", "type": "nip", "section": "Dane płatnika", "required": "conditional"},
+      {"key": "payer_regon", "label_pl": "REGON płatnika", "type": "regon", "section": "Dane płatnika", "required": "conditional"},
+      {"key": "payer_pesel", "label_pl": "PESEL płatnika", "type": "pesel", "section": "Dane płatnika", "required": "conditional"},
+      {"key": "payer_id_document", "label_pl": "Dokument tożsamości płatnika", "type": "id_document", "section": "Dane płatnika", "required": "conditional"},
+      {"key": "payer_name", "label_pl": "Nazwa płatnika", "type": "text", "section": "Dane płatnika", "required": "always"},
+      {"key": "payer_address", "label_pl": "Adres płatnika", "type": "address", "section": "Dane płatnika", "required": "always"},
+      {"key": "insured_pesel", "label_pl": "PESEL ubezpieczonego", "type": "pesel", "section": "Dane ubezpieczonego", "required": "conditional"},
+      {"key": "insured_birth_date", "label_pl": "Data urodzenia", "type": "date", "section": "Dane ubezpieczonego", "required": "conditional", "required_if": {"fact": "no_pesel", "eq": true}},
+      {"key": "insured_id_document", "label_pl": "Dokument tożsamości ubezpieczonego", "type": "id_document", "section": "Dane ubezpieczonego", "required": "conditional", "required_if": {"fact": "no_pesel", "eq": true}},
+      {"key": "insured_first_name", "label_pl": "Imię", "type": "text", "section": "Dane ubezpieczonego", "required": "always"},
+      {"key": "insured_last_name", "label_pl": "Nazwisko", "type": "text", "section": "Dane ubezpieczonego", "required": "always"},
+      {"key": "insured_address", "label_pl": "Adres ubezpieczonego", "type": "address", "section": "Dane ubezpieczonego", "required": "always"},
+      {"key": "bank_account", "label_pl": "Rachunek do wypłaty", "type": "bank_account", "section": "Dane ubezpieczonego", "required": "optional"},
+      {"key": "period", "label_pl": "Dalszy okres zasiłku chorobowego", "type": "date_range", "section": "Zwolnienie i ubezpieczenie", "required": "always"},
+      {"key": "certificate_number", "label_pl": "Seria i numer e-ZLA", "type": "text", "section": "Zwolnienie i ubezpieczenie", "required": "optional"},
+      {"key": "employment_continues", "label_pl": "Tytuł ubezpieczenia nadal trwa", "type": "boolean", "section": "Zwolnienie i ubezpieczenie", "required": "always"},
+      {"key": "employment_end", "label_pl": "Data ustania tytułu ubezpieczenia", "type": "date", "section": "Zwolnienie i ubezpieczenie", "required": "conditional", "required_if": {"fact": "employment_continues", "eq": false}},
+      {"key": "sickness_insurance_end", "label_pl": "Data ustania ubezpieczenia chorobowego", "type": "date", "section": "Zwolnienie i ubezpieczenie", "required": "optional"},
+      {"key": "signature", "label_pl": "Podpis upoważnionej osoby po stronie płatnika", "type": "signature", "section": "Podpis", "required": "always"}
+    ]},
     {"id": "ff.zam", "title_pl": "Pola formularza ZAM (wzór od 24.10.2026)", "applies_to_form_ids": ["form.zam"], "annex_ref": "R1316 zał. 6", "fields": [
       {"key": "insured_pesel", "label_pl": "PESEL", "type": "pesel", "section": "Twoje dane", "required": "conditional", "help_pl": "Jeśli brak PESEL – data urodzenia i rodzaj/seria/numer dokumentu tożsamości."},
       {"key": "insured_birth_date", "label_pl": "Data urodzenia", "type": "date", "section": "Twoje dane", "required": "conditional", "required_if": {"fact": "no_pesel", "eq": true}},

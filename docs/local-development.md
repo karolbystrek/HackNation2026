@@ -65,6 +65,29 @@ GEMINI_MODEL=gemini-3.8-flash
 
 Without a key, cached cases still work and new files return a clear error.
 
+`make test` includes fictional PDF uploads with simulated Gemini responses.
+The tests cover the second read, original page references, validation, cache
+and an independently calculated result.
+
+For a live check in `/wnioski`, upload one authorized local PDF. Compare the
+insurance dates, benefit period and amount with the source document before
+editing any field. A fresh upload can call Gemini twice when essential data
+is missing. Re-uploading an identical PDF with a current extraction uses the
+cache. Record missing data separately from a disagreement with the decision.
+A second live check can cover a refusal with documented absence of insurance.
+
+For calculator and form acceptance, check these flows in the browser at
+desktop and phone widths:
+
+| Flow | Expected result |
+| --- | --- |
+| Pregnancy with a small payer, then self-employment | The result distinguishes who pays each part. A simulation of rehabilitation stays separate, and qualifying arrears suspend payment. |
+| One child, twins and “Za życiem” | The pool changes with the inputs. Compare sequential and concurrent care, the reserved weeks, and part-time work. |
+| Adoption and non-professional foster care | The result uses the age limit for the selected type of care. Check both sides of the limit and the court date for paternity leave. |
+| Early or supplementary maternity leave | The next period and the related application use the new dates. Check the attachment list and where to file. |
+| Individual benefit basis | Enter monthly amounts and a part-time fraction, then verify the floor and the result after entering an already calculated basis. |
+| Application and confirmation | Complete ZAM, a leave request for the employer, ZAS-12 for a continuation, and a request for another birth certificate copy. Verify the recipient, document preview and simulated submission. |
+
 The case picker uses a fictional PDF bundled in `app/public/case-samples/`.
 Restricted ZUS challenge files stay in ignored `materials/`. To analyze them
 through the local app and compare the results with the ZUS decisions, run:

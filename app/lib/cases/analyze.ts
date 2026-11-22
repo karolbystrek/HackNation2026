@@ -80,7 +80,7 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   const notes: string[] = [];
   // Rows the user is still typing in are skipped until both dates are valid.
   const complete = (x: CasePeriod) => !!parseIso(x.from) && !!parseIso(x.to) && x.from <= x.to;
-  const requested = (c.requested.length ? c.requested : c.decision.periods).filter(complete);
+  const requested = c.requested.filter(complete);
   c = { ...c, sickInsurance: c.sickInsurance.filter((s) => parseIso(s.from)) };
   const start = c.benefit === "sickness_pregnancy"
     ? requested.find((r) => r.kind === "sickness")?.from ?? c.event.date
@@ -114,7 +114,7 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   } else {
     const insuredDays = insuredDaysUntil(c.sickInsurance, day, 30);
     const covered = coveredPeriods.length > 0;
-    if (!covered && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
+    if (!covered && c.uninsuredOnStart !== true && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
       eligible = null;
       eligibility = "Sprawdź dokument i uzupełnij okresy ubezpieczenia chorobowego, aby ocenić prawo do zasiłku.";
     } else if (!covered && c.benefit === "sickness_pregnancy") {
@@ -138,19 +138,18 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   // Benefit basis: the 12 calendar months before the month the right arises.
   let basis: CaseAnalysis["basis"] = null;
   const eventMonth = start?.slice(0, 7);
-  const months = c.basisMonths.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m.month) && m.amount > 0 && (!eventMonth || m.month < eventMonth)).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
+  const validMonths = c.basisMonths.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m.month) && Number.isFinite(m.amount) && m.amount > 0 && (!eventMonth || m.month < eventMonth));
+  const months = [...new Map(validMonths.map((m) => [m.month, m])).values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
   if (individualBasis !== undefined && Number.isFinite(individualBasis) && individualBasis > 0) {
     basis = { months: 0, value: individualBasis, floored: false, capped: false };
   } else if (months.length) {
     const capped = c.contract === "jdg" && months.some((m) => m.amount > p.maxVoluntaryBasis);
-    const amounts = months.map((m) => (c.contract === "jdg" ? Math.min(m.amount, p.maxVoluntaryBasis) : m.amount));
-    const r = computeBasis(amounts, p, c.contract === "uop" ? "uop" : c.contract === "jdg" ? "jdg" : "zlec");
+    const r = computeBasis(months.map((m) => m.amount), p, c.contract === "unknown" ? "zlec" : c.contract);
     basis = { months: r.months, value: r.basis, floored: r.floored, capped };
     if (r.months < 12) notes.push(`Podstawa z ${r.months} pełnych miesięcy ubezpieczenia (krócej niż 12).`);
-  } else if (c.decision.basis) {
-    basis = { months: 0, value: c.decision.basis, floored: false, capped: false };
-    notes.push("W teczce nie ma miesięcznych podstaw, więc liczymy od podstawy podanej przez ZUS.");
   }
+  if (eligible && !basis) notes.push("Uzupełnij podstawę wymiaru, aby obliczyć kwotę.");
+  if (eligible && !requested.length) notes.push("Uzupełnij okresy z wniosku, aby obliczyć łączną kwotę.");
 
   // Periods and amounts.
   const periods: AnalyzedPeriod[] = (eligible === null ? [] : requested).map((r) => {

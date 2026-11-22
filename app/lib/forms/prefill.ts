@@ -141,7 +141,8 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     "ff.zas55": { maternity_equivalent_from: me.sickLeaveFrom ?? persona.dueDate, other_employment: "nie_zapewniono" },
     "ff.z10": { claim: "zasilek_chorobowy", earning_activity: "Nie prowadzę działalności ani gospodarstwa rolnego." },
     "ff.znp7": { cause: "ogolny_stan_zdrowia", pension_and_benefits: "Nie pobieram emerytury, renty ani zasiłku dla bezrobotnych." },
-    "lr.maternity_pre_birth": { start_date: shift(persona.dueDate, -14) },
+    "lr.maternity_pre_birth": { start_date: chosen?.input.preBirthStartDate ?? "" },
+    "ff.zas12": { employment_continues: true },
     "lr.maternity_resign_14w": { return_date: shift(birth, params.motherOnlyWeeks * 7) },
     "lr.maternity_resign_incapacity": { return_date: shift(birth, 56) },
     "lr.maternity_takeover": { children: [child], mother_pre_birth_use: noPreBirth, period: { from: shift(birth, params.motherOnlyWeeks * 7), to: maternity.to } },
@@ -173,6 +174,14 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     if (spec.id === "ff.zas33") known.event = circumstance === "motherDeath" ? "smierc_matki" : "porzucenie";
     if (spec.id === "ff.zas26") known.intake_date = date;
     if (spec.id === "ff.zas55") known.maternity_equivalent_from = date;
+    if (spec.id === "ff.zas12") {
+      known.employment_continues = true;
+      known.period = { from: "", to: "" };
+    }
+  }
+  if (spec.id === "lr.maternity_pre_birth") {
+    known.start_date = [...ctx.events].reverse().find((event) => event.circumstance === "preBirthLeave")?.date ??
+      chosen?.input.preBirthStartDate ?? "";
   }
 
   return Object.fromEntries(spec.fields.map((field) => [field.key, known[field.key] ?? empty(field)]));

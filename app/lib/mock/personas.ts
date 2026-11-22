@@ -29,6 +29,7 @@ export type ParentProfile = {
   insuredFrom: string;
   insurance: string;
   contributions: string;
+  contributionDebt?: { date: string; amount: number };
   sickLeaveFrom: string | null;
   /** Gross pay for the 12 months before the benefit, oldest first. */
   monthlyGross: number[];
@@ -185,6 +186,8 @@ personas.push(
         payerSize: "na",
         insurance: "Od 01.03.2024 – dobrowolne",
         sickLeaveFrom: "2026-11-02",
+        contributions: "Zaległość składkowa w symulacji",
+        contributionDebt: { date: "2026-11-02", amount: 375 },
         monthlyGross: Array(12).fill(6500),
       },
       father: { ...employed.father, name: "Piotr", nameGenitive: "Piotra", lastName: "Wiśniewski", pesel: "93021432156", address: "ul. Długa 7/2, 31-147 Kraków" },
