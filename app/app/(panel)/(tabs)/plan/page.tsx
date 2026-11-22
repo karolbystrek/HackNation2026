@@ -11,10 +11,6 @@ export default function Timeline() {
   const { caseLabel, persona, plan, fromGuide, viewer, solo, chosen, names, entries, today } = useFamily();
   const attention = attentionEntries(entries, today);
   const childEvent = persona.events.find((event) => event.type === "birth" || event.type === "adoption");
-  const demoOtherCase = persona.demoOtherCase;
-  const demoStatus = demoOtherCase && childEvent?.id === demoOtherCase.event.id
-    ? demoOtherCase.status
-    : !fromGuide && childEvent?.source !== "new" ? persona.demoStatus : undefined;
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
@@ -42,12 +38,6 @@ export default function Timeline() {
             {plan.savedCases.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
           </select>
         </label>
-      )}
-      {demoStatus && (
-        <section className="mb-6 border-l-4 border-brand bg-secondary px-4 py-3" aria-labelledby="demo-case-status">
-          <h2 id="demo-case-status" className="font-bold">Stan początkowy sprawy demo</h2>
-          <p className="mt-1">{demoStatus}</p>
-        </section>
       )}
       <FamilyTimeline profileEvents={fromGuide ? [] : persona.events.filter((event) => event.who === "both" || event.who === viewer)} entries={entries} names={names} today={today} actions={<>
         <ButtonLink href="/zadania" variant={attention.length > 0 ? "primary" : "outline"}>Lista zadań</ButtonLink>

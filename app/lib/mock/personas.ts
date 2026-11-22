@@ -42,8 +42,7 @@ export type Persona = {
   id: string;
   label: string;
   demoDescription?: string;
-  demoStatus?: string;
-  demoOtherCase?: { label: string; status: string; event: TimelineEvent };
+  demoOtherCase?: { label: string; event: TimelineEvent };
   /** Day the demo data was fetched. */
   fetchedAt: string;
   dueDate: string;
@@ -79,8 +78,7 @@ export const personas: Persona[] = [
   {
     id: "anna-tomasz",
     label: "Anna i Tomasz",
-    demoDescription: "Ciąża i zwolnienie lekarskie. Sprawdź zasiłek chorobowy i zaplanuj urlopy przed porodem.",
-    demoStatus: "Anna jest w ciąży i od 4 listopada korzysta ze zwolnienia lekarskiego. Oboje rodzice pracują na umowę o pracę. Podział urlopu po porodzie jest jeszcze do ustalenia.",
+    demoDescription: "Anna jest w ciąży i korzysta ze zwolnienia lekarskiego. Oboje pracują na umowę o pracę, a podział urlopu po porodzie jest do ustalenia.",
     fetchedAt: "2026-11-21",
     dueDate: "2027-03-15",
     paternityStart: "2027-04-01",
@@ -169,8 +167,7 @@ personas.push(
   {
     id: "maja-piotr",
     label: "Maja i Piotr",
-    demoDescription: "Bliźnięta i własna działalność. Porównaj dłuższy urlop oraz formalności osoby samozatrudnionej.",
-    demoStatus: "Zofia i Jan urodzili się 17 listopada. Karta urodzenia jest już w planie, a zgłoszenie w USC pozostaje do wykonania. Maja prowadzi działalność i złożyła już wniosek o zasiłek chorobowy za okres przed porodem.",
+    demoDescription: "Bliźnięta Zofia i Jan urodzili się 17 listopada i czekają na zgłoszenie w USC. Maja prowadzi działalność i złożyła wniosek o zasiłek chorobowy.",
     fetchedAt: "2026-11-21",
     dueDate: "2026-11-20",
     birthDate: "2026-11-17",
@@ -233,10 +230,8 @@ personas.push(
   {
     id: "ola-marek",
     label: "Ola i Marek",
-    demoDescription: "Dwie osobne sprawy. Na osi czasu przełącz się między porodem Leona a adopcją Hanny.",
-    demoStatus: "Leon jest już zarejestrowany w USC. Wnioski o zasiłek macierzyński, urlop ojcowski i urlop rodzicielski Oli są oznaczone jako złożone. Rodzice wybrali wspólny podział urlopu.",
+    demoDescription: "Dwie sprawy do przełączania na osi czasu. Leon jest zarejestrowany w USC, a rodzice wybrali podział urlopu. Adopcja Hanny jest prawomocna, a wnioski związane z przyjęciem dziecka są do przygotowania.",
     demoOtherCase: {
-      status: "Ola przyjęła trzyletnią Hannę na wychowanie 15 września. Postanowienie o przysposobieniu uprawomocniło się 13 października. Wnioski w tej sprawie są jeszcze do przygotowania.",
       label: "Adopcja Hanny (15.09.2026)",
       event: {
         id: "hanna-adoption",
