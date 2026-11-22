@@ -8,6 +8,7 @@ import { formatPln, parseAmount } from "@/lib/format";
 import { startChildCase, updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 import { DateField } from "@/components/ui/date-field";
+import { todayInWarsaw } from "@/lib/dates";
 
 export default function AddEventPage() {
   return <Suspense><AddEvent /></Suspense>;
@@ -43,6 +44,11 @@ function AddEvent() {
     if (unavailable || (type === "circumstance" && !circumstance)) return;
     if (!date) {
       setError("Wybierz datę wydarzenia.");
+      return;
+    }
+    // A recorded birth or placement replaces the expected one and confirms it; a future date would leave every follow-up task waiting on this event.
+    if (childEvent && date > todayInWarsaw()) {
+      setError(type === "birth" ? "Datę porodu wpisz po porodzie. Przewidywaną datę porodu podajesz w ankiecie." : "Datę przyjęcia dziecka wpisz, gdy dziecko jest już w rodzinie.");
       return;
     }
     if (childEvent && persona.birthDate && !details.caseMode) {
@@ -178,7 +184,7 @@ function AddEvent() {
       <div className="flex flex-wrap gap-4">
         <DateField label={type === "sickLeave" || afterInsurance ? "Początek zwolnienia" :
           type === "birth" ? "Data porodu" : type === "adoption" ? "Data przyjęcia na wychowanie" :
-          circumstance === "laterSickLeave" && type === "circumstance" ? "Data otrzymania kolejnego e-ZLA" : motherHospital ? "Data przyjęcia matki do szpitala" : "Kiedy?"} value={date} onChange={(value) => { setDraft({ ...draft, date: value }); setError(""); }} className="flex-[1_1_220px]" />
+          circumstance === "laterSickLeave" && type === "circumstance" ? "Data otrzymania kolejnego e-ZLA" : motherHospital ? "Data przyjęcia matki do szpitala" : "Kiedy?"} max={childEvent ? todayInWarsaw() : undefined} value={date} onChange={(value) => { setDraft({ ...draft, date: value }); setError(""); }} className="flex-[1_1_220px]" />
         {type === "salary" && (
           <Field label="Nowe wynagrodzenie brutto" inputMode="numeric" placeholder="np. 7000" value={amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} className="flex-[1_1_220px]" />
         )}
