@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ApplicationAction } from "@/components/application-action";
+import { ApplicationAction, ApplicationReceipt } from "@/components/application-action";
 import { DocumentList } from "@/components/document-list";
 import type { Task } from "@/lib/calc/tasks";
 import type { EventWho } from "@/lib/events";
@@ -15,6 +15,8 @@ export function TaskCard({ task, names, viewer }: { task: Task; names: Record<Ev
   const inputId = `task-${task.id}`;
   const statusId = `${inputId}-status`;
   const waiting = task.waitingFor;
+
+  if (submission) return <ApplicationReceipt id={task.id} submission={submission} origin="plan" />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,10 +61,10 @@ export function TaskCard({ task, names, viewer }: { task: Task; names: Record<Ev
         </div>
       )}
       {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start text-sm">Oficjalna instrukcja</a>}
-      <div id={waiting.length === 0 && (task.locked || submission) ? statusId : undefined} className="flex flex-col items-start gap-3">
-        {task.done && task.locked && !submission && <p className="text-sm text-muted-foreground">Wykonanie zapisano w danych sprawy.</p>}
-        <ApplicationAction origin="plan" task={task} submission={submission} />
-        {!submission && !(task.done && task.locked) && (
+      <div id={waiting.length === 0 && task.locked ? statusId : undefined} className="flex flex-col items-start gap-3">
+        {task.done && task.locked && <p className="text-sm text-muted-foreground">Wykonanie zapisano w danych sprawy.</p>}
+        <ApplicationAction origin="plan" task={task} />
+        {!(task.done && task.locked) && (
           <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold">
             <input
               id={inputId}

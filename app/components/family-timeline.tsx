@@ -2,10 +2,9 @@
 
 import { DocumentList } from "@/components/document-list";
 
-import Link from "next/link";
 import { Check } from "lucide-react";
 import { useLayoutEffect, type ReactNode } from "react";
-import { ApplicationAction } from "@/components/application-action";
+import { ApplicationAction, ApplicationReceipt } from "@/components/application-action";
 import { Button, ButtonLink, Chip } from "@/components/ui";
 import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { TaskCard } from "@/components/task-card";
@@ -15,7 +14,7 @@ import type { EventType, EventWho, TimelineEvent } from "@/lib/events";
 import { canConfirmDocument, timelineDate, type FamilyTimelineEntry } from "@/lib/family-timeline";
 import { updatePlan, usePlan } from "@/lib/plan-store";
 import { openRelated, revealEntry, scrollBehavior } from "@/lib/timeline-reveal";
-import { attentionEntries, deadlineNotice } from "@/lib/timeline-view";
+import { applicationEventIds, attentionEntries, deadlineNotice } from "@/lib/timeline-view";
 
 const statuses = {
   confirmed: "Potwierdzone", planned: "Zaplanowane", blocked: "Czeka na wcześniejszy krok",
@@ -59,6 +58,7 @@ function Marker({ entry, done }: { entry: FamilyTimelineEntry; done: boolean }) 
   return <span aria-hidden="true" className={`${base} -left-[6px] size-2.5 rounded-full ${entry.kind === "event" ? "border-foreground bg-foreground" : "border-input bg-background"}`} />;
 }
 
+const submissionDay = new Intl.DateTimeFormat("sv-SE", { dateStyle: "short", timeZone: "Europe/Warsaw" });
 const dayFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeZone: "UTC" });
 
 function PersonLabel({ name }: { name: string }) {
@@ -99,7 +99,23 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
   const attention = attentionEntries(entries, today).filter((entry) => entry.id !== next?.id);
   const active = entries.filter((entry) => entry.status === "active" ||
     (entry.kind === "event" && entry.status === "confirmed" && entry.end && today <= entry.end));
-  const points = entries.flatMap((entry) => [
+  const entriesById = new Map(entries.map((entry) => [entry.id, entry]));
+  const formsByEvent = new Map<string, FamilyTimelineEntry[]>();
+  for (const entry of entries) {
+    if (!entry.form || !submissions[entry.id]) continue;
+    for (const id of applicationEventIds(entry, entriesById)) {
+      const forms = formsByEvent.get(id) ?? [];
+      forms.push(entry);
+      formsByEvent.set(id, forms);
+    }
+  }
+  const timelineEntries = entries.map((entry) => {
+    const submission = submissions[entry.id];
+    return submission ? {
+      ...entry, completedOn: submissionDay.format(new Date(submission.sentAt)), dateNote: undefined, estimated: false,
+    } : entry;
+  });
+  const points = timelineEntries.flatMap((entry) => [
     { entry, date: timelineDate(entry), end: false },
     ...(entry.end ? [{ entry, date: entry.end, end: true }] : []),
   ]).sort((a, b) => a.date.localeCompare(b.date));
@@ -158,6 +174,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
     const certificateConfirmed = confirmDocument && plan.doneTasks.includes(entry.id);
     const showStatus = entry.kind === "application" && entry.status !== "blocked";
     const submission = submissions[entry.id];
+    const relatedForms = formsByEvent.get(entry.id) ?? [];
     const task = tasksById.get(entry.id);
 
     const done = !!submission || entry.status === "completed";
@@ -175,19 +192,31 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
             </span>
             <span className="min-w-0">
               <DeadlineNotice notice={notice} />
-              <span className="block text-sm text-muted-foreground">{kinds[entry.kind]}</span>
+              <span className="block text-sm text-muted-foreground">{entry.form ? "Formularz" : kinds[entry.kind]}</span>
               <span className="flex items-baseline gap-2">
                 <span className={`min-w-0 leading-snug ${!task ? "font-semibold" : done ? "font-semibold text-muted-foreground" : "font-bold"}`}>{entry.title}</span>
                 {person(entry.who)}
               </span>
               {task && <Chip className={`mt-1 border ${submission || entry.status === "completed" ? "border-primary bg-background text-primary" : entry.status === "late" ? "border-destructive bg-background text-destructive" : "bg-background"}`}>
-                {submission ? "Wysłano (symulacja)" : statuses[entry.status]}
+                {submission ? "Zapisano w symulacji" : statuses[entry.status]}
               </Chip>}
             </span>
           </span>
         }>
           <div className="max-w-[70ch] space-y-3 px-3 pb-4 sm:px-4">
             {task ? <TaskCard task={task} names={names} viewer={viewer} /> : <p>{entry.description}</p>}
+            {relatedForms.length > 0 && (
+              <section className="space-y-2">
+                <h3 className="text-lg font-bold">Wypełnione formularze</h3>
+                <ul className="divide-y border-y">
+                  {relatedForms.map((form) => (
+                    <li key={form.id} className="py-3">
+                      <ApplicationReceipt id={form.id} submission={submissions[form.id]} origin="plan" title={form.title} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             {birthCertificate && entry.status === "blocked" && (
               <p>Najpierw oznacz jako wykonane{" "}
                 <a href="#timeline-birth-registration" onClick={openRelated} className="text-link">zgłoszenie urodzenia</a>.</p>
@@ -269,7 +298,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
                 {!task && entry.form && (submission || entry.status !== "completed") && (
                   <div><dt>Wniosek</dt><dd>
                     {submission
-                      ? <>Symulacja z {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>. <Link href={`/wnioski/${entry.id}`} className="text-link">Zobacz wynik symulacji</Link></>
+                      ? <ApplicationReceipt id={entry.id} submission={submission} origin="plan" />
                       : <ButtonLink href={`/wnioski/${entry.id}`}>Wypełnij wniosek</ButtonLink>}
                   </dd></div>
                 )}

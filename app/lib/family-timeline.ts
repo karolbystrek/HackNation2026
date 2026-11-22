@@ -35,6 +35,7 @@ type Entry = {
   documents?: RequiredDocument[];
   /** Event that caused this form to appear. */
   trigger?: TimelineEvent;
+  relatedEventId?: string;
 };
 
 export type FamilyTimelineEntry = Entry & { status: Status };
@@ -150,7 +151,7 @@ export function buildFamilyTimeline(
       description: "Odpis skrócony dołączasz do wniosków urlopowych u pracodawcy. Wniosek złożysz przez gov.pl.",
       date: extraCopy?.date ?? birthCertificateDate ?? birthRegistrationDate ?? cardDate, recipient: "Urząd stanu cywilnego",
       guide: "https://www.gov.pl/web/gov/uzyskaj-odpis-aktu-stanu-cywilnego-urodzenia-malzenstwa-zgonu", requires: ["birth-certificate"],
-      estimated: !birthCertificateDate, form: "civil.birth_certificate",
+      estimated: !birthCertificateDate, form: "civil.birth_certificate", relatedEventId: extraCopy?.id,
     } satisfies Entry] : []),
   );
 
@@ -202,6 +203,9 @@ export function buildFamilyTimeline(
           .map((id) => journey.deadlines[id])
           .find((deadline) => deadline?.kind === "hard" && plan.anchors[deadline.anchor] && (task !== "supplementary_leave" || employee))?.consequence,
         form: form?.id, documents,
+        relatedEventId: task === "supplementary_leave" ? supplementaryEvent?.id
+          : task === "pre_birth_leave" ? events.findLast((event) => event.circumstance === "preBirthLeave")?.id
+          : undefined,
         requires: plan.requires ?? [!stillbirth && documents.some((doc) => doc.id === "doc.birth_certificate_short") ? "birth-certificate" : birthId],
         estimated: plan.estimated ?? provisional, review: plan.review, extra: plan.optional,
       };
@@ -254,7 +258,8 @@ export function buildFamilyTimeline(
         const supplementary = periodOf(parent, "supplementary");
         const start = supplementary?.from ?? periodOf(variant?.input.main ?? "mother", "maternity")?.to ?? maternity?.to ?? shiftIso(birth, maternityWeeks * 7);
         return {
-          id: "supplementary-leave", title: "Wniosek o uzupełniający urlop macierzyński", date: birth, start,
+          id: "supplementary-leave", date: birth, start,
+          title: employee ? "Wniosek o uzupełniający urlop macierzyński" : "Wniosek o zasiłek za okres uzupełniającego macierzyńskiego",
           anchors: { maternity_leave_end: shiftIso(start, -1) },
           period: {
             id: "supplementary-period", title: "Uzupełniający urlop macierzyński",
