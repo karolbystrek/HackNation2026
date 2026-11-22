@@ -57,8 +57,16 @@
     @apply border-border;
   }
 
+  /* Safari reveals the document background during elastic overscroll. */
+  @media screen {
+    html,
+    body {
+      background-color: var(--primary);
+    }
+  }
+
   body {
-    @apply bg-background font-sans text-foreground leading-relaxed;
+    @apply font-sans text-foreground leading-relaxed;
   }
 
   :focus-visible {
