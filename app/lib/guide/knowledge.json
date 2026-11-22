@@ -1536,7 +1536,7 @@
     },
     "term.jdg": {
       "term_pl": "pozarolnicza działalność",
-      "definition_pl": "Przedsiębiorca z CEIDG, wspólnik spółki osobowej/jednoosobowej z o.o., twórca, wolny zawód itp. Chorobowe dobrowolne; zasiłki zawsze wypłaca ZUS; od 24.10.2026 bez zaświadczenia płatnika Z-3b."
+      "definition_pl": "Firma wpisana do CEIDG, wspólnik spółki, twórca albo wolny zawód. Ubezpieczenie chorobowe jest dobrowolne – musisz o nie wystąpić, nie działa wstecz, a do zasiłku chorobowego potrzebujesz 90 dni ubezpieczenia. Zasiłki wypłaca zawsze ZUS."
     },
     "term.martwe_urodzenie": {
       "term_pl": "martwe urodzenie",
@@ -1545,6 +1545,10 @@
     "term.nieprzerwane_ubezpieczenie": {
       "term_pl": "nieprzerwane ubezpieczenie chorobowe",
       "definition_pl": "Możesz doliczyć wcześniejsze ubezpieczenie chorobowe, na przykład z poprzedniej pracy, jeśli przerwa nie przekroczyła 30 dni albo wynikała z urlopu wychowawczego, urlopu bezpłatnego lub czynnej służby wojskowej żołnierza niezawodowego. Podaj wtedy datę początku najwcześniejszego z tych okresów."
+    },
+    "term.okres_wyczekiwania": {
+      "term_pl": "okres wyczekiwania",
+      "definition_pl": "Czas nieprzerwanego ubezpieczenia chorobowego potrzebny do zasiłku chorobowego: 30 dni (obowiązkowe), 90 dni (dobrowolne). Nie dotyczy zasiłku macierzyńskiego."
     },
     "term.orzeczenie_niezdolnosc_egzystencji": {
       "term_pl": "niezdolność do samodzielnej egzystencji",

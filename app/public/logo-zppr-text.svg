@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 370 52" width="370" height="52" role="img" aria-labelledby="zppr-text-title">
+  <title id="zppr-text-title">ZPPR – Zasiłkowy Przewodnik Przyszłego Rodzica</title>
+  <g transform="translate(9 2) skewX(-9)" fill="#007c36" fill-rule="evenodd">
+    <!-- same ZPPR mark as logo-zppr-mark.svg -->
+    <path d="M4 0H29.5Q33.5 0 31.6 3.6L14.5 36.8C40 36.4 90 37 128 34.3C94 41 50 47.5 6 47Q1 47 2.8 43.4L20 10H4Q1 10 1 7V3Q1 0 4 0Z"/>
+    <path d="M36 2Q36 0 38 0H49C57 0 61 4.5 61 10.5C61 16.5 56.5 20.5 49 20.5H45V28Q45 30 43 30H38Q36 30 36 28ZM45 6.5V14.5H48.5C51.5 14.5 52.5 12.8 52.5 10.5C52.5 8.2 51.5 6.5 48.5 6.5Z"/>
+    <path d="M65 2Q65 0 67 0H78C86 0 90 4.5 90 10.5C90 16.5 85.5 20.5 78 20.5H74V28Q74 30 72 30H67Q65 30 65 28ZM74 6.5V14.5H77.5C80.5 14.5 81.5 12.8 81.5 10.5C81.5 8.2 80.5 6.5 77.5 6.5Z"/>
+    <path d="M94 2Q94 0 96 0H107C115 0 119 4.5 119 10.5C119 15 116.5 18.5 112.5 19.8C114.5 23 117 26 119.5 28.3Q121 30 118.5 30H112Q110.8 30 110.2 29L104.5 20.5H103V28Q103 30 101 30H96Q94 30 94 28ZM103 6.5V14.5H106.5C109.5 14.5 110.5 12.8 110.5 10.5C110.5 8.2 109.5 6.5 106.5 6.5Z"/>
+  </g>
+  <rect x="150" y="6" width="1.5" height="40" fill="#007c36" opacity=".35"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="700">
+    <text x="163" y="24" fill="#00652c" font-size="19" letter-spacing="-.2">Zasiłkowy Przewodnik</text>
+    <text x="164" y="42" fill="#007c36" font-size="10.5" letter-spacing="2.35">PRZYSZŁEGO RODZICA</text>
+  </g>
+</svg>

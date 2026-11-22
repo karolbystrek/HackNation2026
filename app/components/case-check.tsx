@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/dates";
 import { formatPln, parseAmount } from "@/lib/format";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import type { Params } from "@/lib/params";
+import { DateField, MonthField } from "@/components/ui/date-field";
 
 type Loaded = { extraction: CaseExtraction; cached: boolean; source: string; id: string; manual?: boolean };
 
@@ -154,8 +155,8 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
               </div>
               <CaseSelect label="Zdarzenie" options={EVENTS} value={c.event.kind} onChange={(kind) => setEvent({ kind })} />
               <div className="grid gap-4 @lg:grid-cols-3">
-                <Field label="Data zdarzenia" type="date" value={c.event.date ?? ""} hint={hint("event.date")} onChange={(e) => setEvent({ date: e.target.value || null })} />
-                <Field label="Data urodzenia dziecka" type="date" value={c.event.childBirthDate ?? ""} hint={hint("event.childBirthDate")} onChange={(e) => setEvent({ childBirthDate: e.target.value || null })} />
+                <DateField label="Data zdarzenia" value={c.event.date ?? ""} hint={hint("event.date")} onChange={(value) => setEvent({ date: value || null })} />
+                <DateField label="Data urodzenia dziecka" value={c.event.childBirthDate ?? ""} hint={hint("event.childBirthDate")} onChange={(value) => setEvent({ childBirthDate: value || null })} />
                 <Field label="Liczba dzieci" type="number" min={1} max={10} value={c.event.kids} onChange={(e) => setEvent({ kids: Math.max(1, Number(e.target.value) || 1) })} />
               </div>
               <Checkbox checked={c.fullLeaveDeclaration} onChange={() => set({ fullLeaveDeclaration: !c.fullLeaveDeclaration })} title="Wniosek o stawkę uśrednioną 81,5%" />
@@ -167,8 +168,8 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
               <Checkbox checked={!!c.debtOnDate} onChange={() => set({ debtOnDate: !c.debtOnDate })} title="Zadłużenie składkowe na dzień powstania prawa" />
 
               {(c.benefit === "equal_maternity" || c.benefit === "maternity") && <>
-                <Field label="Data ustania zatrudnienia" type="date" value={c.insuranceEnd.date ?? ""} onChange={(e) =>
-                  set({ insuranceEnd: { ...c.insuranceEnd, date: e.target.value || null } })} />
+                <DateField label="Data ustania zatrudnienia" value={c.insuranceEnd.date ?? ""} onChange={(value) =>
+                  set({ insuranceEnd: { ...c.insuranceEnd, date: value || null } })} />
                 <CaseSelect label="Przyczyna ustania zatrudnienia" value={c.insuranceEnd.reason}
                   options={[["none", "Brak danych"], ["employer_insolvency", "Upadłość, likwidacja lub śmierć pracodawcy"], ["unlawful_dismissal", "Bezprawne zwolnienie w ciąży potwierdzone prawomocnym wyrokiem"], ["other", "Inna przyczyna"]]}
                   onChange={(reason) => set({ insuranceEnd: { ...c.insuranceEnd, reason } })} />
@@ -178,8 +179,8 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                 {hint("sickInsurance")}
                 {c.sickInsurance.map((s, i) => (
                   <div key={i} className="grid items-end gap-3 @2xl:grid-cols-[1fr_1fr_auto_auto]">
-                    <Field label="Od" type="date" value={s.from} onChange={(e) => set({ sickInsurance: c.sickInsurance.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)) })} />
-                    <Field label="Do" type="date" value={s.to ?? ""} hint="Puste, jeśli trwa" onChange={(e) => set({ sickInsurance: c.sickInsurance.map((x, j) => (j === i ? { ...x, to: e.target.value || null } : x)) })} />
+                    <DateField label="Od" value={s.from} onChange={(value) => set({ sickInsurance: c.sickInsurance.map((x, j) => (j === i ? { ...x, from: value } : x)) })} />
+                    <DateField label="Do" value={s.to ?? ""} hint="Puste, jeśli trwa" onChange={(value) => set({ sickInsurance: c.sickInsurance.map((x, j) => (j === i ? { ...x, to: value || null } : x)) })} />
                     <Checkbox checked={s.voluntary} onChange={() => set({ sickInsurance: c.sickInsurance.map((x, j) => (j === i ? { ...x, voluntary: !x.voluntary } : x)) })} title="Dobrowolne" />
                     <Button variant="outline" onClick={() => set({ sickInsurance: c.sickInsurance.filter((_, j) => j !== i) })}>Usuń</Button>
                   </div>
@@ -207,8 +208,8 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                   {c.basisMonths.map((m, i) => (
                     // The amount input is uncontrolled (saved on blur), so rows remount from state whenever one is added or removed.
                     <div key={`${c.basisMonths.length}-${i}`} className="grid gap-2">
-                      <Field label="Miesiąc" type="month" value={m.month}
-                        onChange={(e) => set({ basisMonths: c.basisMonths.map((x, j) => j === i ? { ...x, month: e.target.value } : x) })} />
+                      <MonthField label="Miesiąc" value={m.month}
+                        onChange={(value) => set({ basisMonths: c.basisMonths.map((x, j) => j === i ? { ...x, month: value } : x) })} />
                       <Field label="Kwota podstawy lub wynagrodzenia" inputMode="decimal"
                         defaultValue={m.amount ? String(m.amount).replace(".", ",") : ""}
                         onBlur={(e) => set({ basisMonths: c.basisMonths.map((x, j) => j === i ? { ...x, amount: parseAmount(e.target.value) } : x) })} />
@@ -319,8 +320,8 @@ function PeriodsEditor({ periods, unsure, onChange }: { periods: CaseExtraction[
       {periods.map((p, i) => (
         <div key={i} className="grid items-end gap-3 @3xl:grid-cols-[1.4fr_1fr_1fr_auto]">
           <CaseSelect label="Rodzaj" options={kinds} value={p.kind} onChange={(kind) => onChange(periods.map((x, j) => (j === i ? { ...x, kind } : x)))} />
-          <Field label="Od" type="date" value={p.from} onChange={(e) => onChange(periods.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} />
-          <Field label="Do" type="date" value={p.to} onChange={(e) => onChange(periods.map((x, j) => (j === i ? { ...x, to: e.target.value } : x)))} />
+          <DateField label="Od" value={p.from} onChange={(value) => onChange(periods.map((x, j) => (j === i ? { ...x, from: value } : x)))} />
+          <DateField label="Do" value={p.to} onChange={(value) => onChange(periods.map((x, j) => (j === i ? { ...x, to: value } : x)))} />
           <Button variant="outline" onClick={() => onChange(periods.filter((_, j) => j !== i))}>Usuń</Button>
         </div>
       ))}

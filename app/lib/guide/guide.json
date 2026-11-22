@@ -174,11 +174,13 @@
       "options": [
         {
           "value": "employment",
-          "label": "Umowa o pracę"
+          "label": "Umowa o pracę",
+          "hint": "Masz obowiązkowe ubezpieczenie chorobowe – bez względu na wymiar etatu i to, czy studiujesz. Zlecenie albo dzieło u własnego pracodawcy liczy się jak praca na etacie. W ciąży i na urlopach związanych z rodzicielstwem pracodawca nie może Cię zwolnić, a umowa na czas określony, która skończyłaby się po 3. miesiącu ciąży, przedłuża się do dnia porodu."
         },
         {
           "value": "mandate",
-          "label": "Umowa zlecenia"
+          "label": "Umowa zlecenia",
+          "hint": "Ubezpieczenie chorobowe ze zlecenia jest dobrowolne – musisz o nie wystąpić i nie działa ono wstecz. Nie masz go, jeśli jesteś uczniem lub studentem do 26 lat. Jeśli masz też umowę o pracę z co najmniej minimalnym wynagrodzeniem, ze zlecenia nie możesz mieć chorobowego – zasiłek liczymy tylko z etatu."
         },
         {
           "value": "business",
@@ -186,7 +188,8 @@
         },
         {
           "value": "none",
-          "label": "Nie pracuję",
+          "label": "Nie pracuję albo mam tylko umowę o dzieło",
+          "hint": "Bez ubezpieczenia chorobowego nie dostaniesz zasiłku chorobowego ani macierzyńskiego. Dotyczy to także umowy o dzieło zawartej z kimś innym niż Twój pracodawca. Możesz wtedy dostać świadczenie rodzicielskie – 1000 zł miesięcznie z gminy, bez kryterium dochodowego.",
           "exclusive": true
         }
       ]
@@ -202,17 +205,92 @@
       }
     },
     {
-      "id": "insuredSince",
+      "id": "employmentPeriod",
       "priority": 50,
-      "type": "date",
-      "label": "Od kiedy masz [nieprzerwane](term.nieprzerwane_ubezpieczenie) ubezpieczenie chorobowe z umowy o pracę?",
-      "hint": "Przy umowie o pracę ubezpieczenie chorobowe jest obowiązkowe. Prawo do zasiłku chorobowego masz po 30 dniach ubezpieczenia.",
+      "type": "single",
+      "label": "Jak długo pracujesz na umowie o pracę u obecnego pracodawcy?",
+      "hint": "Od tego zależy, czy masz już prawo do zasiłku chorobowego i z ilu miesięcy liczymy podstawę zasiłku.",
       "showIf": {
         "has": [
           "insurance",
           "employment"
         ]
-      }
+      },
+      "options": [
+        {
+          "value": "lt30days",
+          "label": "Krócej niż 30 dni",
+          "hint": "Prawo do zasiłku chorobowego masz po 30 dniach ubezpieczenia. Podstawą jest pensja z umowy za pełny miesiąc."
+        },
+        {
+          "value": "lt12months",
+          "label": "Od 30 dni do 12 miesięcy",
+          "hint": "Podstawę liczymy ze średniej pensji z pełnych miesięcy kalendarzowych pracy."
+        },
+        {
+          "value": "gte12months",
+          "label": "12 miesięcy lub dłużej",
+          "hint": "Podstawę liczymy ze średniej pensji z 12 miesięcy przed zwolnieniem lub porodem."
+        }
+      ]
+    },
+    {
+      "id": "waitingWaiver",
+      "priority": 51,
+      "type": "multi",
+      "label": "Czy coś z tego dotyczy Ciebie?",
+      "hint": "Wtedy dostaniesz zasiłek chorobowy przed upływem 30 dni pracy ([okres wyczekiwania](term.okres_wyczekiwania)).",
+      "showIf": {
+        "all": [
+          {
+            "has": [
+              "insurance",
+              "employment"
+            ]
+          },
+          {
+            "eq": [
+              "role",
+              "mother"
+            ]
+          },
+          {
+            "eq": [
+              "situation",
+              "pregnant"
+            ]
+          },
+          {
+            "eq": [
+              "employmentPeriod",
+              "lt30days"
+            ]
+          }
+        ]
+      },
+      "options": [
+        {
+          "value": "priorCover",
+          "label": "Tuż przed tą pracą miałam [ubezpieczenie chorobowe](term.nieprzerwane_ubezpieczenie) z innej pracy lub zlecenia, a razem z obecną pracą trwa ono już co najmniej 30 dni",
+          "hint": "Wcześniejsze ubezpieczenie doliczamy, jeśli przerwa nie przekroczyła 30 dni albo był to urlop wychowawczy lub bezpłatny. Zasiłek przysługuje wtedy od pierwszego dnia zwolnienia."
+        },
+        {
+          "value": "tenYears",
+          "label": "Mam łącznie co najmniej 10 lat obowiązkowego ubezpieczenia chorobowego",
+          "hint": "Liczą się wszystkie wcześniejsze umowy o pracę i inne obowiązkowe ubezpieczenia chorobowe, także z przerwami. Okres wyczekiwania Cię nie dotyczy."
+        },
+        {
+          "value": "graduate",
+          "label": "Zaczęłam pracę w ciągu 90 dni od ukończenia szkoły, studiów lub szkoły doktorskiej",
+          "hint": "Dotyczy absolwentów, którzy zaczęli pracę najpóźniej 90 dni po ukończeniu nauki. Zasiłek przysługuje od pierwszego dnia ubezpieczenia."
+        },
+        {
+          "value": "none",
+          "label": "Nic z tego",
+          "exclusive": true,
+          "hint": "Za zwolnienie w pierwszych 30 dniach pracy zasiłek chorobowy nie przysługuje. Zasiłek macierzyński nie wymaga 30 dni ubezpieczenia – wystarczy, że w dniu porodu będziesz ubezpieczona."
+        }
+      ]
     },
     {
       "id": "insuredSince",

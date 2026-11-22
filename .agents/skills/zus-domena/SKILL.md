@@ -16,7 +16,7 @@ Poradnik ZUS ma stan prawny 1.04.2026; zmiany od 24.10.2026 (ZAM zamiast ZUR/ZAO
 Każdy ekran, komponent i token wyglądu buduj według skilla `zus-gov-ui` (kolory ZUS + układ stron gov.pl: pasy na całą szerokość, kafelki „Załatw sprawę”, ścieżka nawigacji, ramki „Ważne”, granatowa stopka).
 Ten styl **nadpisuje** sekcje „Visual direction” i „Starting theme” w `polish-public-ui`; z `polish-public-ui` bierz tylko wybór komponentów, formularze, stany i dostępność.
 Wzorzec: strona `/prezentacja` (`app/app/prezentacja/page.tsx`). Tokeny są w `app/app/globals.css`, akcja bursztynowa to `variant="action"` przycisku.
-Nie używaj logo ZUS, godła, znaku gov.pl ani napisu „Serwis Rzeczypospolitej Polskiej”; zawsze pokazuj, że to projekt demonstracyjny.
+Nie używaj godła, znaku gov.pl ani napisu „Serwis Rzeczypospolitej Polskiej”; zawsze pokazuj, że to projekt demonstracyjny.
 Wartości liczbowe na ekranach (tygodnie, %, dni) bierz z `app/lib/params.ts`, nie wpisuj ich na sztywno.
 
 ## Pojęcia

@@ -11,6 +11,7 @@ import type { TimelineEvent } from "@/lib/events";
 import { addDays, formatDate, parseIso, shiftIso, toIso } from "@/lib/dates";
 import { formatPln, formatRate, formatWeeks, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
+import { DateField } from "@/components/ui/date-field";
 
 type Bases = Record<ParentKey, string>;
 
@@ -90,11 +91,11 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
       title: adoption ? "Dane o przyjęciu dziecka" : "Dane o porodzie",
       content: (
         <>
-          <Field required label={adoption ? "Data przyjęcia dziecka" : "Data porodu"} type="date"
-            value={form.startDate} onChange={(e) => setForm((draft) => ({ ...draft, startDate: e.target.value, filedOnTime: false }))} />
+          <DateField required label={adoption ? "Data przyjęcia dziecka" : "Data porodu"}
+            value={form.startDate} onChange={(value) => setForm((draft) => ({ ...draft, startDate: value, filedOnTime: false }))} />
           {adoption && (
-            <Field required label="Data urodzenia dziecka" type="date" max={form.startDate || undefined}
-              hint="Najpóźniej w dniu przyjęcia" value={form.childBirthDate} onChange={(e) => set("childBirthDate", e.target.value)} />
+            <DateField required label="Data urodzenia dziecka" max={form.startDate || undefined}
+              hint="Najpóźniej w dniu przyjęcia" value={form.childBirthDate} onChange={(value) => set("childBirthDate", value)} />
           )}
           <RadioGroup label={adoption ? "Liczba dzieci przyjętych jednocześnie" : "Liczba dzieci przy jednym porodzie"}
             value={form.kids} onChange={(v) => set("kids", v)} options={kidsOptions} />

@@ -7,6 +7,7 @@ import { computeBasis } from "@/lib/calc/basis";
 import { PARENTS, type ParentKey } from "@/lib/calc/leave";
 import { formatPln, formatRate, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
+import { MonthField } from "@/components/ui/date-field";
 
 const MONTHS = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
 
@@ -83,7 +84,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
             onChange={setIncomeType}
             options={[["uop", "Wynagrodzenie (umowa)"], ["jdg", "Działalność – zadeklarowana podstawa"]]}
           />
-          <Field required label="Miesiąc startu zasiłku" type="month" value={startMonth} onChange={(e) => setStartMonth(e.target.value)} />
+          <MonthField required label="Miesiąc startu zasiłku" value={startMonth} onChange={(value) => setStartMonth(value)} />
         </>
       ),
     },

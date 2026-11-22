@@ -17,10 +17,10 @@ Tailwind 4), forms, interaction states, accessibility and verification.
 
 ## Brand boundary (non-negotiable)
 
-- Never use the ZUS logo, the gov.pl wordmark, the white eagle, the phrase
+- Never use the gov.pl wordmark, the white eagle, the phrase
   "Serwis Rzeczypospolitej Polskiej", or national red-white flag graphics.
 - Show the product name "Zasiłkowy Przewodnik Przyszłego Rodzica" with our own
-  plain square mark (see Header), never an imitation of an official logo.
+  plain square mark (see Header).
 - Every page keeps the demo statement (header strip or footer):
   "Projekt demonstracyjny HackNation 2026 – nie jest serwisem ZUS ani gov.pl."
 - Link to real zus.pl / gov.pl pages only as clearly labelled external sources.

@@ -13,6 +13,8 @@ export type PregnancyInput = {
   basis: number;
   /** Contract ended in pregnancy because the employer went bankrupt, was liquidated or died. */
   employerInsolvent: boolean;
+  /** No waiting period (art. 4 ust. 3 u.z.). */
+  waitingWaived?: boolean;
   /** Legacy input: the reduced sick-pay limit already applies. */
   over50?: boolean;
   yearTurned50?: number;
@@ -49,7 +51,7 @@ export function calcPregnancy(input: PregnancyInput, p: Params): PregnancyResult
   }
 
   const employerLimit = (year: number) => (input.yearTurned50 ? year > input.yearTurned50 : input.over50) ? p.employerPaidDaysOver50 : p.employerPaidDays;
-  const waiting = p.waitingDays[input.contract];
+  const waiting = input.waitingWaived ? 0 : p.waitingDays[input.contract];
   const eligibleFrom = addDays(insured, waiting);
   const payStart = input.employerInsolvent || sickLeave >= eligibleFrom ? sickLeave : eligibleFrom;
   if (!input.employerInsolvent && sickLeave < eligibleFrom)

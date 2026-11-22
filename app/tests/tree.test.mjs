@@ -37,7 +37,7 @@ test("every question reads only answers to questions with a lower priority", () 
 test("questions come in priority order and stop when all are answered", () => {
   assert.equal(nextQuestion({}).id, "situation");
   assert.equal(nextQuestion({ situation: "pregnant" }).id, "role");
-  const a = { situation: "planning", role: "mother", insurance: ["employment"], insuredSince: "2026-01-01", largeEmployer: "yes", otherParentInsured: true, combineWithWork: false, over50: false, monthlyIncome: 6000 };
+  const a = { situation: "planning", role: "mother", insurance: ["employment"], employmentPeriod: "gte12months", largeEmployer: "yes", otherParentInsured: true, combineWithWork: false, over50: false, monthlyIncome: 6000 };
   assert.equal(nextQuestion(a), undefined);
 });
 
@@ -121,4 +121,13 @@ test("every glossary term marked in question texts has a definition", () => {
   assert.ok(terms.includes("term.nieprzerwane_ubezpieczenie"));
   for (const id of terms) assert.ok(knowledge.glossary[id]?.definition_pl, id);
   assert.equal(plainText("Od kiedy masz [nieprzerwane](term.nieprzerwane_ubezpieczenie) ubezpieczenie?"), "Od kiedy masz nieprzerwane ubezpieczenie?");
+});
+
+test("waiting-period question appears only for a pregnant mother employed under 30 days", () => {
+  const shown = (a) => visibleQuestions(a).map((q) => q.id);
+  const base = { situation: "pregnant", role: "mother", insurance: ["employment"] };
+  assert.ok(!shown(base).some((id) => id === "insuredSince"));
+  assert.ok(!shown({ ...base, employmentPeriod: "gte12months" }).includes("waitingWaiver"));
+  assert.ok(!shown({ ...base, role: "father", employmentPeriod: "lt30days" }).includes("waitingWaiver"));
+  assert.ok(shown({ ...base, employmentPeriod: "lt30days" }).includes("waitingWaiver"));
 });

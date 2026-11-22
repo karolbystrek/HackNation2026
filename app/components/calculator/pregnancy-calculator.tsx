@@ -8,6 +8,7 @@ import { addDays, parseIso, toIso } from "@/lib/dates";
 import type { ParentKey } from "@/lib/calc/leave";
 import { formatPln, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
+import { DateField } from "@/components/ui/date-field";
 
 export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, startDate, draftKey }: {
   basis: string;
@@ -23,6 +24,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
   const [form, setForm] = usePlanDraft<Omit<PregnancyInput, "basis">>(draftKey, {
     contract: mother.contract,
     insuredFrom: mother.insuredFrom,
+    waitingWaived: mother.waitingWaived,
     sickLeaveFrom: startDate ?? mother.sickLeaveFrom ?? persona.fetchedAt,
     dueDate: startDate ? persona.birthDate ?? persona.dueDate : persona.dueDate,
     employerInsolvent: false,
@@ -43,7 +45,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
             onChange={(value) => set("contract", value)}
             options={[["uop", "Umowa o pracę"], ["zlec", "Umowa zlecenie"], ["jdg", "Działalność"]]}
           />
-          <Field required label="Ubezpieczenie chorobowe od" type="date" value={form.insuredFrom} onChange={(e) => set("insuredFrom", e.target.value)} />
+          <DateField required label="Ubezpieczenie chorobowe od" value={form.insuredFrom} onChange={(value) => set("insuredFrom", value)} />
           {form.contract === "uop" && <Field label="Rok ukończenia 50 lat (jeśli dotyczy)" type="number" min={1900} max={2100}
             value={form.yearTurned50 ?? ""} onChange={(e) => set("yearTurned50", e.target.value ? Number(e.target.value) : undefined)}
             hint="Krótszy okres wynagrodzenia chorobowego obowiązuje od następnego roku." />}
@@ -56,12 +58,12 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
       title: "Zwolnienie i termin porodu",
       content: (
         <>
-          <Field required label="Początek zwolnienia w ciąży" hint="Jeśli na zwolnieniu brakuje kodu B, ciążę możesz potwierdzić odrębnym zaświadczeniem." type="date" value={form.sickLeaveFrom} onChange={(e) => set("sickLeaveFrom", e.target.value)} />
-          {!form.employerInsolvent && <Field label="Zwolnienie ważne do (włącznie)" type="date" min={form.sickLeaveFrom}
+          <DateField required label="Początek zwolnienia w ciąży" hint="Jeśli na zwolnieniu brakuje kodu B, ciążę możesz potwierdzić odrębnym zaświadczeniem." value={form.sickLeaveFrom} onChange={(value) => set("sickLeaveFrom", value)} />
+          {!form.employerInsolvent && <DateField label="Zwolnienie ważne do (włącznie)" min={form.sickLeaveFrom}
             hint="Pozostaw puste, aby oszacować ciągłe zwolnienie do porodu."
-            value={form.sickLeaveThrough ?? ""} onChange={(e) => set("sickLeaveThrough", e.target.value)} />}
-          <Field required label="Termin porodu" type="date" min={sickLeave ? toIso(addDays(sickLeave, 1)) : undefined}
-            hint="Po dacie rozpoczęcia zwolnienia" value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+            value={form.sickLeaveThrough ?? ""} onChange={(value) => set("sickLeaveThrough", value)} />}
+          <DateField required label="Termin porodu" min={sickLeave ? toIso(addDays(sickLeave, 1)) : undefined}
+            hint="Po dacie rozpoczęcia zwolnienia" value={form.dueDate} onChange={(value) => set("dueDate", value)} />
         </>
       ),
     },

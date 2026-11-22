@@ -3,9 +3,10 @@
 // GOV.UK-style questionnaire: one question per page, then "check your answers", then the family plan.
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { TermText } from "@/components/term-text";
+import { HelpPopover, TermText } from "@/components/term-text";
 import { AlertCircle, ChevronLeft } from "lucide-react";
 import { BackLink, Button, Checkbox, Field, RadioOption } from "@/components/ui";
+import { DateField } from "@/components/ui/date-field";
 import { formatDate } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
 import { GUIDE_ID } from "@/lib/guide/persona";
@@ -150,18 +151,29 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
       <h1 ref={titleRef} tabIndex={-1} className={heading}>{plainText(q.label)}</h1>
       {q.type === "date" || q.type === "number" ? (
         <div className="flex w-full flex-col gap-2">
-          <Field
-            label={<span className="sr-only">{plainText(q.label)}</span>}
-            hint={q.hint && <TermText text={q.hint} />}
-            type={q.type}
-            min={q.min}
-            max={q.max}
-            inputMode={q.type === "number" ? "numeric" : undefined}
-            value={value === undefined ? "" : String(value)}
-            aria-invalid={!!error}
-            aria-describedby={error ? `${q.id}-error` : undefined}
-            onChange={(e) => setValue(e.target.value === "" ? undefined : q.type === "number" ? e.target.valueAsNumber : e.target.value)}
-          />
+          {q.type === "date" ? (
+            <DateField
+              label={<span className="sr-only">{plainText(q.label)}</span>}
+              hint={q.hint && <TermText text={q.hint} />}
+              value={typeof value === "string" ? value : ""}
+              aria-invalid={!!error}
+              aria-describedby={error ? `${q.id}-error` : undefined}
+              onChange={(v) => setValue(v === "" ? undefined : v)}
+            />
+          ) : (
+            <Field
+              label={<span className="sr-only">{plainText(q.label)}</span>}
+              hint={q.hint && <TermText text={q.hint} />}
+              type="number"
+              min={q.min}
+              max={q.max}
+              inputMode="numeric"
+              value={value === undefined ? "" : String(value)}
+              aria-invalid={!!error}
+              aria-describedby={error ? `${q.id}-error` : undefined}
+              onChange={(e) => setValue(e.target.value === "" ? undefined : e.target.valueAsNumber)}
+            />
+          )}
           {errorText}
         </div>
       ) : (
@@ -178,7 +190,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
                 const ticked = o.exclusive ? [o.value] : [...list.filter((v) => !exclusive.has(v)), o.value];
                 return (
                   <div key={o.value} className="rounded-sm border border-input px-3 py-1 hover:bg-secondary has-checked:border-primary has-checked:bg-primary-soft">
-                    <Checkbox title={plainText(o.label)} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />
+                    <Checkbox title={<span className="font-normal"><TermText text={o.label} />{o.hint && <OptionHint label={o.label} hint={o.hint} />}</span>} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />
                   </div>
                 );
               })
@@ -189,7 +201,8 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
                   checked={String(value) === o.value}
                   onChange={() => setValue(q.type === "boolean" ? o.value === "true" : o.value)}
                 >
-                  {plainText(o.label)}
+                  <TermText text={o.label} />
+                  {o.hint && <OptionHint label={o.label} hint={o.hint} />}
                 </RadioOption>
               ))}
           </div>
@@ -200,3 +213,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
   );
 }
 
+
+function OptionHint({ label, hint }: { label: string; hint: string }) {
+  return <> <HelpPopover title={plainText(label)}>{plainText(hint)}</HelpPopover></>;
+}

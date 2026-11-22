@@ -26,7 +26,10 @@ export type ParentProfile = {
   insuredType?: string;
   /** knowledge/enums.json events that concern only this parent, e.g. "job_loss_liquidation". */
   events?: string[];
+  /** Start of the current job's insurance: the base and the payer certificate use it. */
   insuredFrom: string;
+  /** Waiting period already met: linked earlier cover (art. 4 ust. 2 u.z.) or an exemption (art. 4 ust. 3 u.z.). */
+  waitingWaived?: boolean;
   insurance: string;
   contributions: string;
   sickLeaveFrom: string | null;

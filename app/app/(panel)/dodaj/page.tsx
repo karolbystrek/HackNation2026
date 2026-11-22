@@ -7,6 +7,7 @@ import { CIRCUMSTANCES, EVENT_TYPES, type Circumstance, type EventType, type Eve
 import { formatPln, parseAmount } from "@/lib/format";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
+import { DateField } from "@/components/ui/date-field";
 
 export default function AddEvent() {
   const { names } = useFamily();
@@ -74,7 +75,7 @@ export default function AddEvent() {
       )}
 
       <div className="flex flex-wrap gap-4">
-        <Field label={type === "sickLeave" ? "Początek zwolnienia" : "Kiedy?"} type="date" aria-invalid={!!error} aria-describedby={error ? "date-error" : undefined} value={date} onChange={(e) => { setDraft({ ...draft, date: e.target.value }); setError(""); }} className="flex-[1_1_220px]" />
+        <DateField label={type === "sickLeave" ? "Początek zwolnienia" : "Kiedy?"} aria-invalid={!!error} aria-describedby={error ? "date-error" : undefined} value={date} onChange={(value) => { setDraft({ ...draft, date: value }); setError(""); }} className="flex-[1_1_220px]" />
         {type === "salary" && (
           <Field label="Nowe wynagrodzenie brutto" inputMode="numeric" placeholder="np. 7000" value={amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} className="flex-[1_1_220px]" />
         )}

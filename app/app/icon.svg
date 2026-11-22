@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="12" fill="#007c36"/>
+  <!-- ZPPR Z with a shortened swash; full mark is too detailed at 16px -->
+  <path transform="translate(19 8) skewX(-9)" fill="#fff" d="M4 0H29.5Q33.5 0 31.6 3.6L14.5 36.8C22 36.7 30 36.6 38 36.3C30 39 20 47 6 47Q1 47 2.8 43.4L20 10H4Q1 10 1 7V3Q1 0 4 0Z"/>
+</svg>

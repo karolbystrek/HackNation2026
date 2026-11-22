@@ -11,6 +11,7 @@ const buttonVariants = cva(
         action: "bg-action text-action-foreground hover:bg-action-hover",
         outline: "border-input bg-background text-primary hover:bg-secondary",
         link: "px-0 text-link",
+        ghost: "text-foreground hover:bg-secondary",
       },
     },
     defaultVariants: { variant: "primary" },

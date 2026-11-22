@@ -30,7 +30,11 @@ export function personaFromAnswers(answers: Answers): Persona {
   // Planning a child: no date yet, so calculators start about one pregnancy from today.
   const dueDate = (a.dueDate as string | undefined) ?? birthDate ?? shiftIso(today, 280);
   const payerSize = contract === "jdg" ? "na" : a.largeEmployer === "yes" ? "gt20" : a.largeEmployer === "no" ? "le20" : "unknown";
-  const me = parent("Ty", "Ciebie", contract, Number(a.monthlyIncome) || 0, (a.insuredSince as string | undefined) ?? today, a.over50 ? 50 : 30, payerSize);
+  // shortcut: the questionnaire asks for a period, not a date, so the start date is a representative one for that period.
+  const employedFrom = { lt30days: today, lt12months: shiftIso(today, -180), gte12months: shiftIso(today, -365) }[a.employmentPeriod as string];
+  const me = parent("Ty", "Ciebie", contract, Number(a.monthlyIncome) || 0, employedFrom ?? (a.insuredSince as string | undefined) ?? today, a.over50 ? 50 : 30, payerSize);
+  // Earlier linked cover of 30+ days or an art. 4 ust. 3 exemption: the waiting period is already met.
+  me.waitingWaived = ((a.waitingWaiver ?? []) as string[]).some((v) => v !== "none");
   const other = parent("Drugi rodzic", "drugiego rodzica", "uop", 0, today, 30, "unknown");
   const isFather = a.role === "father";
   const anchor = birthDate ?? dueDate;

@@ -17,6 +17,7 @@ import {
 } from "@/lib/forms/spec";
 import { submitApplication, usePlanDraft, type Submission } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
+import { DateField } from "@/components/ui/date-field";
 
 const inputClass = "min-h-11 w-full min-w-0 rounded-sm border border-input bg-background px-3 py-2 aria-invalid:border-destructive";
 const sentFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Warsaw" });
@@ -433,8 +434,8 @@ function FieldInput({ field, value, onChange, required, error }: {
           <legend className="mb-2 font-bold">{label}</legend>
           {field.help && <p className="mb-2 text-sm text-muted-foreground">{field.help}</p>}
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Od" type="date" value={range.from} aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => onChange({ ...range, from: e.target.value })} />
-            <Field label="Do" type="date" value={range.to} aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => onChange({ ...range, to: e.target.value })} />
+            <DateField label="Od" value={range.from} aria-invalid={invalid} aria-describedby={describedBy} onChange={(value) => onChange({ ...range, from: value })} />
+            <DateField label="Do" value={range.to} aria-invalid={invalid} aria-describedby={describedBy} onChange={(value) => onChange({ ...range, to: value })} />
           </div>
         </fieldset>,
       );
@@ -460,7 +461,7 @@ function FieldInput({ field, value, onChange, required, error }: {
           {children.map((child, i) => (
             <div key={i} className="grid gap-3 border-l-4 border-border pl-3 sm:grid-cols-3">
               <Field label="Imię i nazwisko dziecka" value={child.name} aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => update(i, { name: e.target.value })} />
-              <Field label="Data urodzenia" type="date" value={child.birthDate} aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => update(i, { birthDate: e.target.value })} />
+              <DateField label="Data urodzenia" value={child.birthDate} aria-invalid={invalid} aria-describedby={describedBy} onChange={(value) => update(i, { birthDate: value })} />
               <Field label="Miejsce urodzenia" value={child.birthPlace} onChange={(e) => update(i, { birthPlace: e.target.value })} />
               {children.length > 1 && (
                 <Button variant="link" className="self-start sm:col-span-3" onClick={() => onChange(children.filter((_, j) => j !== i))}>Usuń dziecko {i + 1}</Button>
@@ -480,12 +481,15 @@ function FieldInput({ field, value, onChange, required, error }: {
         </div>,
       );
     default:
+      if (field.type === "date") {
+        return wrap(<DateField id={id} label={label} hint={field.help} value={String(value ?? "")} aria-invalid={invalid} aria-describedby={describedBy} onChange={onChange} />);
+      }
       return wrap(
         <Field
           id={id}
           label={label}
           hint={field.help}
-          type={field.type === "date" ? "date" : field.type === "phone" ? "tel" : "text"}
+          type={field.type === "phone" ? "tel" : "text"}
           inputMode={["pesel", "nip", "regon", "number"].includes(field.type) ? "numeric" : undefined}
           spellCheck={field.type === "bank_account" ? false : undefined}
           value={String(value ?? "")}
