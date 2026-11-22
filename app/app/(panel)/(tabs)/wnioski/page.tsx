@@ -75,7 +75,7 @@ export default function Applications() {
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
         title="Wnioski"
-        lead="Znajdź formularz dla swojej sprawy, sprawdź termin i przygotuj potrzebne dokumenty."
+        lead="Sprawdź terminy swoich wniosków i przygotuj potrzebne dokumenty."
       />
       <div className="page gap-12">
 

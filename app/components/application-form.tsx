@@ -57,11 +57,11 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
       <PageBand
         title={found.entry.title}
         lead={<>
-          <span className="block">Formularz: {spec.title}</span>
+          {spec.title !== found.entry.title && <span className="block">{spec.title}</span>}
           <span className="block">Adresat: {found.ctx.recipientName}</span>
           {found.entry.due && <span className="block">Termin: {formatDate(found.entry.due)}{found.entry.estimated ? " (szacunkowo)" : ""}</span>}
           {guide && <a className="text-link" href={guide}>Oficjalna instrukcja złożenia</a>}
-          {!submission && <span className="mt-2 block text-base">Sprawdź dane przeniesione do formularza z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
+          {!submission && <span className="mt-2 block text-base">Sprawdź dane z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
         </>}
       />
       <div className="page">
@@ -69,7 +69,7 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
       <div className="max-w-prose space-y-2">
         {found.entry.description && <p>{found.entry.description}</p>}
         {guidance && guidance.summary !== found.entry.description && <p>{guidance.summary}</p>}
-        {guidance?.preparedBy && <p><strong>Wypełnia</strong> {guidance.preparedBy}. Tutaj możesz przejrzeć formularz w symulacji.</p>}
+        {guidance?.preparedBy && <p><strong>Wypełnia</strong> {guidance.preparedBy}. Tutaj możesz przejrzeć dokument w symulacji.</p>}
         {found.entry.deadlineDetail && <p>{found.entry.deadlineDetail}</p>}
       </div>
       {submission
@@ -313,21 +313,21 @@ function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormC
     return (
       <div className="flex flex-col gap-1">
         <Button variant="outline" className="self-start" disabled={state === "loading"} onClick={load}>
-          {state === "loading" ? "Wypełniamy formularz…" : "Pokaż wypełniony formularz ZUS (PDF)"}
+          {state === "loading" ? "Przygotowujemy PDF…" : "Pokaż dokument ZUS (PDF)"}
         </Button>
         <p className="text-sm text-muted-foreground">Oryginalny wzór z zus.pl z Twoimi danymi. Pola możesz jeszcze poprawić w podglądzie.</p>
-        {state === "error" && <FieldError message="Nie udało się przygotować formularza. Spróbuj ponownie." />}
+        {state === "error" && <FieldError message="Nie udało się przygotować pliku PDF. Spróbuj ponownie." />}
       </div>
     );
   }
   return (
-    <section aria-label="Formularz ZUS" className="flex min-w-0 flex-col gap-2">
+    <section aria-label="Dokument ZUS" className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
         <a href={url} download={fileName} className={cn(buttonVariants({ variant: "outline" }))}>Pobierz roboczy PDF</a>
         <a href={url} target="_blank" rel="noreferrer" className="text-link">Otwórz w nowej karcie</a>
       </div>
       {/* Mobile browsers do not render PDFs inline, so phones get the download and new-tab links only. */}
-      <iframe src={url} title="Wypełniony formularz ZUS" className="hidden h-[80vh] w-full rounded-sm border border-border sm:block" />
+      <iframe src={url} title="Dokument ZUS" className="hidden h-[80vh] w-full rounded-sm border border-border sm:block" />
     </section>
   );
 }

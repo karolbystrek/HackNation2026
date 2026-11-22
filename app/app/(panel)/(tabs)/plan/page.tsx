@@ -3,8 +3,7 @@
 import { Select } from "@base-ui/react/select";
 import { Check, ChevronDown } from "lucide-react";
 import { FamilyTimeline } from "@/components/family-timeline";
-import { Progress } from "@/components/ui/progress";
-import { buildTasks, progress } from "@/lib/calc/tasks";
+import { buildTasks } from "@/lib/calc/tasks";
 import { ButtonLink, PageBand } from "@/components/ui";
 import { switchChildCase } from "@/lib/plan-store";
 import { formatDate } from "@/lib/dates";
@@ -18,7 +17,6 @@ export default function Timeline() {
   const cases = [{ value: activeCaseId, label: caseLabel }, ...(plan.savedCases ?? []).map(({ id, label }) => ({ value: id, label }))];
   const childEvent = persona.events.find((event) => event.type === "birth" || event.type === "adoption");
   const tasks = buildTasks(timeline).filter((task) => task.who === "both" || task.who === viewer);
-  const { done, total } = progress(tasks);
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
@@ -66,7 +64,6 @@ export default function Timeline() {
           </Select.Portal>
         </Select.Root>
       )}
-      {total > 0 && <Progress label={`Załatwione sprawy: ${done} z ${total}`} value={done} total={total} />}
       <FamilyTimeline tasks={tasks} viewer={viewer} solo={solo} profileEvents={fromGuide ? [] : persona.events.filter((event) => event.who === "both" || event.who === viewer)} entries={entries} names={names} today={today} actions={<>
         <ButtonLink href="/warianty" variant={attention.length > 0 || chosen ? "link" : "primary"}>
           {chosen ? "Zmień podział urlopu" : "Zaplanuj podział urlopu"}

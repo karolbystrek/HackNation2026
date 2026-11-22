@@ -36,7 +36,7 @@ function FamilyData() {
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <PageBand title="Twoje dane i dane dziecka" lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja).`} />
+      <PageBand title="Twoje dane i dane dziecka" lead={fromGuide ? "Wprowadzone w ankiecie." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja).`} />
       <div className="page">
       <BackLink href={returnLabel ? from : "/plan"}>{returnLabel ?? "Wróć do osi czasu"}</BackLink>
       <Card>

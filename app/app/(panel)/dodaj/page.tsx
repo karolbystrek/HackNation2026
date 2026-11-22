@@ -104,7 +104,7 @@ function AddEvent() {
     }
     if (type === "circumstance" && circumstance === "childLoss" &&
       (!persona.birthDate || date < persona.birthDate || persona.kids > 1)) {
-      setError("W tym formularzu można odnotować śmierć dziecka w sprawie z jednym zapisanym porodem pojedynczym.");
+      setError("W planie można odnotować śmierć dziecka w sprawie z jednym zapisanym porodem pojedynczym.");
       return;
     }
     if (motherHospital && endDate && endDate < date) {
@@ -184,7 +184,7 @@ function AddEvent() {
         <p>{effect}</p>
         {!!situation?.forms.length && (
           <div className="mt-3 space-y-2">
-            <p className="font-bold">Formularze, które mogą być potrzebne</p>
+            <p className="font-bold">Wnioski i dokumenty, które mogą być potrzebne</p>
             <SituationForms ids={situation.forms} guidance={journey.formGuidance} expanded />
           </div>
         )}

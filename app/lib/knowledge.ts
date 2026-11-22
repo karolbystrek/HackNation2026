@@ -79,6 +79,10 @@ export async function loadJourney(): Promise<Journey> {
     if (href) documentLinks[doc.id] = href;
   }
 
+  const formKinds: Record<string, string> = {
+    application: "Wniosek", statement: "Oświadczenie",
+    payer_certificate: "Zaświadczenie", medical_certificate: "Zaświadczenie",
+  };
   const formGuidance: NonNullable<Journey["formGuidance"]> = {};
   for (const form of forms.filter((record) => record.status === "current" && record.field_set_id)) {
     const roles: Record<string, string> = {
@@ -88,6 +92,7 @@ export async function loadJourney(): Promise<Journey> {
     formGuidance[form.field_set_id] = {
       title: form.title_pl,
       summary: form.summary_pl,
+      kindLabel: formKinds[form.form_kind],
       guide: form.page_url,
       preparedBy: form.filled_by?.includes("insured") ? undefined : roles[form.filled_by?.[0]],
     };

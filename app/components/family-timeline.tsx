@@ -7,6 +7,7 @@ import { useLayoutEffect, type ReactNode } from "react";
 import { ApplicationAction, ApplicationReceipt } from "@/components/application-action";
 import { Button, ButtonLink, Chip } from "@/components/ui";
 import { RememberedDisclosure } from "@/components/remembered-disclosure";
+import { useJourney } from "@/components/journey-provider";
 import { TaskCard } from "@/components/task-card";
 import { nextTask, type Task } from "@/lib/calc/tasks";
 import { formatDate, parseIso } from "@/lib/dates";
@@ -81,11 +82,6 @@ function EntryDate({ entry }: { entry: FamilyTimelineEntry }) {
   );
 }
 
-function DeadlineNotice({ notice }: { notice: ReturnType<typeof deadlineNotice> }) {
-  if (!notice) return null;
-  return <strong className={`block text-sm ${notice.critical ? "text-destructive" : "text-foreground"}`}>{notice.label}</strong>;
-}
-
 /** The family timeline: earlier entries folded, a "Dzisiaj" panel with what to do now, then upcoming entries. */
 export function FamilyTimeline({ entries, names, today, actions, tasks = [], viewer, solo = false, profileEvents = [] }: {
   entries: FamilyTimelineEntry[]; names: Record<EventWho, string>; today: string; actions?: ReactNode;
@@ -94,6 +90,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
   // One parent: every row is theirs, so a person chip is noise.
   const person = (who: EventWho) => !solo && <PersonLabel name={names[who]} />;
   const plan = usePlan();
+  const { formGuidance } = useJourney();
   const { submissions } = plan;
   const next = nextTask(tasks);
   const attention = attentionEntries(entries, today).filter((entry) => entry.id !== next?.id);
@@ -153,9 +150,9 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
           <div className="text-sm leading-snug text-muted-foreground">
             <time dateTime={date} className="whitespace-nowrap font-bold text-foreground">{formatDate(date)}</time>
             {entry.estimated && <span className="block">Szacunkowo</span>}
+            <p>{date >= today ? "Planowany koniec" : "Koniec"}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{date >= today ? "Planowany koniec" : "Koniec"}</p>
             <div className="flex items-baseline gap-2">
               <p className="min-w-0 leading-snug font-bold">{entry.title}</p>
               {person(entry.who)}
@@ -172,7 +169,6 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
     const confirmDocument = canConfirmDocument(entry.id) && !entry.completedOn;
     const birthCertificate = entry.id === "birth-certificate" && confirmDocument;
     const certificateConfirmed = confirmDocument && plan.doneTasks.includes(entry.id);
-    const showStatus = entry.kind === "application" && entry.status !== "blocked";
     const submission = submissions[entry.id];
     const relatedForms = formsByEvent.get(entry.id) ?? [];
     const task = tasksById.get(entry.id);
@@ -189,17 +185,18 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
           <span className="grid gap-1 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4">
             <span className="text-sm leading-snug text-muted-foreground">
               <EntryDate entry={entry} />
+              <span className="block">{entry.form ? formGuidance?.[entry.form]?.kindLabel ?? "Wniosek" : kinds[entry.kind]}</span>
             </span>
             <span className="min-w-0">
-              <DeadlineNotice notice={notice} />
-              <span className="block text-sm text-muted-foreground">{entry.form ? "Formularz" : kinds[entry.kind]}</span>
               <span className="flex items-baseline gap-2">
                 <span className={`min-w-0 leading-snug ${!task ? "font-semibold" : done ? "font-semibold text-muted-foreground" : "font-bold"}`}>{entry.title}</span>
                 {person(entry.who)}
               </span>
-              {task && <Chip className={`mt-1 border ${submission || entry.status === "completed" ? "border-primary bg-background text-primary" : entry.status === "late" ? "border-destructive bg-background text-destructive" : "bg-background"}`}>
-                {submission ? "Zapisano w symulacji" : statuses[entry.status]}
-              </Chip>}
+              {entry.kind === "application" && (
+                <Chip className={`mt-1 border bg-background ${submission || entry.status === "completed" ? "border-primary text-primary" : notice?.critical || entry.status === "late" ? "border-destructive text-destructive" : ""}`}>
+                  {submission ? "Zapisano w symulacji" : notice?.label ?? statuses[entry.status]}
+                </Chip>
+              )}
             </span>
           </span>
         }>
@@ -207,7 +204,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
             {task ? <TaskCard task={task} names={names} viewer={viewer} /> : <p>{entry.description}</p>}
             {relatedForms.length > 0 && (
               <section className="space-y-2">
-                <h3 className="text-lg font-bold">Wypełnione formularze</h3>
+                <h3 className="text-lg font-bold">Zapisane wnioski i dokumenty</h3>
                 <ul className="divide-y border-y">
                   {relatedForms.map((form) => (
                     <li key={form.id} className="py-3">
@@ -252,7 +249,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
                 )}
               </div>
             )}
-            {(entry.end || entry.review || (!task && (entry.recipient || required.length > 0 || entry.documents?.length || entry.guide || entry.form || showStatus))) && (
+            {(entry.end || entry.review || (!task && (entry.recipient || required.length > 0 || entry.documents?.length || entry.guide || entry.form))) && (
               <dl className="divide-y border-y [&>div]:grid [&>div]:gap-1 [&>div]:py-3 [&_dt]:font-bold sm:[&>div]:grid-cols-[10rem_minmax(0,1fr)] sm:[&>div]:gap-4">
                 {entry.end && (
                   <div><dt>{entry.estimated ? "Szacowany okres" : "Okres"}</dt><dd>
@@ -261,7 +258,6 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
                     </span>
                   </dd></div>
                 )}
-                {!task && showStatus && <div><dt>Status</dt><dd>{statuses[entry.status]}</dd></div>}
                 {!task && entry.recipient && <div><dt>Gdzie</dt><dd>{entry.recipient}</dd></div>}
                 {!task && entry.deadlineDetail && <div><dt>Skutek przekroczenia terminu</dt><dd>{entry.deadlineDetail}</dd></div>}
                 {!task && required.length > 0 && (

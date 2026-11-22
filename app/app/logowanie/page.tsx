@@ -35,7 +35,7 @@ function LoginForm() {
   const [viewer, setViewer] = useState<ParentKey>(plan.viewer ?? "mother");
   const [solo, setSolo] = useState(plan.solo ?? false);
   const demo = personas.find((persona) => persona.id === personaId);
-  const accounts = [...(formReady ? [{ id: GUIDE_ID, label: "Twoje dane z formularza", demoDescription: undefined }] : []), ...personas];
+  const accounts = [...(formReady ? [{ id: GUIDE_ID, label: "Twoje dane z ankiety", demoDescription: undefined }] : []), ...personas];
 
   const continueWithProfile = isClient && destination && currentPersona(plan);
   useEffect(() => {

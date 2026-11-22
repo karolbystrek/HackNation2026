@@ -17,7 +17,7 @@ export function ApplicationReceipt({ id, submission, origin, title }: {
         <div><dt className="text-muted-foreground">Numer potwierdzenia</dt><dd className="break-all font-mono">{submission.number}</dd></div>
       </dl>
       <Link href={`/wnioski/${id}?z=${origin}`} className="text-link inline-flex min-h-11 items-center"
-        aria-label={title ? `Zobacz wypełniony formularz – ${title}` : undefined}>Zobacz wypełniony formularz</Link>
+        aria-label={title ? `Zobacz zapisany dokument – ${title}` : undefined}>Zobacz zapisany dokument</Link>
     </div>
   );
 }
@@ -25,5 +25,5 @@ export function ApplicationReceipt({ id, submission, origin, title }: {
 /** Opens the form or its saved confirmation. */
 export function ApplicationAction({ task, submission, origin, preview }: { task: Task; submission?: Submission; origin: "plan" | "wnioski"; preview?: boolean }) {
   if (submission) return <ApplicationReceipt id={task.id} submission={submission} origin={origin} />;
-  return task.form && !task.done ? <ButtonLink href={`/wnioski/${task.id}?z=${origin}`} className="self-start">{preview ? "Zobacz formularz" : "Wypełnij wniosek"}</ButtonLink> : null;
+  return task.form && !task.done ? <ButtonLink href={`/wnioski/${task.id}?z=${origin}`} className="self-start">{preview ? "Zobacz dokument" : "Wypełnij wniosek"}</ButtonLink> : null;
 }

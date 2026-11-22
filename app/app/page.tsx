@@ -15,7 +15,7 @@ const SERVICES: { icon: LucideIcon; title: string; description: string; view: st
   { icon: Users, title: "Urlop rodzicielski", description: "Podziel urlop między rodziców i porównaj warianty.", view: "rodzicielski" },
   { icon: Calculator, title: "Podstawa wymiaru zasiłku", description: "Oblicz podstawę zasiłku na podstawie wynagrodzeń.", view: "podstawa" },
   { icon: HeartHandshake, title: "Adopcja i rodzina zastępcza", description: "Sprawdź urlopy i zasiłek przy przyjęciu dziecka na wychowanie.", view: "adopcja" },
-  { icon: FileText, title: "Wnioski i dokumenty", description: "Sprawdź formularze i terminy dla swojej rodziny.", view: "wnioski" },
+  { icon: FileText, title: "Wnioski i dokumenty", description: "Sprawdź terminy wniosków i potrzebne dokumenty.", view: "wnioski" },
 ];
 
 const STEPS = [

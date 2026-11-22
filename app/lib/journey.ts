@@ -38,7 +38,7 @@ export type Journey = {
   scenarios: { id: string; conditions: Condition; steps: JourneyStep[] }[];
   deadlines: Record<string, Deadline>;
   documentTitles: Record<string, string>;
-  formGuidance?: Record<string, { title: string; summary: string; guide?: string; preparedBy?: string }>;
+  formGuidance?: Record<string, { title: string; summary: string; kindLabel?: string; guide?: string; preparedBy?: string }>;
   documentLinks?: Record<string, string>;
   documentInstructions?: Record<string, string>;
 };

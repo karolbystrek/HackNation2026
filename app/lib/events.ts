@@ -10,7 +10,7 @@ export const CIRCUMSTANCES = {
   maternityTakeover: { label: "Powrót matki po 14 tygodniach i przejęcie urlopu przez ojca", forms: ["lr.maternity_resign_14w", "lr.maternity_takeover", "ff.zas23", "ff.zas24"], dateLabel: "Data powrotu matki do pracy", effect: "Wpisz uzgodnioną datę przekazania opieki. Formalności zależą od zatrudnienia obojga rodziców i płatnika zasiłku." },
   motherIncapacity: { label: "Przerwanie urlopu przez matkę z orzeczeniem o niezdolności do samodzielnej egzystencji", forms: ["lr.maternity_resign_incapacity"], dateLabel: "Data powrotu matki do pracy", effect: "Przygotuj orzeczenie, które będzie potrzebne przy rezygnacji z urlopu." },
   motherHospital: { label: "Przerwanie urlopu przez matkę z powodu pobytu w szpitalu", forms: ["ff.zas40", "lr.maternity_mother_hospital"], dateLabel: "Data przyjęcia matki do szpitala", effect: "Poproś szpital o zaświadczenie. Podaj osobno datę rozpoczęcia opieki przez drugą osobę, jeśli ją znasz." },
-  motherDeath: { label: "Śmierć matki dziecka", forms: ["ff.zas33", "lr.maternity_mother_death"], dateLabel: "Data śmierci matki", effect: "Uzupełnij datę przejęcia opieki, aby użyć jej w formularzach dotyczących pozostałego okresu." },
+  motherDeath: { label: "Śmierć matki dziecka", forms: ["ff.zas33", "lr.maternity_mother_death"], dateLabel: "Data śmierci matki", effect: "Uzupełnij datę przejęcia opieki, aby użyć jej we wniosku lub oświadczeniu dotyczącym pozostałego okresu." },
   abandonment: { label: "Porzucenie dziecka przez matkę", forms: ["ff.zas33", "lr.maternity_abandonment"], dateLabel: "Data porzucenia dziecka", effect: "Jeśli opieka zaczęła się w innym dniu, podaj tę datę osobno." },
   uninsuredMotherIncapacity: { label: "Niezdolność nieubezpieczonej matki do samodzielnej egzystencji", forms: ["lr.maternity_uninsured_mother_incapacity"], dateLabel: "Data rozpoczęcia opieki przez ojca", effect: "Przygotuj orzeczenie matki do wniosku ojca o urlop." },
   uninsuredMotherWorks: { label: "Podjęcie pracy na co najmniej pół etatu przez nieubezpieczoną matkę", forms: ["lr.maternity_uninsured_mother_works"], dateLabel: "Data podjęcia pracy przez matkę", effect: "Wpisz datę rozpoczęcia zatrudnienia wskazaną w umowie matki." },
@@ -62,7 +62,7 @@ export type TimelineEvent = {
 };
 
 export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] = [
-  { type: "circumstance", label: "Szczególna sytuacja rodzinna lub ubezpieczeniowa", effect: "Plan pokaże formularze związane z wybraną sytuacją. Przed wypełnieniem sprawdź warunki ich złożenia." },
+  { type: "circumstance", label: "Szczególna sytuacja rodzinna lub ubezpieczeniowa", effect: "Plan pokaże wnioski i dokumenty związane z wybraną sytuacją. Przed wypełnieniem sprawdź warunki ich złożenia." },
   { type: "sickLeave", label: "Zwolnienie w ciąży", effect: "W Planie możecie sprawdzić szacowany zasiłek od daty rozpoczęcia zwolnienia." },
   { type: "birth", label: "Narodziny dziecka", effect: "Pojawi się decyzja: kto i jak długo idzie na urlop. Porównamy dla Was warianty." },
   {

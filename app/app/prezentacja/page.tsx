@@ -17,13 +17,13 @@ const SERVICES: { icon: LucideIcon; title: string; description: string; href: st
   { icon: Users, title: "Urlop rodzicielski", description: "Podziel urlop między rodziców i porównaj warianty.", href: "/nowa-os" },
   { icon: Footprints, title: "Urlop ojcowski", description: `Zaplanuj ${p.paternityWeeks * 7} dni dla taty – w całości lub w częściach.`, href: "/nowa-os" },
   { icon: HeartHandshake, title: "Adopcja i rodzina zastępcza", description: "Uprawnienia przy przyjęciu dziecka na wychowanie.", href: "/nowa-os" },
-  { icon: FileText, title: "Wnioski i dokumenty", description: "Dowiedz się, który formularz złożyć i do kiedy.", href: "/logowanie" },
+  { icon: FileText, title: "Wnioski i dokumenty", description: "Dowiedz się, który wniosek złożyć i do kiedy.", href: "/logowanie" },
 ];
 
 const STEPS = [
   ["Odpowiedz na pytania", "Powiedz nam, jak pracujesz i kiedy spodziewasz się dziecka."],
   ["Zobacz swoje świadczenia", "Pokażemy kwoty, okresy i porównamy podział urlopu."],
-  ["Złóż dokumenty na czas", "Dostaniesz listę wniosków z terminami i wypełnionymi formularzami."],
+  ["Złóż dokumenty na czas", "Dostaniesz listę wniosków z terminami."],
 ];
 
 const SHORTCUTS = [
@@ -147,9 +147,9 @@ export default function Prezentacja() {
         <div className="flex max-w-[70ch] gap-4 border-l-4 border-action bg-warning-soft p-5">
           <Info aria-hidden className="mt-0.5 size-6 shrink-0 text-action-foreground" />
           <div>
-            <p className="font-bold">Ważne: nowe formularze od 24 października 2026</p>
+            <p className="font-bold">Ważne: nowe druki od 24 października 2026</p>
             <p className="mt-1">
-              Wnioski ZUR i ZAO połączono z wnioskiem ZAM, a formularz Z-3b nie jest już używany. Nasz przewodnik pokazuje tylko aktualne druki.
+              Wnioski ZUR i ZAO połączono z wnioskiem ZAM, a zaświadczenie Z-3b nie jest już używany. Nasz przewodnik pokazuje tylko aktualne druki.
             </p>
             <a href="https://www.zus.pl/" className="text-link mt-2 inline-block">Oficjalne informacje na zus.pl (serwis zewnętrzny)</a>
           </div>
