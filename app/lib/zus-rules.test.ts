@@ -145,6 +145,9 @@ const rows: Row[] = [
     answers: { situation: "adoption", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 3, multiplePlacement: false },
     expect: {
       "conditions-leave": { form: "lr.maternity_conditions", recipient: "Pracodawca", due: "2026-11-17", documents: ["sądu"] },
+      // Without the 81.5% request there is no 21-day deadline (u.z. art. 30a ust. 2 applies only to that choice).
+      "maternity-claim": { due: null },
+      "maternity-period": { date: "2026-11-10", end: "2027-03-29" },
       "parental-mother": { form: "lr.parental", due: "2027-03-09" },
       "parental-mother-period": { date: "2027-03-30" },
       "birth-registration": "absent",
@@ -156,6 +159,8 @@ const rows: Row[] = [
     answers: { situation: "foster", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 2, multiplePlacement: false },
     expect: {
       "conditions-leave": { due: "2026-11-17" },
+      "maternity-claim": { due: null },
+      "maternity-period": { date: "2026-11-10", end: "2027-03-29" },
       "parental-mother": { form: "lr.parental", recipient: "Pracodawca", due: "2027-03-09" },
       "parental-mother-period": { date: "2027-03-30" },
     },
@@ -164,13 +169,13 @@ const rows: Row[] = [
     name: "foster child aged 12: past the age limit",
     source: "KP art. 183 §1 and ustawa zasiłkowa art. 29: a foster child up to 7 (10 with school deferral).",
     answers: { situation: "foster", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 12, multiplePlacement: false },
-    expect: { "conditions-leave": "absent", "maternity-claim": "absent", "parental-mother": "absent" },
+    expect: { "conditions-leave": "absent", "maternity-claim": "absent", "parental-mother": "absent", "maternity-period": "absent" },
   },
   {
     name: "adopted child aged 15: past the age limit",
     source: "KP art. 183 §1 and ustawa zasiłkowa art. 29: adoption of a child up to 14.",
     answers: { situation: "adoption", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 15, multiplePlacement: false },
-    expect: { "conditions-leave": "absent", "maternity-claim": "absent", "parental-mother": "absent" },
+    expect: { "conditions-leave": "absent", "maternity-claim": "absent", "parental-mother": "absent", "maternity-period": "absent" },
   },
   {
     name: "adoption: father's paternity leave after the order is final",
@@ -284,3 +289,11 @@ for (const row of rows) {
     }
   });
 }
+
+test("adoption with the 81.5% rate: request within 21 days of taking the child in", async () => {
+  // Ustawa zasiłkowa art. 30a ust. 2. The questionnaire asks about 81.5% only after a birth; the leave split can still pick it.
+  const persona = { ...personaFromAnswers({ situation: "adoption", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 3, multiplePlacement: false }), wantsAveragedRate: true };
+  const chosen = buildVariants(persona, params, undefined, persona.events).find((v) => v.key === persona.initialVariant) ?? null;
+  const entries = buildFamilyTimeline(persona, persona.events, chosen, params, await loadJourney(), [], TODAY);
+  expect(entries.find((entry) => entry.id === "maternity-claim")?.due).toBe("2026-12-01");
+});

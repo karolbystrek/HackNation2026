@@ -1,4 +1,5 @@
-import { otherParent, paternityEndLimit } from "@/lib/calc/leave";
+import { otherParent, paternityEndLimit, planLeave } from "@/lib/calc/leave";
+import { leaveInputFor } from "@/lib/calc/variants";
 import { addDays, addYears, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
 import type { FormContext } from "@/lib/forms/context";
 import { evalCondition, factsFor, isFilled } from "@/lib/journey";
@@ -133,7 +134,8 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
   const parental = parentalKey && range(parentalKey);
   if (parentalKey && parental) {
     const other = otherParent(parent);
-    const pool = persona.kids > 1 ? params.parentalPoolWeeks.multiple : params.parentalPoolWeeks.single;
+    // The leave engine's pool: it also covers "Za życiem" and a short adoption intake.
+    const pool = (chosen?.result ?? planLeave(leaveInputFor(persona, params, 0), params)).pool;
     const otherWeeks = (chosen?.result.periods[other] ?? []).filter((p) => p.kind === "parental").reduce((sum, p) => sum + p.weeks, 0);
     const reserved = Math.max(params.parentalOwnWeeks, otherWeeks);
     const max = pool - reserved;

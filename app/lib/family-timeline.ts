@@ -107,7 +107,10 @@ export function buildFamilyTimeline(
     ...event,
     id: `event-${event.id}`,
     kind: "event",
-    end: event.endDate === undefined && event.type === "sickLeave" ? null : event.endDate,
+    // Sickness benefit in pregnancy ends the day before the birth, when maternity benefit starts.
+    end: event.type === "sickLeave" && !event.endDate
+      ? event.who === "mother" && persona.birthDate && event.date < persona.birthDate ? shiftIso(persona.birthDate, -1) : null
+      : event.endDate,
     estimated: event.id === birthEvent?.id && provisional,
   }));
 
@@ -151,13 +154,17 @@ export function buildFamilyTimeline(
     } satisfies Entry] : []),
   );
 
-  const maternity = periodOf("mother", "maternity");
-  // shortcut: the leave engine plans a placement like a birth; its leave on maternity terms comes from conditions_leave instead.
+  // A placement gives its leave on maternity terms (KP art. 183) to the parent who took the child in.
+  const mainParent = placed ? variant?.input.main ?? persona.placementParent ?? "mother" : "mother";
+  // The maternity period is set by law, so it shows before a leave split is chosen (the default plan); a loss has its own period below.
+  const maternity = periodOf(mainParent, "maternity") ?? (variant || lost ? undefined : periods.periods[mainParent].find((period) => period.kind === "maternity"));
+  const employeeMain = parents[mainParent].contract === "uop";
   // No sickness insurance on the day of birth, so no maternity leave or benefit (parental allowance or sickness benefit instead).
-  if (maternity && !placed && !["uninsured", "after_insurance"].includes(factsFor(persona, "mother", events, variant).insured_type)) entries.push({
-    id: "maternity-period", kind: "period", who: "mother",
-    title: persona.parents.mother.contract === "uop" ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
-    description: maternity.from < birth ? "Macierzyński zaplanowano przed porodem." : "Rozpoczęcie okresu wynika z daty porodu.",
+  if (maternity && !["uninsured", "after_insurance"].includes(factsFor(persona, mainParent, events, variant).insured_type)) entries.push({
+    id: "maternity-period", kind: "period", who: mainParent,
+    title: placed ? employeeMain ? "Urlop na warunkach urlopu macierzyńskiego" : "Okres zasiłku na warunkach macierzyńskiego"
+      : employeeMain ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
+    description: placed ? "Rozpoczęcie okresu wynika z daty przyjęcia dziecka." : maternity.from < birth ? "Macierzyński zaplanowano przed porodem." : "Rozpoczęcie okresu wynika z daty porodu.",
     date: maternity.from, end: shiftIso(maternity.to, -1), estimated: provisional, requires: maternity.from < birth ? ["pre-birth-leave"] : [birthId],
   });
 

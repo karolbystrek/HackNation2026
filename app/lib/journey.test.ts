@@ -7,6 +7,7 @@ import { buildFamilyTimeline } from "@/lib/family-timeline";
 import { formContext } from "@/lib/forms/context";
 import { loadSpecs } from "@/lib/forms/load";
 import { prefill } from "@/lib/forms/prefill";
+import { validate } from "@/lib/forms/rules";
 import { personaFromAnswers } from "@/lib/guide/persona";
 import type { Answers } from "@/lib/guide/tree";
 import { loadJourney } from "@/lib/knowledge";
@@ -181,3 +182,26 @@ test("questionnaire: the wizard finds the application, so the ZUS PDF can be fil
   assert.equal(found?.entry.form, "ff.zam");
   assert.equal(found?.ctx.recipient, "zus");
 });
+
+test("„Za życiem”: the parental request the plan pre-fills passes the form check", async () => {
+  const za = { ...anna, birthDate: "2027-03-15", zaZyciem: true, childEvents: ["birth", "za_zyciem"] };
+  const found = formContext(za, za.events, "A", params, await loadJourney(), [], "2026-11-21", "parental-mother");
+  const { "lr.parental": spec } = await loadSpecs(["lr.parental"]);
+  const values = prefill(spec, found!.ctx);
+  // 65 weeks minus the father's 9: longer than the 32 weeks a standard pool allows.
+  assert.equal(found!.ctx.chosen!.result.mainWeeks, 56);
+  assert.deepEqual(validate(spec, values, found!.ctx).errors.filter((issue) => issue.field === "period"), []);
+});
+
+test("demo: maternity leave shows before a leave split is chosen, and sick leave ends at the birth", async () => {
+  const journey = await loadJourney();
+  const before = buildFamilyTimeline(anna, anna.events, null, params, journey, [], "2026-11-22");
+  assert.deepEqual(pick(before.find((entry) => entry.id === "maternity-period")), { date: "2027-03-15", end: "2027-08-01" });
+  assert.equal(before.find((entry) => entry.id === "event-e1")?.end, null);
+  const born = { ...anna, birthDate: "2027-03-10" };
+  const after = buildFamilyTimeline(born, born.events, null, params, journey, [], "2027-03-12");
+  assert.equal(after.find((entry) => entry.id === "event-e1")?.end, "2027-03-09");
+  assert.deepEqual(pick(after.find((entry) => entry.id === "maternity-period")), { date: "2027-03-10", end: "2027-07-27" });
+});
+
+const pick = (entry: { date: string; end?: string | null } | undefined) => entry && { date: entry.date, end: entry.end };
