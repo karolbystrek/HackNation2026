@@ -65,7 +65,7 @@ tiles.
   font-bold`, H3 `text-lg font-bold`. Headings are near-black, not green.
 - Section headings in gov.pl style may carry a short green bar:
   `before:block before:h-1 before:w-12 before:bg-brand before:mb-3`.
-- Reading columns ≤ 70ch. Underline inline links (`text-link`).
+- Reading columns ≤ 70ch. Use semibold green inline links (`text-link`).
 
 ## Shape and spacing
 
@@ -91,8 +91,7 @@ Build pages from full-width **bands**, each with a `shell` inside:
    points only (2 cols on `sm`, 3 on `lg`). Each tile is a whole link:
    `group flex gap-4 border border-border bg-background p-5 border-t-4
    border-t-brand hover:border-primary hover:shadow-sm`; green outline Lucide
-   icon in a `size-12 bg-primary-soft` square; bold title that underlines on
-   hover; one-line description; `ArrowRight` at the end. Inside a task, keep
+   icon in a `size-12 bg-primary-soft` square; bold title; one-line description; `ArrowRight` at the end. Inside a task, keep
    content as lists and sections, not tiles.
 6. **Steps** ("Jak to działa") – ordered list, numbers in `size-10` green
    squares with white bold digits, title + one sentence.
@@ -106,7 +105,7 @@ Build pages from full-width **bands**, each with a `shell` inside:
    link with title, optional meta in `text-muted-foreground`, `ChevronRight`
    at the end, row hover `bg-secondary`.
 10. **Help band + footer** – `bg-navy text-navy-foreground`; links white and
-    underlined; columns collapse to one on phones; the demo statement here.
+    semibold; columns collapse to one on phones; the demo statement here.
 
 ## Components
 

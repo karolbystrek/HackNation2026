@@ -27,7 +27,7 @@ export function TermText({ text }: { text: string }) {
       // A click inside a <label> would otherwise focus the input or toggle the option.
       <span key={i} onClick={(e) => { if ((e.target as HTMLElement).closest("button")) e.preventDefault(); }}>
         <Popover>
-          <PopoverTrigger openOnHover delay={200} className="inline cursor-help rounded-sm text-left underline decoration-primary decoration-dotted decoration-2 underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+          <PopoverTrigger openOnHover delay={200} className="inline cursor-help rounded-sm text-left font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
             {part}
             <CircleHelp aria-hidden="true" className="ml-1 inline size-[0.9em] align-[-0.1em] text-primary" />
             <span className="sr-only"> – wyjaśnienie</span>
@@ -36,7 +36,7 @@ export function TermText({ text }: { text: string }) {
             <PopoverTitle className="text-lg first-letter:uppercase">{term.term_pl}</PopoverTitle>
             <PopoverDescription>{term.definition_pl}</PopoverDescription>
             {source && <a className="text-link" href={source}>Oficjalne wyjaśnienie ZUS</a>}
-            <PopoverClose className="self-start font-bold text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+            <PopoverClose className="self-start font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               Zamknij
             </PopoverClose>
           </PopoverContent>

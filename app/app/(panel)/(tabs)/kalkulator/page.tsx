@@ -125,12 +125,12 @@ function Calculators({ event }: { event?: TimelineEvent }) {
               const [Icon, description] = MODE_TILES[key];
               return (
                 <li key={key} className="flex">
-                  <button type="button" onClick={() => setMode(key)} className="group flex w-full cursor-pointer gap-4 border border-t-4 border-border border-t-brand bg-background p-5 text-left hover:border-primary hover:shadow-sm">
+                  <button type="button" onClick={() => setMode(key)} className="flex w-full cursor-pointer gap-4 border border-t-4 border-border border-t-brand bg-background p-5 text-left hover:border-primary hover:shadow-sm">
                     <span className="grid size-12 shrink-0 place-items-center bg-primary-soft text-primary">
                       <Icon aria-hidden strokeWidth={1.75} className="size-6" />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
-                      <span className="font-bold group-hover:underline">{label}</span>
+                      <span className="font-bold">{label}</span>
                       <span className="text-muted-foreground">{description}</span>
                     </span>
                     <ArrowRight aria-hidden className="size-5 shrink-0 self-center text-primary" />

@@ -30,8 +30,8 @@ export function PanelNav() {
               href={tab.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "min-h-12 content-center border-b-4 border-transparent py-2 font-bold text-primary hover:border-border hover:underline",
-                active && "border-brand text-foreground hover:border-brand hover:no-underline",
+                "min-h-12 content-center border-b-4 border-transparent py-2 font-bold text-primary hover:border-border",
+                active && "border-brand text-foreground hover:border-brand",
               )}
             >
               {tab.label}

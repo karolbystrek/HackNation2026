@@ -25,8 +25,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <nav aria-labelledby="footer-sources">
               <h2 id="footer-sources" className="font-bold">Oficjalne źródła (serwisy zewnętrzne)</h2>
               <ul className="mt-2 flex flex-col gap-1">
-                <li><a href="https://www.zus.pl/" className="underline underline-offset-4 hover:no-underline">zus.pl – Zakład Ubezpieczeń Społecznych</a></li>
-                <li><a href="https://www.gov.pl/web/rodzina" className="underline underline-offset-4 hover:no-underline">gov.pl – Ministerstwo Rodziny</a></li>
+                <li><a href="https://www.zus.pl/" className="font-semibold">zus.pl – Zakład Ubezpieczeń Społecznych</a></li>
+                <li><a href="https://www.gov.pl/web/rodzina" className="font-semibold">gov.pl – Ministerstwo Rodziny</a></li>
               </ul>
             </nav>
           </div>

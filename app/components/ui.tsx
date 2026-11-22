@@ -43,9 +43,9 @@ export function LinkList({ links }: { links: { label: string; href: string; meta
     <ul className="divide-y border-y">
       {links.map(({ label, href, meta }) => (
         <li key={href}>
-          <a href={href} className="group flex min-h-11 items-center justify-between gap-3 px-2 py-3 hover:bg-secondary">
+          <a href={href} className="flex min-h-11 items-center justify-between gap-3 px-2 py-3 hover:bg-secondary">
             <span>
-              <span className="font-bold text-primary group-hover:underline">{label}</span>
+              <span className="font-bold text-primary">{label}</span>
               {meta && <span className="block text-sm text-muted-foreground">{meta}</span>}
             </span>
             <ChevronRight aria-hidden className="size-5 shrink-0 text-primary" />
