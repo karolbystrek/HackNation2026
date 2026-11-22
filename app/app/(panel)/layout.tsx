@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageSpinner } from "@/components/ui/page-spinner";
 import { FamilySettings } from "@/components/family-settings";
 import { PanelNav } from "@/components/panel-nav";
 import { SessionGuard } from "@/components/session-guard";
@@ -8,7 +9,7 @@ export const instant = false;
 
 export default function PanelLayout({ children }: LayoutProps<"/">) {
   return (
-    <Suspense fallback={<p role="status">Wczytuję plan…</p>}>
+    <Suspense fallback={<PageSpinner label="Wczytuję plan…" />}>
       <FamilySettings>
         <SessionGuard><PanelNav />{children}</SessionGuard>
       </FamilySettings>

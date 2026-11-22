@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { PageSpinner } from "@/components/ui/page-spinner";
 import { AdminSettings } from "./settings";
 import { loadParams } from "@/lib/server-params";
 import { settingsFrom } from "@/lib/benefit-settings";
@@ -9,5 +10,5 @@ async function Settings() {
 }
 
 export default function AdminPage() {
-  return <Suspense fallback={<p role="status">Wczytuję parametry…</p>}><Settings /></Suspense>;
+  return <Suspense fallback={<PageSpinner label="Wczytuję parametry…" />}><Settings /></Suspense>;
 }
