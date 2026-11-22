@@ -28,10 +28,13 @@ export function useFamily() {
   const fromGuide = plan.personaId === GUIDE_ID;
   const persona = useMemo(() => currentPersona(plan)!, [plan]);
   const params = useParamsConfig();
-  const variants = useMemo(() => buildVariants(persona, params, plan.customLeave), [persona, params, plan.customLeave]);
+  const variants = useMemo(() => buildVariants(persona, params, plan.customLeave, plan.events), [persona, params, plan.customLeave, plan.events]);
   const chosen = variants.find((v) => v.key === plan.chosenVariant) ?? null;
-  const names = { mother: persona.parents.mother.name, father: persona.parents.father.name, both: "Oboje" };
+  const viewer = fromGuide ? (plan.guideAnswers.role === "father" ? "father" : "mother") : plan.viewer ?? "mother";
+  const solo = fromGuide || plan.solo === true;
+  const names = { mother: persona.parents.mother.name, father: persona.parents.father.name, both: solo ? "Sprawa dziecka" : "Wspólne" };
   // Demo profiles and questionnaire answers go through the same knowledge-driven timeline.
-  const entries = planTimeline(persona, plan.events, chosen, params, journey, plan.doneTasks, today);
-  return { plan, persona, fromGuide, params, journey, variants, chosen, names, entries, today };
+  const entries = planTimeline(persona, plan.events, chosen, params, journey, plan.doneTasks, today)
+    .filter((entry) => entry.who === "both" || entry.who === viewer);
+  return { plan, persona, viewer, solo, fromGuide, params, journey, variants, chosen, names, entries, today };
 }

@@ -16,6 +16,7 @@ export type FormContext = {
   trigger?: TimelineEvent;
   persona: Persona;
   parent: ParentKey;
+  viewer?: ParentKey;
   chosen: Variant | null;
   events: TimelineEvent[];
   params: Params;
@@ -27,21 +28,20 @@ export type FormContext = {
 
 export function formContext(
   persona: Persona, events: TimelineEvent[], chosenKey: VariantKey | null, params: Params, journey: Journey,
-  doneTasks: string[], today: string, taskId: string, guideAnswers: Answers = {}, customLeave?: CustomLeave,
+  doneTasks: string[], today: string, taskId: string, guideAnswers: Answers = {}, customLeave?: CustomLeave, viewer?: ParentKey,
 ): { entry: FamilyTimelineEntry; ctx: FormContext } | null {
-  const chosen = buildVariants(persona, params, customLeave).find((variant) => variant.key === chosenKey) ?? null;
+  const chosen = buildVariants(persona, params, customLeave, events).find((variant) => variant.key === chosenKey) ?? null;
   const timeline = planTimeline(persona, events, chosen, params, journey, doneTasks, today);
-  const entry = timeline.find((item) => item.id === taskId && item.form);
+  const entry = timeline.find((item) => item.id === taskId && item.form && (!viewer || item.who === "both" || item.who === viewer));
   if (!entry) return null;
 
   const byId = new Map(timeline.map((item) => [item.id, item]));
-  // Steps for both parents (birth registration, birth certificate) are filed by the mother in the demo.
-  const parent = entry.who === "both" ? "mother" : entry.who;
+  const parent = entry.who === "both" ? (viewer ?? "mother") : entry.who;
   const recipient = entry.recipient === "ZUS" ? "zus" : entry.recipient === "Urząd stanu cywilnego" ? "usc" : "employer";
   return {
     entry,
     ctx: {
-      taskId, guideAnswers, customLeave, trigger: entry.trigger, persona, parent, chosen, events, params, today,
+      taskId, guideAnswers, customLeave, viewer, trigger: entry.trigger, persona, parent, chosen, events, params, today,
       recipient,
       recipientName: recipient === "zus" ? "ZUS" : recipient === "usc" ? `Urząd stanu cywilnego${persona.birthPlace ? ` (${persona.birthPlace})` : ""}` : (persona.parents[parent].payerName || entry.recipient || "Pracodawca"),
       waitingFor: (entry.requires ?? [])

@@ -92,7 +92,7 @@ container, 0–4px corners and controls around 44px or taller.
   error. Provide inline errors and an error summary for multi-field failures.
 - Distinguish selected, hover, focus, disabled, loading, success and error
   states. Active navigation needs more than color, such as a marker and
-  `aria-current`. Underline inline links.
+  `aria-current`. Use semibold text and the link color for inline links.
 - Result sections emphasize the answer, explain assumptions and offer a clear
   next action. Source links and simulation labels must remain legible.
 

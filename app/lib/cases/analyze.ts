@@ -1,3 +1,4 @@
+import { paternityEndLimit } from "@/lib/calc/leave";
 import { computeBasis } from "@/lib/calc/basis";
 import type { CaseExtraction, CasePeriod, PeriodKind } from "@/lib/cases/schema";
 import { addDays, diffDays, formatDate, parseIso, toIso } from "@/lib/dates";
@@ -80,7 +81,7 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   const notes: string[] = [];
   // Rows the user is still typing in are skipped until both dates are valid.
   const complete = (x: CasePeriod) => !!parseIso(x.from) && !!parseIso(x.to) && x.from <= x.to;
-  const requested = (c.requested.length ? c.requested : c.decision.periods).filter(complete);
+  const requested = c.requested.filter(complete);
   c = { ...c, sickInsurance: c.sickInsurance.filter((s) => parseIso(s.from)) };
   const start = c.benefit === "sickness_pregnancy"
     ? requested.find((r) => r.kind === "sickness")?.from ?? c.event.date
@@ -114,7 +115,7 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   } else {
     const insuredDays = insuredDaysUntil(c.sickInsurance, day, 30);
     const covered = coveredPeriods.length > 0;
-    if (!covered && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
+    if (!covered && c.uninsuredOnStart !== true && (!c.sickInsurance.length || c.uncertain.some((key) => key.startsWith("sickInsurance")))) {
       eligible = null;
       eligibility = "Sprawdź dokument i uzupełnij okresy ubezpieczenia chorobowego, aby ocenić prawo do zasiłku.";
     } else if (!covered && c.benefit === "sickness_pregnancy") {
@@ -138,24 +139,35 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
   // Benefit basis: the 12 calendar months before the month the right arises.
   let basis: CaseAnalysis["basis"] = null;
   const eventMonth = start?.slice(0, 7);
-  const months = c.basisMonths.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m.month) && m.amount > 0 && (!eventMonth || m.month < eventMonth)).sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
+  const validMonths = c.basisMonths.filter((m) => /^\d{4}-(0[1-9]|1[0-2])$/.test(m.month) && Number.isFinite(m.amount) && m.amount > 0 && (!eventMonth || m.month < eventMonth));
+  const months = [...new Map(validMonths.map((m) => [m.month, m])).values()].sort((a, b) => a.month.localeCompare(b.month)).slice(-12);
   if (individualBasis !== undefined && Number.isFinite(individualBasis) && individualBasis > 0) {
     basis = { months: 0, value: individualBasis, floored: false, capped: false };
   } else if (months.length) {
     const capped = c.contract === "jdg" && months.some((m) => m.amount > p.maxVoluntaryBasis);
-    const amounts = months.map((m) => (c.contract === "jdg" ? Math.min(m.amount, p.maxVoluntaryBasis) : m.amount));
-    const r = computeBasis(amounts, p, c.contract === "uop" ? "uop" : c.contract === "jdg" ? "jdg" : "zlec");
+    const r = computeBasis(months.map((m) => m.amount), p, c.contract === "unknown" ? "zlec" : c.contract);
     basis = { months: r.months, value: r.basis, floored: r.floored, capped };
     if (r.months < 12) notes.push(`Podstawa z ${r.months} pełnych miesięcy ubezpieczenia (krócej niż 12).`);
-  } else if (c.decision.basis) {
-    basis = { months: 0, value: c.decision.basis, floored: false, capped: false };
-    notes.push("W teczce nie ma miesięcznych podstaw, więc liczymy od podstawy podanej przez ZUS.");
   }
+  if (eligible && !basis) notes.push("Uzupełnij podstawę wymiaru, aby obliczyć kwotę.");
+  if (eligible && !requested.length) notes.push("Uzupełnij okresy z wniosku, aby obliczyć łączną kwotę.");
 
   // Periods and amounts.
-  const periods: AnalyzedPeriod[] = (eligible === null ? [] : requested).map((r) => {
+  const birth = c.event.kind === "birth" ? parseIso(c.event.childBirthDate ?? c.event.date) : null;
+  const paternityLimit = paternityEndLimit(birth, null, p);
+  let paternityDaysLeft = p.paternityWeeks * 7;
+  const periods: AnalyzedPeriod[] = (eligible === null ? [] : [...requested].sort((a, b) => a.from.localeCompare(b.from))).flatMap((r) => {
     const rate = rateFor(r.kind, c, p);
-    const n = days(r);
+    let n = days(r);
+    if (r.kind === "paternity") {
+      const deadlineDays = paternityLimit ? diffDays(parseIso(r.from)!, paternityLimit) : n;
+      const available = birth && r.from < toIso(birth) ? 0 : Math.min(n, paternityDaysLeft, deadlineDays);
+      const payable = Math.max(0, Math.floor(available / p.paternityMinPartDays) * p.paternityMinPartDays);
+      if (payable < n) notes.push(`Urlop ojcowski: zgłoszono ${n} dni, w wyliczeniu uwzględniono ${payable} dni po zastosowaniu limitu i minimalnego wymiaru części.`);
+      if (!payable) return [];
+      n = payable;
+      paternityDaysLeft -= payable;
+    }
     let daily = basis ? round2((basis.value * rate) / 30) : 0;
     const topUp = MATERNITY_KINDS.includes(r.kind) && basis && basis.value * rate < p.parentalAllowanceMonthly;
     if (topUp) daily = round2(p.parentalAllowanceMonthly / 30);
@@ -164,19 +176,12 @@ export function analyzeCase(c: CaseExtraction, p: Params, individualBasis?: numb
     if (weeks !== null && usedWeeks > weeks + 0.01 && r === requested.find((x) => x.kind === r.kind)) {
       notes.push(`${PERIOD_LABELS[r.kind]}: wniosek obejmuje ${usedWeeks.toFixed(1)} tyg., a przysługuje najwyżej ${weeks} tyg.`);
     }
-    return { ...r, days: n, rate, daily, total: eligible ? round2(daily * n) : 0 };
+    return [{ ...r, to: toIso(addDays(parseIso(r.from)!, n - 1)), days: n, rate, daily, total: eligible ? round2(daily * n) : 0 }];
   });
   if (periods.some((x) => x.daily === round2(p.parentalAllowanceMonthly / 30) && basis && basis.value * x.rate < p.parentalAllowanceMonthly)) {
     notes.push(`Zasiłek podwyższony do kwoty świadczenia rodzicielskiego (${formatPln(p.parentalAllowanceMonthly)} miesięcznie).`);
   }
   if (c.event.kind === "stillbirth" || c.event.kind === "child_death") notes.push(`Po martwym urodzeniu lub śmierci dziecka urlop macierzyński trwa co najmniej ${p.stillbirthWeeks} tygodni.`);
-  const paternity = periods.filter((x) => x.kind === "paternity");
-  if (paternity.length && c.event.childBirthDate) {
-    const limit = parseIso(c.event.childBirthDate)!;
-    limit.setUTCMonth(limit.getUTCMonth() + p.paternityUntilChildMonths);
-    if (paternity.some((x) => parseIso(x.to)! >= limit)) notes.push(`Urlop ojcowski trzeba wykorzystać do ukończenia przez dziecko ${p.paternityUntilChildMonths} miesięcy.`);
-  }
-
   const mainRate = periods[0]?.rate ?? (c.benefit === "sickness_pregnancy" ? p.rates.full : null);
   const monthly = eligible && basis && mainRate !== null ? round2(Math.max(basis.value * mainRate, MATERNITY_KINDS.includes(periods[0]?.kind ?? "sickness") ? p.parentalAllowanceMonthly : 0)) : null;
   const total = round2(periods.reduce((sum, x) => sum + x.total, 0));

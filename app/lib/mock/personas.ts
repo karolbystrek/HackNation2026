@@ -32,6 +32,7 @@ export type ParentProfile = {
   waitingWaived?: boolean;
   insurance: string;
   contributions: string;
+  contributionDebt?: { date: string; amount: number };
   sickLeaveFrom: string | null;
   /** Gross pay for the 12 months before the benefit, oldest first. */
   monthlyGross: number[];
@@ -51,6 +52,8 @@ export type Persona = {
   birthPlace?: string;
   childName?: string;
   paternityStart: string;
+  /** Paternity leave in one 14-day block or two 7-day parts (KP art. 182^3 § 1); each part needs its own request. */
+  paternityParts?: 1 | 2;
   initialVariant?: VariantKey;
   wantsAveragedRate?: boolean;
   /** knowledge/enums.json events about the child; defaults to ["birth"] (e.g. "adoption", "stillbirth", "prematurity"). */
@@ -185,7 +188,10 @@ personas.push(
         payer: "ZUS",
         payerSize: "na",
         insurance: "Od 01.03.2024 – dobrowolne",
+        insuredFrom: "2024-03-01",
         sickLeaveFrom: "2026-11-02",
+        contributions: "Zaległość składkowa w symulacji",
+        contributionDebt: { date: "2026-11-02", amount: 375 },
         monthlyGross: Array(12).fill(6500),
       },
       father: { ...employed.father, name: "Piotr", nameGenitive: "Piotra", lastName: "Wiśniewski", pesel: "93021432156", address: "ul. Długa 7/2, 31-147 Kraków" },

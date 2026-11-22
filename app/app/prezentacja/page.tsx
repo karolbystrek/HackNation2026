@@ -76,8 +76,8 @@ export default function Prezentacja() {
             <ul className="mt-2 divide-y border-y">
               {SHORTCUTS.map(([label, href]) => (
                 <li key={label}>
-                  <Link href={href} className="group flex min-h-11 items-center justify-between gap-3 py-2 text-primary hover:bg-secondary">
-                    <span className="group-hover:underline">{label}</span>
+                  <Link href={href} className="flex min-h-11 items-center justify-between gap-3 py-2 text-primary hover:bg-secondary">
+                    <span>{label}</span>
                     <ChevronRight aria-hidden className="size-4 shrink-0" />
                   </Link>
                 </li>
@@ -94,12 +94,12 @@ export default function Prezentacja() {
         <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map(({ icon: Icon, title, description, href }) => (
             <li key={title} className="flex">
-              <Link href={href} className="group flex w-full gap-4 border border-t-4 border-border border-t-brand bg-background p-5 hover:border-primary hover:shadow-sm">
+              <Link href={href} className="flex w-full gap-4 border border-t-4 border-border border-t-brand bg-background p-5 hover:border-primary hover:shadow-sm">
                 <span className="grid size-12 shrink-0 place-items-center bg-primary-soft text-primary">
                   <Icon aria-hidden strokeWidth={1.75} className="size-6" />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="font-bold group-hover:underline">{title}</span>
+                  <span className="font-bold">{title}</span>
                   <span className="text-muted-foreground">{description}</span>
                 </span>
                 <ArrowRight aria-hidden className="size-5 shrink-0 self-center text-primary" />
@@ -167,7 +167,7 @@ export default function Prezentacja() {
             <ButtonLink href="/nowa-os" variant="action">
               <CalendarDays aria-hidden className="size-5" /> Utwórz oś czasu
             </ButtonLink>
-            <Link href="/logowanie" className="inline-flex min-h-11 items-center gap-2 font-bold underline underline-offset-4 hover:no-underline">
+            <Link href="/logowanie" className="inline-flex min-h-11 items-center gap-2 font-bold">
               <ClipboardList aria-hidden className="size-5" /> Zobacz przykładową rodzinę
             </Link>
           </div>

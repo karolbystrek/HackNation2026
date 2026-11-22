@@ -5,6 +5,8 @@ import { buildVariants } from "@/lib/calc/variants";
 import { addDays, parseIso, toIso } from "@/lib/dates";
 import { buildFamilyTimeline } from "@/lib/family-timeline";
 import { formContext } from "@/lib/forms/context";
+import { loadSpecs } from "@/lib/forms/load";
+import { prefill } from "@/lib/forms/prefill";
 import { personaFromAnswers } from "@/lib/guide/persona";
 import type { Answers } from "@/lib/guide/tree";
 import { loadJourney } from "@/lib/knowledge";
@@ -41,7 +43,7 @@ test("employee mother at a large payer: no ZAM unless she picks 81.5%", async ()
   assert.equal(claim.form, undefined);
   assert.equal(claim.due, undefined);
   assert.deepEqual(claim.requires, ["birth-certificate"]);
-  assert.equal(get("birth-certificate-copy")?.extra, true);
+  assert.equal(get("birth-certificate-copy"), undefined);
 
   const averaged = (await timeline({ ...anna, wantsAveragedRate: true })).get("maternity-claim")!;
   assert.equal(averaged.form, "ff.zam");
@@ -87,8 +89,7 @@ test("self-employed father claims paternity benefit from ZUS before it starts", 
 // Questionnaire answers (/nowa-os) go through the same engine as the demo profiles.
 test("questionnaire: employed mother expecting twins, 81.5%", async () => {
   const { get } = await fromAnswers({ situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", multiplePregnancy: true, childrenCount: 2, wantsAveragedRate: true });
-  assert.equal(get("pre-birth-leave")!.date, "2027-01-18");
-  assert.ok(get("pre-birth-leave")!.extra, "leave before birth is optional");
+  assert.equal(get("pre-birth-leave"), undefined, "leave before birth requires the parent’s choice");
   assert.equal(get("maternity-claim")!.form, "ff.zam");
   assert.equal(get("maternity-claim")!.due, "2027-03-22");
   assert.equal(get("maternity-period")!.end, "2027-10-03"); // 31 weeks
@@ -105,6 +106,38 @@ test("questionnaire: premature baby gets supplementary leave right after materni
   assert.equal(get("supplementary-leave")!.form, "lr.supplementary_maternity");
   assert.equal(get("supplementary-leave")!.due, "2027-02-27"); // 21 days before maternity ends
   assert.equal((await fromAnswers({ ...a, hospitalWeeks: 0 })).get("supplementary-leave"), undefined);
+});
+
+test("the pre-birth request follows the selected day in the timeline and in the form", async () => {
+  const event = { id: "pre-test", type: "circumstance", circumstance: "preBirthLeave", who: "both", date: "2027-02-15",
+    source: "new", title: "Wybrany wcześniejszy macierzyński", description: "" } as const;
+  const journey = await loadJourney();
+  const found = formContext(anna, [...anna.events, event], "A", params, journey, [], "2026-11-21", "pre-birth-leave");
+  assert.equal(found?.entry.date, "2027-02-15");
+  assert.equal(found?.ctx.chosen?.result.periods.mother[0].from, "2027-02-15");
+  const { "lr.maternity_pre_birth": spec } = await loadSpecs(["lr.maternity_pre_birth"]);
+  assert.equal(prefill(spec, found!.ctx).start_date, "2027-02-15");
+});
+
+test("a separate civil registry application appears only after choosing another copy", async () => {
+  const { get } = await timeline(maja);
+  assert.equal(get("birth-certificate-copy"), undefined);
+  const event = { id: "copy-test", type: "circumstance", circumstance: "additionalBirthCertificate", who: "both", date: "2026-11-21",
+    source: "new", title: "Kolejny odpis", description: "" } as const;
+  const found = formContext(maja, [...maja.events, event], "A", params, await loadJourney(), [], "2026-11-21", "birth-certificate-copy");
+  assert.equal(found?.ctx.recipient, "usc");
+});
+
+test("a small payer files ZAS-12 with ZUS after receiving a continuation", async () => {
+  const persona = withParent(anna, "mother", { payer: "ZUS", payerSize: "le20" });
+  const event = { id: "continuation", type: "circumstance", circumstance: "laterSickLeave", who: "both", date: "2026-11-21",
+    source: "new", title: "Płatnik otrzymał kolejne e-ZLA", description: "" } as const;
+  const found = formContext(persona, [...persona.events, event], "A", params, await loadJourney(), [], "2026-11-21", "form-zas12-continuation");
+  assert.equal(found?.entry.form, "ff.zas12");
+  assert.equal(found?.entry.due, "2026-11-28");
+  assert.equal(found?.ctx.recipient, "zus");
+  const { "ff.zas12": spec } = await loadSpecs(["ff.zas12"]);
+  assert.equal(prefill(spec, found!.ctx).employment_continues, true);
 });
 
 test("questionnaire: uninsured mother applies for the parental allowance, not maternity benefit", async () => {

@@ -46,6 +46,18 @@ describe("analyzeCase", () => {
     expect(analyzeCase(base, defaultParams, 0).basis?.value).toBe(5177.4);
   });
 
+  it("keeps dates and money from a decision separate from input evidence", () => {
+    const r = analyzeCase({ ...base, requested: [], basisMonths: [] }, defaultParams);
+    expect(r.eligible).toBe(true);
+    expect(r.basis).toBeNull();
+    expect(r.periods).toEqual([]);
+    expect(r.monthly).toBeNull();
+  });
+
+  it("recognizes a documented lack of insurance even when there are no periods", () => {
+    expect(analyzeCase({ ...base, sickInsurance: [], uninsuredOnStart: true }, defaultParams).eligible).toBe(false);
+  });
+
   it("leaves eligibility open when no sickness insurance dates were read", () => {
     const missing = { ...base, sickInsurance: [] };
     const result = analyzeCase(missing, defaultParams);
@@ -97,4 +109,13 @@ describe("analyzeCase", () => {
     expect(analyzeCase(eq, defaultParams).eligible).toBe(true);
     expect(analyzeCase({ ...eq, insuranceEnd: { date: "2026-01-31", reason: "other" } }, defaultParams).eligible).toBe(false);
   });
+});
+
+it("pays no more than two weeks of paternity benefit", () => {
+  const result = analyzeCase({
+    ...base, claimant: "father",
+    requested: [{ kind: "paternity", from: "2026-04-01", to: "2026-04-15" }],
+  }, defaultParams, 6000);
+  expect(result.periods[0]).toMatchObject({ days: 14, to: "2026-04-14" });
+  expect(result.total).toBe(2800);
 });

@@ -4,7 +4,7 @@ Zasiłkowy Przewodnik Przyszłego Rodzica - rozwiązanie, które ułatwi przysz�
 
 ## Funkcje AI
 
-- Odczyt teczek ZUS (zakładka „Wnioski”, „Sprawdź teczkę ZUS”): model Gemini rozpoznaje dokumenty w zeskanowanym PDF i odczytuje dane potrzebne do wyliczenia.
+- Odczyt teczek ZUS (zakładka „Wnioski”): model Gemini rozpoznaje dokumenty w PDF i odczytuje dane do wyliczenia. Przy brakujących danych może ponownie odczytać odpowiednie strony.
 - Wszystko inne działa bez AI: sprawdzenie ubezpieczenia, podstawa wymiaru, okresy i kwoty zasiłku, walidacja i wypełnianie wniosków liczą deterministyczne reguły oparte na przepisach.
 
 ## Run locally

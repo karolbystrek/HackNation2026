@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { BackLink, Button, Card, Chip, PageBand } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
-import { PARENTS } from "@/lib/calc/leave";
 import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import { Disclosure } from "@/components/ui/disclosure";
@@ -25,15 +24,19 @@ export default function FamilyPage() {
 }
 
 function FamilyData() {
-  const { persona, fromGuide, params } = useFamily();
+  const { persona, fromGuide, params, entries, viewer } = useFamily();
   const from = useSearchParams().get("z") ?? "";
   const returnLabel = returnPages.get(from.split("?")[0]);
   const [question, setQuestion] = useState("insurance");
+  const [debtBenefit, setDebtBenefit] = useState<"maternity" | "sickness">("maternity");
+  const parent = persona.parents[viewer];
+  const debtDate = debtBenefit === "sickness" ? parent.sickLeaveFrom : persona.birthDate ?? persona.dueDate;
+  const debt = (parent.contributionDebt?.date === debtDate ? parent.contributionDebt?.amount : undefined) ?? (!fromGuide && parent.contributions.includes("brak zaległości") ? 0 : null);
   const [reply, setReply] = useState<string | null>(null);
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <PageBand title="Wasze dane" lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`} />
+      <PageBand title="Twoje dane i dane dziecka" lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja).`} />
       <div className="page">
       <BackLink href={returnLabel ? from : "/plan"}>{returnLabel ?? "Wróć do osi czasu"}</BackLink>
       <Card>
@@ -47,7 +50,7 @@ function FamilyData() {
             ["Data wystawienia karty urodzenia", persona.birthCardDate ? formatDate(persona.birthCardDate) : "Brak karty"],
             ["Zgłoszenie do USC", persona.birthRegistrationDate ? formatDate(persona.birthRegistrationDate) : "Oczekuje na zgłoszenie"],
             ["Akt urodzenia", persona.birthCertificateDate ? formatDate(persona.birthCertificateDate) : "Oczekuje na sporządzenie"],
-            ["Planowany początek ojcowskiego", formatDate(persona.paternityStart)],
+            ...(viewer === "father" ? [["Planowany początek ojcowskiego", formatDate(persona.paternityStart)]] : []),
             ...(persona.wantsAveragedRate ? [["Preferowana stawka zasiłku", "81,5% (jeśli pozwala na to podział urlopu)"]] : []),
           ].map(([label, value]) => (
             <div key={label}>
@@ -57,7 +60,7 @@ function FamilyData() {
         </dl>
       </Card>
       <div className="grid gap-6 md:grid-cols-2">
-        {PARENTS.map((key) => {
+        {[viewer].map((key) => {
           const parent = persona.parents[key];
           const last = parent.monthlyGross[parent.monthlyGross.length - 1];
           const rows: [string, string, string][] = [
@@ -90,14 +93,29 @@ function FamilyData() {
       </div>
       <Disclosure className="border-y" label={<strong>Sprawdź stan składek w symulacji eZUS</strong>}>
         <div className="grid gap-3 px-3 pb-4">
-          <p>Przykładowe zaświadczenie o zadłużeniu na dzień {formatDate(persona.birthDate ?? persona.dueDate)}.</p>
-          <dl>{PARENTS.map((key) => <div key={key} className="flex gap-2">
-            <dt>{persona.parents[key].name}</dt>
-            <dd>{!fromGuide && persona.parents[key].contributions.includes("brak zaległości") ? formatPln(0, 2) : "Brak danych w symulacji"}</dd>
-          </div>)}</dl>
+          <label className="grid gap-1 font-bold">
+            Dzień sprawdzenia zadłużenia
+            <select className="min-h-11 rounded-sm border border-input bg-background px-3 font-normal" value={debtBenefit}
+              onChange={(event) => setDebtBenefit(event.target.value === "sickness" ? "sickness" : "maternity")}>
+              <option value="maternity">Zasiłek macierzyński – dzień porodu</option>
+              <option value="sickness" disabled={!parent.sickLeaveFrom}>Zasiłek chorobowy – dzień rozpoczęcia zwolnienia</option>
+            </select>
+          </label>
+          {debtDate && <p>Przykładowe zaświadczenie o zadłużeniu na dzień {formatDate(debtDate)}.</p>}
+          <dl><div className="flex gap-2">
+            <dt>{parent.name}</dt>
+            <dd>{debtDate && debt !== null ? formatPln(debt, 2) : "Brak danych w symulacji"}</dd>
+          </div></dl>
+          <Disclosure label={<strong>Zaświadczenia e-ZLA</strong>}>
+            <ul className="space-y-2 px-3 pb-3">
+              {entries.filter((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")).map((entry) =>
+                <li key={entry.id}>{entry.title}. Od {formatDate(entry.date)}{entry.end ? ` do ${formatDate(entry.end)}` : ""}.</li>)}
+              {!entries.some((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")) && <li>Brak zaświadczeń w symulacji.</li>}
+            </ul>
+          </Disclosure>
           <form className="flex flex-col items-start gap-2" onSubmit={(event) => {
             event.preventDefault();
-            setReply(question === "insurance" ? "Ubezpieczenie każdego rodzica znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Zwolnienia każdego rodzica znajdziesz w sekcji „Zwolnienia e-ZLA”.");
+            setReply(question === "insurance" ? "Twoje ubezpieczenie znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Twoje zwolnienia znajdziesz w sekcji „Zwolnienia e-ZLA”.");
           }}>
             <label className="grid gap-1 font-bold">O co chcesz zapytać w symulacji?
               <select className="min-h-11 rounded-sm border border-input bg-background px-3 font-normal" value={question}

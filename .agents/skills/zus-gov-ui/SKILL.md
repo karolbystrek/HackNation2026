@@ -35,10 +35,10 @@ write raw hex in components.
 | --- | --- | --- | --- |
 | `background` | `#ffffff` | Page | – |
 | `foreground` | `#171717` | Text, headings | 17.9:1 |
-| `primary` | `#007c36` | Links, active nav, primary buttons, icons | 5.3:1 on white |
+| `primary` | `#007c36` | Links, active nav, primary buttons, icons, overscroll | 5.3:1 on white |
 | `primary-hover` | `#00652c` | Hover of green controls | 7.3:1 |
 | `primary-soft` | `#e8f3ec` | Hero band, selected rows, icon tiles | green text 4.7:1 |
-| `brand` | `#00993f` | Decorative only: top bar, tile accents | not for text |
+| `brand` | `#00993f` | Decorative only: tile accents | not for text |
 | `action` | `#ffb34f` | The single most important CTA per screen | – |
 | `action-hover` | `#f59f2a` | Hover of amber button | – |
 | `action-foreground` | `#00416e` | Text on amber | 6.0:1 (5.0:1 on hover) |
@@ -65,7 +65,7 @@ tiles.
   font-bold`, H3 `text-lg font-bold`. Headings are near-black, not green.
 - Section headings in gov.pl style may carry a short green bar:
   `before:block before:h-1 before:w-12 before:bg-brand before:mb-3`.
-- Reading columns ≤ 70ch. Underline inline links (`text-link`).
+- Reading columns ≤ 70ch. Use semibold green inline links (`text-link`).
 
 ## Shape and spacing
 
@@ -78,7 +78,7 @@ tiles.
 Build pages from full-width **bands**, each with a `shell` inside:
 
 1. **Demo strip** – `bg-secondary text-sm` one-liner with the demo statement.
-2. **Header** – white, `border-t-4 border-t-brand border-b`; left: square
+2. **Header** – white, `border-b`; left: square
    green mark (`size-10 bg-primary` with white initials "ZP") + product name in
    bold; right: account links. Compact, no mega-menu.
 3. **No breadcrumbs.** The project decided against them; panel pages rely on
@@ -91,8 +91,7 @@ Build pages from full-width **bands**, each with a `shell` inside:
    points only (2 cols on `sm`, 3 on `lg`). Each tile is a whole link:
    `group flex gap-4 border border-border bg-background p-5 border-t-4
    border-t-brand hover:border-primary hover:shadow-sm`; green outline Lucide
-   icon in a `size-12 bg-primary-soft` square; bold title that underlines on
-   hover; one-line description; `ArrowRight` at the end. Inside a task, keep
+   icon in a `size-12 bg-primary-soft` square; bold title; one-line description; `ArrowRight` at the end. Inside a task, keep
    content as lists and sections, not tiles.
 6. **Steps** ("Jak to działa") – ordered list, numbers in `size-10` green
    squares with white bold digits, title + one sentence.
@@ -106,7 +105,7 @@ Build pages from full-width **bands**, each with a `shell` inside:
    link with title, optional meta in `text-muted-foreground`, `ChevronRight`
    at the end, row hover `bg-secondary`.
 10. **Help band + footer** – `bg-navy text-navy-foreground`; links white and
-    underlined; columns collapse to one on phones; the demo statement here.
+    semibold; columns collapse to one on phones; the demo statement here.
 
 ## Components
 

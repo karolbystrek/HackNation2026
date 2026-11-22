@@ -6,6 +6,7 @@ export type EventKind = "birth" | "stillbirth" | "child_death" | "adoption" | "f
 export type PeriodKind = "maternity" | "supplementary" | "parental" | "paternity" | "maternity_conditions" | "sickness" | "equal_maternity";
 
 export type CasePeriod = { kind: PeriodKind; from: string; to: string };
+export type CaseSourceField = "benefit" | "event" | "requested" | "sickInsurance" | "basisMonths" | "decision";
 
 export type CaseExtraction = {
   documents: { kind: string; title: string; pages: string }[];
@@ -27,6 +28,8 @@ export type CaseExtraction = {
   requested: CasePeriod[];
   fullLeaveDeclaration: boolean;
   sickInsurance: { from: string; to: string | null; voluntary: boolean }[];
+  uninsuredOnStart?: boolean;
+  sources?: { field: CaseSourceField; pages: number[] }[];
   insuranceEnd: { date: string | null; reason: "none" | "employer_insolvency" | "unlawful_dismissal" | "other" };
   debtOnDate: boolean | null;
   /** Monthly gross pay (employees, contractors) or declared contribution base (self-employed). */
@@ -70,6 +73,18 @@ export const caseExtractionSchema = {
       },
     },
     benefit: { type: "string", enum: ["maternity", "sickness_pregnancy", "equal_maternity", "other"], description: "O jakie świadczenie toczy się sprawa" },
+    uninsuredOnStart: { type: "boolean", description: "True wyłącznie gdy dokument ubezpieczeniowy potwierdza brak chorobowego w pierwszym dniu wnioskowanego okresu." },
+    sources: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          field: { type: "string", enum: ["benefit", "event", "requested", "sickInsurance", "basisMonths", "decision"] },
+          pages: { type: "array", items: { type: "integer", minimum: 1 } },
+        },
+        required: ["field", "pages"],
+      },
+    },
     contract: { type: "string", enum: ["uop", "zlec", "jdg", "unknown"], description: "Tytuł ubezpieczenia: uop = umowa o pracę, zlec = zlecenie, jdg = działalność gospodarcza lub współpraca" },
     insuranceTitleCode: { type: ["string", "null"], description: "Kod tytułu ubezpieczenia, np. 0110, 0411, 0510, 0570" },
     claimant: { type: "string", enum: ["mother", "father", "other"] },
@@ -143,6 +158,11 @@ export function assertExtraction(value: unknown): asserts value is CaseExtractio
   const fail = (path: string) => { throw new Error(`Invalid extraction: ${path}`); };
   if (!v || typeof v !== "object") fail("root");
   if (!Array.isArray(v.documents) || !Array.isArray(v.requested) || !Array.isArray(v.sickInsurance) || !Array.isArray(v.basisMonths) || !Array.isArray(v.uncertain)) fail("arrays");
+  if (v.uninsuredOnStart !== undefined && typeof v.uninsuredOnStart !== "boolean") fail("uninsuredOnStart");
+  if (v.sources !== undefined && (!Array.isArray(v.sources) || v.sources.some((s) => !s || !Array.isArray(s.pages) ||
+    s.pages.some((n) => !Number.isInteger(n) || n < 1)))) fail("sources");
+  if (v.sickInsurance.some((s) => !s || !DATE.test(s.from) || (s.to !== null && (!DATE.test(s.to) || s.to < s.from)) ||
+    typeof s.voluntary !== "boolean")) fail("sickInsurance");
   if (!v.event || typeof v.event.kids !== "number") fail("event");
   if (v.event.date !== null && !DATE.test(v.event.date)) fail("event.date");
   for (const p of [...v.requested, ...(v.decision?.periods ?? [])]) if (!DATE.test(p.from) || !DATE.test(p.to) || !periodKinds.includes(p.kind)) fail("periods");

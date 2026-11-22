@@ -26,6 +26,7 @@ export const defaultParams = {
   employeeContributionRate: 0.1371,
   // 2026 minimum wage; a full-time employee's basis is never lower than this minus contributions (art. 45 u.z.).
   minWage: 4806,
+  contributionDebtLimitRate: 0.01,
   // 2026 cap on the monthly voluntary sickness contribution basis (250% of the forecast average wage).
   maxVoluntaryBasis: 23550,
   // Świadczenie rodzicielskie; a lower monthly maternity benefit is topped up to this amount (art. 31 ust. 3a u.z.).
@@ -34,8 +35,11 @@ export const defaultParams = {
   employerPaidDays: 33,
   employerPaidDaysOver50: 14,
   benefitPeriodDays: 270,
+  rehabilitationMaxMonths: 12,
   parentalUntilChildAge: 6,
   adoptionAgeLimit: { adoption: 14, foster: 7, fosterDeferred: 10 },
+  intakeMinimumMaternityWeeks: 9,
+  intakeShortParentalWeeks: { standard: 38, zaZyciem: 62 },
 };
 
 export type Params = typeof defaultParams;

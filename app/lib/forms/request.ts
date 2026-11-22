@@ -1,3 +1,4 @@
+import type { ParentKey } from "@/lib/calc/leave";
 import { readCustomLeave, type VariantKey } from "@/lib/calc/variants";
 import { parseIso, todayInWarsaw } from "@/lib/dates";
 import type { TimelineEvent } from "@/lib/events";
@@ -19,6 +20,7 @@ type Body = {
   /** Questionnaire answers; the server rebuilds a questionnaire case from them. */
   guideAnswers?: Answers;
   customLeave?: unknown;
+  viewer?: ParentKey;
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -27,11 +29,12 @@ const isObject = (value: unknown): value is Record<string, unknown> => typeof va
 export async function readApplicationRequest(request: Request): Promise<{ spec: FormSpec; ctx: FormContext; values: FormValues } | Response> {
   const body: unknown = await request.json().catch(() => null);
   if (!isObject(body) || typeof body.taskId !== "string" || typeof body.personaId !== "string" ||
+    (body.viewer !== undefined && body.viewer !== "mother" && body.viewer !== "father") ||
     !Array.isArray(body.events) || !Array.isArray(body.doneTasks) || !isObject(body.values) ||
     !(body.chosenVariant === null || ["A", "B", "C", "custom"].includes(body.chosenVariant as string))) {
     return Response.json({ error: "Expected taskId, personaId, chosenVariant, events, doneTasks and values" }, { status: 400 });
   }
-  const { taskId, personaId, chosenVariant, events, doneTasks, values, guideAnswers = {}, customLeave } = body as Body;
+  const { taskId, personaId, chosenVariant, events, doneTasks, values, guideAnswers = {}, customLeave, viewer } = body as Body;
   if (personaId === GUIDE_ID && (!isObject(guideAnswers) || Object.values(guideAnswers).some((answer) =>
     !["string", "number", "boolean"].includes(typeof answer) &&
     !(Array.isArray(answer) && answer.every((value) => typeof value === "string"))))) {
@@ -57,7 +60,7 @@ export async function readApplicationRequest(request: Request): Promise<{ spec: 
   const custom = readCustomLeave(customLeave);
   if (chosenVariant === "custom" && !custom) return Response.json({ error: "Invalid saved leave calculation" }, { status: 400 });
   const params = await loadParams();
-  const found = formContext(persona, events, chosenVariant, params, await loadJourney(), doneTasks, todayInWarsaw(), taskId, guideAnswers, custom);
+  const found = formContext(persona, events, chosenVariant, params, await loadJourney(), doneTasks, todayInWarsaw(), taskId, guideAnswers, custom, viewer);
   if (!found) return Response.json({ error: "This task has no application form" }, { status: 404 });
   const spec = (await loadSpecs([found.entry.form!]))[found.entry.form!];
   return { spec, ctx: found.ctx, values };

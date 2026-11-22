@@ -1,22 +1,29 @@
 import { parseIso } from "@/lib/dates";
 import { computeBasis } from "@/lib/calc/basis";
 import { otherParent, planLeave, type LeaveInput, type LeaveResult } from "@/lib/calc/leave";
+import type { TimelineEvent } from "@/lib/events";
 import type { Persona } from "@/lib/mock/personas";
 import type { Params } from "@/lib/params";
 
 export type VariantKey = "A" | "B" | "C" | "custom";
-export type CustomLeave = Pick<LeaveInput, "bases" | "kids" | "zaZyciem" | "otherWeeks" | "paternity" | "paternityStartDate" | "flatRate" | "workFractions">;
+export type CustomLeave = Pick<LeaveInput, "bases" | "kids" | "zaZyciem" | "otherWeeks" | "paternity" | "paternityStartDate" | "flatRate" | "workFractions"
+  | "parentalTogether" | "preBirthStartDate" | "supplementaryWeeks" | "monthlyPitAdvance" | "uninsuredParents">;
 
 export function readCustomLeave(value: unknown): CustomLeave | undefined {
   if (!value || typeof value !== "object") return;
-  const { bases, kids, zaZyciem, otherWeeks, paternity, paternityStartDate, flatRate, workFractions } = value as CustomLeave;
+  const { bases, kids, zaZyciem, otherWeeks, paternity, paternityStartDate, flatRate, workFractions, parentalTogether, preBirthStartDate, supplementaryWeeks, monthlyPitAdvance, uninsuredParents } = value as CustomLeave;
   const bounded = (number: unknown, max: number) => typeof number === "number" && Number.isFinite(number) && number >= 0 && number <= max;
   if (!bounded(bases?.mother, 1_000_000) || !bounded(bases?.father, 1_000_000) ||
     (paternityStartDate !== undefined && (typeof paternityStartDate !== "string" || !parseIso(paternityStartDate))) ||
+    (uninsuredParents !== undefined && (!Array.isArray(uninsuredParents) || uninsuredParents.some((parent) => parent !== "mother" && parent !== "father"))) ||
     !Number.isInteger(kids) || kids < 1 || kids > 10 || !bounded(otherWeeks, 104) ||
     ![zaZyciem, paternity, flatRate].every((flag) => typeof flag === "boolean") ||
     !bounded(workFractions?.mother, 0.5) || !bounded(workFractions?.father, 0.5)) return;
-  return { bases, kids, zaZyciem, otherWeeks, paternity, ...(paternityStartDate ? { paternityStartDate } : {}), flatRate, workFractions };
+  if (parentalTogether !== undefined && typeof parentalTogether !== "boolean" ||
+    preBirthStartDate !== undefined && (typeof preBirthStartDate !== "string" || (preBirthStartDate !== "" && !parseIso(preBirthStartDate))) ||
+    supplementaryWeeks !== undefined && (!bounded(supplementaryWeeks, 15) || !Number.isInteger(supplementaryWeeks)) ||
+    monthlyPitAdvance !== undefined && (!monthlyPitAdvance || !bounded(monthlyPitAdvance.mother ?? 0, 1_000_000) || !bounded(monthlyPitAdvance.father ?? 0, 1_000_000))) return;
+  return { bases, kids, zaZyciem, otherWeeks, paternity, ...(paternityStartDate ? { paternityStartDate } : {}), flatRate, workFractions, parentalTogether, preBirthStartDate, supplementaryWeeks, monthlyPitAdvance, ...(uninsuredParents === undefined ? {} : { uninsuredParents }) };
 }
 
 export type Variant = {
@@ -36,6 +43,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
     startDate: persona.birthDate ?? persona.dueDate,
     kids: persona.kids,
     zaZyciem: persona.zaZyciem ?? false,
+    uninsuredParents: (["mother", "father"] as const).filter((parent) => persona.parents[parent].insuredType === "uninsured"),
     adoptionType: persona.childEvents?.includes("foster_placement") ? "foster" : "adoption",
     childBirthDate: persona.adoptedChildBirthDate ?? "",
     adoptionOrderDate: persona.adoptionOrderDate,
@@ -52,7 +60,7 @@ export function leaveInputFor(persona: Persona, p: Params, otherWeeks: number): 
 }
 
 /** Three ways to split the parental leave pool, all computed by the same engine as the calculator. */
-export function buildVariants(persona: Persona, p: Params, custom?: CustomLeave): Variant[] {
+export function buildVariants(persona: Persona, p: Params, custom?: CustomLeave, events: TimelineEvent[] = []): Variant[] {
   const { father } = persona.parents;
   const base = leaveInputFor(persona, p, 0);
   const canShare = persona.parents[otherParent(base.main)].insuredType !== "uninsured";
@@ -64,10 +72,13 @@ export function buildVariants(persona: Persona, p: Params, custom?: CustomLeave)
     ...(custom ? [{ key: "custom" as const, name: "Ustalony podział urlopu", otherWeeks: custom.otherWeeks }] : []),
   ];
 
+  const preBirth = [...persona.events, ...events].reverse().find((event) => event.circumstance === "preBirthLeave");
   const variants = defs.filter((def) => canShare || def.key === "A" || def.key === "custom").map((def) => {
-    const input = { ...leaveInputFor(persona, p, def.otherWeeks), ...(def.key === "custom" ? custom : undefined) };
-    if (!canShare) input.otherWeeks = 0;
-    if (father.insuredType === "uninsured") input.paternity = false;
+    const configured = leaveInputFor(persona, p, def.otherWeeks);
+    const choice = def.key === "custom" ? custom : undefined;
+    const input = { ...configured, ...choice, supplementaryWeeks: choice?.supplementaryWeeks ?? configured.supplementaryWeeks,
+      preBirthStartDate: preBirth?.date ?? choice?.preBirthStartDate };
+    if (!canShare && def.key !== "custom") input.otherWeeks = 0;
     const result = planLeave(input, p);
     return { ...def, input, result };
   });

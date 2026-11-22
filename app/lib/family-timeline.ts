@@ -69,6 +69,13 @@ type TaskPlan = {
   period?: Omit<Entry, "kind" | "who" | "requires" | "estimated">;
 };
 
+/** What to check after a job event before the birth; maternity benefit needs sickness insurance on the day of birth. */
+const INSURANCE_CHECKS: Partial<Record<TimelineEvent["type"], string>> = {
+  contract: "Nowa umowa to nowy tytuł do ubezpieczenia. Sprawdź, czy obejmuje ubezpieczenie chorobowe, i zaktualizuj dane w kalkulatorze.",
+  contractEnd: "Bez ubezpieczenia chorobowego w dniu porodu nie ma zasiłku macierzyńskiego. Umowa o pracę na czas określony, która skończyłaby się po 3. miesiącu ciąży, trwa do dnia porodu (art. 177 § 3 Kodeksu pracy). Sprawdź swój tytuł do ubezpieczenia i zaktualizuj dane w kalkulatorze.",
+  business: "Zasiłek macierzyński z działalności przysługuje tylko z dobrowolnym ubezpieczeniem chorobowym. Sprawdź zgłoszenie do ubezpieczenia i brak zaległości w składkach, a potem zaktualizuj dane w kalkulatorze.",
+};
+
 export function buildFamilyTimeline(
   persona: Persona, events: TimelineEvent[], chosen: Variant | null, params: Params, journey: Journey, doneTasks: string[], today: string,
 ): FamilyTimelineEntry[] {
@@ -84,7 +91,12 @@ export function buildFamilyTimeline(
   // After a stillbirth only the 8-week maternity benefit is left, so the leave variant does not apply.
   const variant = lost ? null : chosen;
   const periods = variant?.result ?? planLeave(leaveInputFor(persona, params, 0), params);
-  const periodOf = (parent: ParentKey, kind: LeavePeriod["kind"]) => variant?.result.periods[parent].find((period) => period.kind === kind);
+  const periodOf = (parent: ParentKey, kind: LeavePeriod["kind"]) => {
+    const periods = variant?.result.periods[parent].filter((period) => period.kind === kind);
+    const first = periods?.[0];
+    return first && { ...first, to: periods?.at(-1)?.to ?? first.to };
+  };
+  const extraCopy = [...events].reverse().find((event) => event.circumstance === "additionalBirthCertificate");
   const supplementaryEvent = events.findLast((event) => event.circumstance === "supplementaryLeave");
   const stillbirth = childEvents.includes("stillbirth");
   const lossEnd = stillbirth ? shiftIso(birth, params.stillbirthWeeks * 7 - 1) : persona.childDeathDate
@@ -99,7 +111,9 @@ export function buildFamilyTimeline(
     estimated: event.id === birthEvent?.id && provisional,
   }));
 
-  if (parents.mother.insuredType === "after_insurance" && !events.some((event) => event.type === "sickLeave" && event.who === "mother")) entries.push({
+  const sickLeaveOf = (parent: ParentKey) => events.find((event) => event.who === parent && event.type === "sickLeave")
+    ?? (parent === "mother" ? events.find((event) => event.circumstance === "sicknessAfterInsurance") : undefined);
+  if (parents.mother.insuredType === "after_insurance" && !sickLeaveOf("mother")) entries.push({
     id: "sickness-check", kind: "application", who: "mother", date: today, recipient: "ZUS",
     title: "Sprawdź warunki zasiłku po ustaniu ubezpieczenia",
     description: "Sprawdź, czy zwolnienie zaczęło się przed ustaniem ubezpieczenia lub czy spełnia warunki po jego ustaniu.",
@@ -123,27 +137,28 @@ export function buildFamilyTimeline(
     },
     {
       id: "birth-certificate", kind: "document", who: "both", title: "Akt urodzenia dziecka",
-      description: stillbirth ? "Jeśli USC zarejestrował martwe urodzenie, otrzymasz akt urodzenia z odpowiednią adnotacją." : "Pierwszy skrócony odpis dostaniesz przy rejestracji. Jeśli potrzebujesz kolejnego, zamów go przez gov.pl.",
+      description: stillbirth ? "Jeśli USC zarejestrował martwe urodzenie, otrzymasz akt urodzenia z odpowiednią adnotacją." : "Pierwszy skrócony odpis dostaniesz przy rejestracji. ZUS może pobrać akt z rejestru.",
       guide: "https://www.gov.pl/web/gov/uzyskaj-odpis-aktu-stanu-cywilnego-urodzenia-malzenstwa-zgonu",
       date: birthRegistrationDate ?? cardDate, completedOn: birthCertificateDate,
       requires: ["birth-registration"], dateNote: birthCertificateDate ? undefined : "Po zgłoszeniu do USC",
     },
-    ...(!stillbirth ? [{
+    ...(!stillbirth && (extraCopy || doneTasks.includes("birth-certificate-copy")) ? [{
       id: "birth-certificate-copy", kind: "application", who: "both", title: "Wniosek o odpis aktu urodzenia",
       description: "Odpis skrócony dołączasz do wniosków urlopowych u pracodawcy. Wniosek złożysz przez gov.pl.",
-      date: birthCertificateDate ?? birthRegistrationDate ?? cardDate, recipient: "Urząd stanu cywilnego",
+      date: extraCopy?.date ?? birthCertificateDate ?? birthRegistrationDate ?? cardDate, recipient: "Urząd stanu cywilnego",
       guide: "https://www.gov.pl/web/gov/uzyskaj-odpis-aktu-stanu-cywilnego-urodzenia-malzenstwa-zgonu", requires: ["birth-certificate"],
-      estimated: !birthCertificateDate, form: "civil.birth_certificate", extra: true, dateNote: "Opcjonalnie, jeśli potrzebujesz kolejnego odpisu",
+      estimated: !birthCertificateDate, form: "civil.birth_certificate",
     } satisfies Entry] : []),
   );
 
   const maternity = periodOf("mother", "maternity");
   // shortcut: the leave engine plans a placement like a birth; its leave on maternity terms comes from conditions_leave instead.
-  if (maternity && !placed) entries.push({
+  // No sickness insurance on the day of birth, so no maternity leave or benefit (parental allowance or sickness benefit instead).
+  if (maternity && !placed && !["uninsured", "after_insurance"].includes(factsFor(persona, "mother", events, variant).insured_type)) entries.push({
     id: "maternity-period", kind: "period", who: "mother",
     title: persona.parents.mother.contract === "uop" ? "Urlop macierzyński" : "Okres zasiłku macierzyńskiego",
-    description: "Rozpoczęcie okresu wynika z daty porodu.",
-    date: maternity.from, end: shiftIso(maternity.to, -1), estimated: provisional, requires: [birthId],
+    description: maternity.from < birth ? "Macierzyński zaplanowano przed porodem." : "Rozpoczęcie okresu wynika z daty porodu.",
+    date: maternity.from, end: shiftIso(maternity.to, -1), estimated: provisional, requires: maternity.from < birth ? ["pre-birth-leave"] : [birthId],
   });
 
   // Applications and checks: which ones, their forms, recipients, deadlines and documents come from knowledge/scenarios.json.
@@ -162,7 +177,7 @@ export function buildFamilyTimeline(
         : task === "maternity_claim" && facts.payer_size === "unknown" && employee
           ? "Zapytaj pracodawcę, kto wypłaca zasiłek i jakie dokumenty masz przekazać."
           : [...new Set(steps.map((step) => step.action))].join(" ");
-      entries.push({
+      const entry: Entry = {
         id: plan.id, kind: "application", who: parent,
         title: form?.symbol ? `${plan.title} (${form.symbol})` : plan.title,
         description: plan.start ? `Planowany start: ${formatDate(plan.start)}. ${action}` : action,
@@ -183,8 +198,17 @@ export function buildFamilyTimeline(
         form: form?.id, documents,
         requires: plan.requires ?? [!stillbirth && documents.some((doc) => doc.id === "doc.birth_certificate_short") ? "birth-certificate" : birthId],
         estimated: plan.estimated ?? provisional, review: plan.review, extra: plan.optional,
-      });
+      };
+      entries.push(entry);
       if (plan.period) entries.push({ ...plan.period, kind: "period", who: parent, requires: [plan.id], estimated: provisional });
+      // Paternity leave in two 7-day parts: each part has its own request (KP art. 182^3); the family picks the second date later.
+      if (plan.id === "paternity" && persona.paternityParts === 2) entries.push({
+        ...entry, id: "paternity-2", title: `${entry.title} – druga część`, due: undefined, dateNote: "Termin drugiej części wybierzesz później",
+        description: employee
+          ? "Drugi tydzień urlopu ojcowskiego wykorzystasz do ukończenia przez dziecko 12 miesięcy. Wniosek złóż co najmniej 7 dni przed jego rozpoczęciem."
+          : "Drugi tydzień zasiłku za urlop ojcowski wykorzystasz do ukończenia przez dziecko 12 miesięcy. ZAM złóż przed jego rozpoczęciem.",
+        requires: ["paternity"],
+      });
     }
   }
 
@@ -207,28 +231,29 @@ export function buildFamilyTimeline(
           } : undefined,
         };
       case "pre_birth_leave": {
-        if (parent !== "mother" || !provisional) return null;
-        const start = shiftIso(persona.dueDate, -params.preBirthMaxWeeks * 7);
+        const start = [...events].reverse().find((event) => event.circumstance === "preBirthLeave")?.date ?? variant?.input.preBirthStartDate;
+        if (parent !== "mother" || !start || start >= birth || start < shiftIso(birth, -params.preBirthMaxWeeks * 7)) return null;
         return {
-          id: "pre-birth-leave", title: "Wniosek o urlop macierzyński przed porodem", date: start, start, optional: true, requires: [],
+          id: "pre-birth-leave", title: "Wniosek o urlop macierzyński przed porodem", date: start, start, requires: [],
           anchors: { leave_start: start, expected_birth_date: persona.dueDate },
         };
       }
       case "supplementary_leave": {
-        const weeks = persona.supplementaryWeeks;
+        const weeks = variant?.input.supplementaryWeeks ?? persona.supplementaryWeeks;
         if (parent !== (supplementaryEvent?.who === "father" ? "father" : persona.supplementaryParent ?? "mother") || factsFor(persona, parent, events, variant).insured_type === "uninsured") return null;
         if (!weeks) return {
           id: "supplementary-check", title: "Sprawdź prawo do urlopu lub zasiłku uzupełniającego",
           date: supplementaryEvent?.date ?? birth, dateNote: "Zacznij od zaświadczenia ze szpitala", anchors: {}, optional: true, requires: [],
         };
-        const start = maternity?.to ?? shiftIso(birth, maternityWeeks * 7);
+        const supplementary = periodOf(parent, "supplementary");
+        const start = supplementary?.from ?? periodOf(variant?.input.main ?? "mother", "maternity")?.to ?? maternity?.to ?? shiftIso(birth, maternityWeeks * 7);
         return {
           id: "supplementary-leave", title: "Wniosek o uzupełniający urlop macierzyński", date: birth, start,
           anchors: { maternity_leave_end: shiftIso(start, -1) },
           period: {
             id: "supplementary-period", title: "Uzupełniający urlop macierzyński",
             description: "Tydzień urlopu za każdy tydzień pobytu dziecka w szpitalu.",
-            date: start, end: shiftIso(start, weeks * 7 - 1),
+            date: start, end: supplementary ? shiftIso(supplementary.to, -1) : shiftIso(start, weeks * 7 - 1),
           },
         };
       }
@@ -261,7 +286,7 @@ export function buildFamilyTimeline(
         };
       }
       case "sickness_claim": {
-        const sick = events.find((event) => event.type === "sickLeave" && event.who === parent);
+        const sick = sickLeaveOf(parent);
         return sick ? {
           id: "sickness-claim", title: "Wniosek o zasiłek chorobowy", date: sick.date, estimated: false,
           anchors: { benefit_period_end: sick.endDate ?? undefined }, requires: [`event-${sick.id}`],
@@ -276,13 +301,15 @@ export function buildFamilyTimeline(
         const period = periods.periods.father.find((item) => item.kind === "paternity");
         if (!period) return null;
         const start = period.from;
+        const end = shiftIso(period.to, -1);
+        const twoParts = persona.paternityParts === 2;
         return {
           id: "paternity", date: birth, start, anchors: { leave_start: start },
           title: employee ? "Wniosek o urlop ojcowski" : "Wniosek o zasiłek za urlop ojcowski",
           period: {
-            id: "paternity-period", title: employee ? "Urlop ojcowski" : "Okres zasiłku za urlop ojcowski",
+            id: "paternity-period", title: `${employee ? "Urlop ojcowski" : "Okres zasiłku za urlop ojcowski"}${twoParts ? " – pierwsza część" : ""}`,
             description: "Może przypadać w tym samym czasie co urlop macierzyński.",
-            date: start, end: shiftIso(period.to, -1),
+            date: start, end: twoParts ? [shiftIso(start, params.paternityMinPartDays - 1), end].sort()[0] : end,
           },
         };
       }
@@ -315,6 +342,16 @@ export function buildFamilyTimeline(
     throw new Error(`knowledge/scenarios.json uses task "${task}", which the timeline does not know`);
   }
 
+  // Job events are prompts, not facts: the event alone does not establish the insurance (docs/project-conventions.md).
+  for (const event of events) {
+    const check = INSURANCE_CHECKS[event.type];
+    if (!check || event.date > birth) continue;
+    entries.push({
+      id: `insurance-check-${event.id}`, kind: "application", who: event.who, date: event.date,
+      title: "Sprawdź ubezpieczenie w dniu porodu", description: check, requires: [`event-${event.id}`],
+    });
+  }
+
   // Other ZUS forms: filled by the employer, a doctor, or only in special situations.
   const payerOfBenefit = parents.mother.payerSize === "gt20" ? "Płatnik składek" : "ZUS";
   const afterMandatoryWeeks = shiftIso(birth, params.motherOnlyWeeks * 7);
@@ -332,7 +369,7 @@ export function buildFamilyTimeline(
     ["ff.z10", "mother", "Oświadczenie do zasiłku po ustaniu ubezpieczenia (Z-10)", "Gdy umowa skończyła się, a zwolnienie lekarskie trwa dalej.", birth, "ZUS"],
     ["ff.znp7", "mother", "Wniosek o świadczenie rehabilitacyjne (ZNp-7)", "Gdy po wyczerpaniu zasiłku chorobowego potrzebne jest dalsze leczenie.", birth, "ZUS"],
     // Leave requests to the employer for special situations (rozporządzenie MRiPS z 11.03.2025).
-    ["lr.maternity_pre_birth", "mother", "Wniosek o część urlopu macierzyńskiego przed porodem", "Do 6 tygodni urlopu przed przewidywaną datą porodu.", shiftIso(persona.dueDate, -42), "Pracodawca"],
+    ["ff.zas12", "mother", "Zaświadczenie płatnika za dalszy okres (ZAS-12)", "Płatnik przekazuje zaświadczenie do ZUS, jeżeli poprzedni okres został już zgłoszony.", birth, "ZUS"],
     ["lr.maternity_resign_14w", "mother", "Wniosek o rezygnację z części urlopu macierzyńskiego", "Po wykorzystaniu 14 tygodni mama wraca do pracy, a resztę urlopu bierze tata.", afterMandatoryWeeks, "Pracodawca"],
     ["lr.maternity_takeover", "father", "Wniosek ojca o pozostałą część urlopu macierzyńskiego", "Tata przejmuje urlop, z którego zrezygnowała mama.", afterMandatoryWeeks, "Pracodawca"],
     ["lr.maternity_resign_incapacity", "mother", "Wniosek o rezygnację z urlopu macierzyńskiego z powodu niezdolności do samodzielnej egzystencji", "Po 8 tygodniach, gdy mama ma orzeczenie o niezdolności do samodzielnej egzystencji.", shiftIso(birth, 56), "Pracodawca"],
@@ -358,12 +395,17 @@ export function buildFamilyTimeline(
     const payerDocument = (form === "ff.z3" && parents.mother.contract === "uop" ||
       form === "ff.z3a" && parents.mother.contract === "zlec") && payerOfBenefit === "ZUS" && parents.mother.payer === "ZUS";
     const paternityCertificate = form === "ff.zas15" && chosen?.input.paternity && parents.father.contract === "uop" && parents.father.payer === "ZUS";
+    if (form === "ff.zas12" && (parents.mother.contract === "jdg" || parents.mother.payerSize !== "le20")) continue;
     if (!trigger && !payerDocument && !paternityCertificate) continue;
-    const extra = ["ff.z3", "ff.z3a", "ff.zas15", "ff.zas24", "ff.zas40", "ff.zas2"].includes(form);
+    const extra = ["ff.z3", "ff.z3a", "ff.zas12", "ff.zas15", "ff.zas24", "ff.zas40", "ff.zas2"].includes(form);
     entries.push({
       id: `form-${form.slice(3)}${trigger ? `-${trigger.id}` : ""}`, kind: "application", who, title, description,
       date: trigger?.date ?? date,
       recipient, form, extra, trigger,
+      ...(form === "ff.zas12" && trigger ? {
+        guide: "https://www.zus.pl/-/zaswiadczenie-zas-4",
+        due: shiftIso(trigger.date, journey.deadlines["deadline.payer_forward_docs"].offset.value),
+      } : {}),
     });
   }
 

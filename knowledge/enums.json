@@ -151,7 +151,8 @@
         {"value": "other_employment_provided", "label_pl": "zapewniono inne zatrudnienie (bool)"},
         {"value": "no_pesel", "label_pl": "osoba nie ma nadanego numeru PESEL (bool)"},
         {"value": "chooses_averaged_rate", "label_pl": "rodzina wybiera wariant 81,5% (bool)"},
-        {"value": "shares_parental", "label_pl": "oboje rodzice korzystają z urlopu rodzicielskiego (bool)"}
+        {"value": "shares_parental", "label_pl": "oboje rodzice korzystają z urlopu rodzicielskiego (bool)"},
+        {"value": "child_over_age_limit", "label_pl": "dziecko przekroczyło limit wieku przy przyjęciu (adopcja 14 lat, rodzina zastępcza 7/10 lat; bool)"}
       ]
     }
   ]

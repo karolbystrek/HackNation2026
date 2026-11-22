@@ -24,7 +24,7 @@ const benefitSources: Record<string, string> = {
 };
 
 export default function Benefits() {
-  const { plan, persona, entries, fromGuide, params } = useFamily();
+  const { plan, entries, fromGuide, params } = useFamily();
 
   if (!fromGuide) {
     return (
@@ -32,8 +32,8 @@ export default function Benefits() {
         <PageBand title="Świadczenia" />
         <div className="page">
         <Notice className="flex flex-col items-start gap-2">
-          <p>Sprawdź symulowane ubezpieczenie i dostępne formalności dla rodziny {persona.label}.</p>
-          <ButtonLink href="/rodzina?z=%2Fswiadczenia" variant="outline">Sprawdź ubezpieczenie rodziców</ButtonLink>
+          <p>Sprawdź swoje symulowane ubezpieczenie i formalności.</p>
+          <ButtonLink href="/rodzina?z=%2Fswiadczenia" variant="outline">Sprawdź swoje ubezpieczenie</ButtonLink>
           <ButtonLink href="/kalkulator?tryb=birth" variant="link">Oblicz zasiłek macierzyński</ButtonLink>
         </Notice>
         <section aria-labelledby="demo-benefits">

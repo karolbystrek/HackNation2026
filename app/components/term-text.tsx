@@ -40,7 +40,7 @@ export function HelpPopover({ trigger, title, children }: { trigger?: ReactNode;
     // A click inside a <label> would otherwise focus the input or toggle the option.
     <span onClick={(e) => { if ((e.target as HTMLElement).closest("button")) e.preventDefault(); }}>
       <Popover>
-        <PopoverTrigger openOnHover delay={200} className={cn("inline cursor-help rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", trigger && "underline decoration-primary decoration-dotted decoration-2 underline-offset-4")}>
+        <PopoverTrigger openOnHover delay={200} className={cn("inline cursor-help rounded-sm text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", trigger && "font-semibold text-primary")}>
           {trigger}
           <CircleHelp aria-hidden="true" className="ml-1 inline size-[0.9em] align-[-0.1em] text-primary" />
           <span className="sr-only">{trigger ? " – wyjaśnienie" : "Wyjaśnienie"}</span>
@@ -48,7 +48,7 @@ export function HelpPopover({ trigger, title, children }: { trigger?: ReactNode;
         <PopoverContent align="start" className="text-left text-base font-normal leading-normal">
           <PopoverTitle className="text-lg first-letter:uppercase">{title}</PopoverTitle>
           <PopoverDescription>{children}</PopoverDescription>
-          <PopoverClose className="self-start font-bold text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+          <PopoverClose className="self-start font-bold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
             Zamknij
           </PopoverClose>
         </PopoverContent>

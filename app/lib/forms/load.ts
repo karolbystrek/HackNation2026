@@ -8,7 +8,7 @@ export const FORM_IDS = [
   "lr.supplementary_maternity", "lr.maternity_pre_birth", "lr.maternity_resign_14w", "lr.maternity_resign_incapacity",
   "lr.maternity_takeover", "lr.maternity_mother_hospital", "lr.maternity_mother_death", "lr.maternity_abandonment",
   "lr.maternity_uninsured_mother_incapacity", "lr.maternity_uninsured_mother_works", BIRTH_CERTIFICATE_REQUEST.id,
-  "ff.z3", "ff.z3a", "ff.z10", "ff.znp7", "ff.zas55", "ff.zas15", "ff.zas24", "ff.zas23", "ff.zas26", "ff.zas33", "ff.zas40", "ff.zas2",
+  "ff.z3", "ff.z3a", "ff.zas12", "ff.z10", "ff.znp7", "ff.zas55", "ff.zas15", "ff.zas24", "ff.zas23", "ff.zas26", "ff.zas33", "ff.zas40", "ff.zas2",
 ];
 
 // Polish labels for the coded options of the forms above; unknown codes fall back to the code itself.

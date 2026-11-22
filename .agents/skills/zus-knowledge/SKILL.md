@@ -103,7 +103,14 @@ jq '.records[] | select(.verification.status=="unverified") | .id' knowledge/*.j
 - due date: the earliest non-`limit` deadline whose anchor the task knows and whose `applies_to` matches;
 - description: the step `action_pl`.
 
-`family-timeline.ts` (`taskPlan`) only adds ids, titles and the leave dates from the calculator. Untagged steps are context only. A new `task` value needs a case in `taskPlan`; `npm test` (`lib/journey.test.ts`) fails otherwise. Do not add a `note_pl` leaf to a condition the app evaluates: it always counts as false.
+`family-timeline.ts` (`taskPlan`) only adds ids, titles and the leave dates from the calculator. Untagged steps are context only. A new `task` value needs a case in `taskPlan`; `npm test` (`lib/journey.test.ts`) fails otherwise. Do not add a `note_pl` leaf to a condition the app evaluates: it always counts as false. Event values the app emits (`lib/guide/persona.ts`) must match `enums.json` exactly, or no scenario matches.
+
+Events added under "Dodaj wydarzenie" become facts in the same place (`factsFor` in `app/lib/journey.ts`): special situations map to `enums.json` events and a recorded birth or adoption replaces the expected birth (`currentPersona`). Job events (new contract, contract end, business) do not change the insurance, because the event alone does not establish it (`docs/project-conventions.md`); the timeline adds a "check your insurance on the day of birth" task instead. Only situations the knowledge base does not model yet add forms from the fixed list in `app/lib/events.ts` (`CIRCUMSTANCES`).
+
+Three tests guard the plan against ZUS rules:
+- `app/lib/zus-rules.test.ts`: questionnaire answers with the result the law requires, cited per row and worked out by hand, never copied from app output. Add a row for every rule you add or fix.
+- `app/lib/questionnaire-coverage.test.ts`: changes one answer at a time and checks that each question changes what `EFFECTS` says (actions, dates or money), or gives a written reason why it changes nothing. A new question fails until it is listed.
+- `app/lib/event-coverage.test.ts`: the same for each "Dodaj wydarzenie" event type and special situation, plus pairs that must give the same tasks from an event and from the matching questionnaire answer.
 
 ## Editing rules
 
