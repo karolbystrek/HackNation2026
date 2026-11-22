@@ -42,6 +42,8 @@ The public-service UI uses the light theme from `app/app/globals.css`. Use its s
 ## Conventions
 
 - UI copy in Polish, code (identifiers, comments) in English. Keep labels that help users understand a state or decide what to do next. Put administrative detail in expanded views and avoid repeating a status in the date label.
+- Show required documents directly on application lists and above the form. Link document names to the relevant service or official template. Use a short issuer hint for documents obtained from a person or institution.
+- Let page titles use the available header width. Apply reading-width limits to descriptive copy.
 - Show separate values in labelled rows or a responsive grid. Use spacing and typography to group information instead of middle-dot separators.
 - Mobile-first responsive layout - every screen must work on a phone (formal requirement).
 - All benefit parameters (percentages, durations, limits) are defined in one place: defaults in `app/lib/params.ts`, overridable from the Supabase table edited in the admin panel. Never hardcode a rate or a duration elsewhere.

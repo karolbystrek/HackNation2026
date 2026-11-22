@@ -1,5 +1,7 @@
 "use client";
 
+import { DocumentList } from "@/components/document-list";
+
 import Link from "next/link";
 import { ApplicationAction } from "@/components/application-action";
 import { Chip, PageBand, SectionTitle } from "@/components/ui";
@@ -71,16 +73,7 @@ export default function Tasks() {
               {task.documents.length > 0 && (
                 <div>
                   <dt className="font-bold">Dokumenty do przygotowania</dt>
-                  <dd>
-                    <ul className="list-disc space-y-1 pl-5">
-                      {task.documents.map((doc) => (
-                        <li key={doc.id}>
-                          {doc.title}
-                          {doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </dd>
+                  <dd><DocumentList documents={task.documents} /></dd>
                 </div>
               )}
             </dl>

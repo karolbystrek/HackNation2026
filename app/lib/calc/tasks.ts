@@ -2,6 +2,8 @@ import { formatDate } from "@/lib/dates";
 import type { EventWho } from "@/lib/events";
 import type { FamilyTimelineEntry } from "@/lib/family-timeline";
 
+import type { RequiredDocument } from "@/lib/journey";
+
 export type Task = {
   id: string;
   due: string | null;
@@ -14,7 +16,7 @@ export type Task = {
   deadlineDetail?: string;
   form?: string;
   extra: boolean;
-  documents: { id: string; title: string; instruction?: string }[];
+  documents: RequiredDocument[];
   done: boolean;
   locked: boolean;
   waitingFor: FamilyTimelineEntry[];

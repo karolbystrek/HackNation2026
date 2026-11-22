@@ -19,9 +19,9 @@ export function PageBand({ title, lead, actions, children }: {
   return (
     <header className="shell flex flex-col gap-4 pt-6 sm:pt-8">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="max-w-[70ch]">
+        <div className="min-w-0">
           <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{title}</h1>
-          {lead && <div className="mt-3 text-lg">{lead}</div>}
+          {lead && <div className="mt-3 max-w-[70ch] text-lg">{lead}</div>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-x-5 gap-y-2">{actions}</div>}
       </div>
@@ -138,9 +138,9 @@ export function Chip({ children, className }: { children: ReactNode; className?:
 
 export function PageTitle({ children, lead }: { children: ReactNode; lead?: ReactNode }) {
   return (
-    <div className="max-w-[70ch]">
+    <div className="min-w-0">
       <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{children}</h1>
-      {lead && <p className="mt-3 text-lg text-muted-foreground">{lead}</p>}
+      {lead && <p className="mt-3 max-w-[70ch] text-lg text-muted-foreground">{lead}</p>}
     </div>
   );
 }

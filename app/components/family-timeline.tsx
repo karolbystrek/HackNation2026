@@ -1,5 +1,7 @@
 "use client";
 
+import { DocumentList } from "@/components/document-list";
+
 import Link from "next/link";
 import { useLayoutEffect, type MouseEvent, type ReactNode } from "react";
 import { Button, ButtonLink, Chip } from "@/components/ui";
@@ -209,7 +211,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                 {!!entry.documents?.length && (
                   <div>
                     <dt>Dokumenty</dt>
-                    <dd><ul role="list" className="space-y-1">{entry.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-sm text-muted-foreground">{doc.instruction}</span>}</li>)}</ul></dd>
+                    <dd><DocumentList documents={entry.documents} /></dd>
                   </div>
                 )}
                 {entry.review && (
