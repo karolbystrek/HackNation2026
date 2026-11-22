@@ -48,6 +48,8 @@ export type Persona = {
   birthPlace?: string;
   childName?: string;
   paternityStart: string;
+  /** Paternity leave in one 14-day block or two 7-day parts (KP art. 182^3 § 1); each part needs its own request. */
+  paternityParts?: 1 | 2;
   initialVariant?: VariantKey;
   wantsAveragedRate?: boolean;
   /** knowledge/enums.json events about the child; defaults to ["birth"] (e.g. "adoption", "stillbirth", "prematurity"). */

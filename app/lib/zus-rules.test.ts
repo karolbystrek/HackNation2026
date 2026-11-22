@@ -13,8 +13,8 @@ import { defaultParams as params } from "@/lib/params";
 
 const TODAY = "2026-11-22";
 
-/** Fields of one timeline entry that must match; `form: null` means no form to file. Documents match by substring. */
-type Want = { form?: string | null; recipient?: string; date?: string; end?: string; due?: string; documents?: string[] };
+/** Fields of one timeline entry that must match; null means none (no form, no fixed deadline). Documents match by substring. */
+type Want = { form?: string | null; recipient?: string; date?: string; end?: string; due?: string | null; documents?: string[] };
 type Row = { name: string; source: string; answers: Answers; expect: Record<string, Want | "present" | "absent">; gap?: string };
 
 const born = { situation: "born", birthDate: "2026-11-01", multipleBirth: false, insurance: ["employment"] };
@@ -135,6 +135,60 @@ const rows: Row[] = [
       "conditions-leave": { due: "2026-11-17" },
       "parental-mother": { form: "lr.parental", recipient: "Pracodawca", due: "2027-03-09" },
       "parental-mother-period": { date: "2027-03-30" },
+    },
+  },
+  {
+    name: "foster child aged 12: past the age limit",
+    source: "KP art. 183 §1 and ustawa zasiłkowa art. 29: a foster child up to 7 (10 with school deferral).",
+    answers: { situation: "foster", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 12, multiplePlacement: false },
+    expect: { "conditions-leave": "absent", "maternity-claim": "absent", "parental-mother": "absent" },
+  },
+  {
+    name: "adopted child aged 15: past the age limit",
+    source: "KP art. 183 §1 and ustawa zasiłkowa art. 29: adoption of a child up to 14.",
+    answers: { situation: "adoption", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 15, multiplePlacement: false },
+    expect: { "conditions-leave": "absent", "maternity-claim": "absent", "parental-mother": "absent" },
+  },
+  {
+    name: "adoption: father's paternity leave after the order is final",
+    source: "KP art. 182^3 §1 pkt 2: paternity leave within 12 months of the final adoption order. KP art. 182^3 §2: request ≥7 days before.",
+    answers: { situation: "adoption", role: "mother", insurance: ["employment"], placementDate: "2026-11-10", childAge: 3, multiplePlacement: false, adoptionOrderDate: "2027-02-01" },
+    expect: {
+      paternity: { form: "lr.paternity", due: "2027-01-25" },
+      "paternity-period": { date: "2027-02-01", end: "2027-02-14" },
+    },
+  },
+  {
+    name: "father takes paternity leave in two parts",
+    source: "KP art. 182^3 §1: up to two parts of at least 7 days. KP art. 182^3 §2: a request ≥7 days before each part.",
+    answers: { ...born, role: "father", largeEmployer: "yes", paternityParts: "two" },
+    expect: {
+      paternity: { form: "lr.paternity", due: "2026-11-22" },
+      "paternity-period": { date: "2026-11-29", end: "2026-12-05" },
+      "paternity-2": { form: "lr.paternity", due: null },
+    },
+  },
+  {
+    name: "insurance ended, sick leave 2 days later",
+    source: "Ustawa zasiłkowa art. 7: sickness benefit after insurance ends if the illness starts within 14 days. Poradnik p.29: no insurance on the day of birth, no maternity benefit.",
+    answers: { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", special: ["insuranceEnded"], insuranceEndDate: "2026-11-08", sicknessStartAfterInsurance: "2026-11-10" },
+    expect: { "sickness-claim": { form: "ff.zas53" }, "maternity-period": "absent", "maternity-claim": "absent" },
+  },
+  {
+    name: "insurance ended, sick leave 42 days later",
+    source: "Ustawa zasiłkowa art. 7: the general limit is 14 days after insurance ends (longer only for some illnesses, so check).",
+    answers: { situation: "pregnant", role: "mother", insurance: ["employment"], dueDate: "2027-03-01", special: ["insuranceEnded"], insuranceEndDate: "2026-11-08", sicknessStartAfterInsurance: "2026-12-20" },
+    expect: { "sickness-claim": "absent", "sickness-check": "present" },
+  },
+  {
+    name: "child died after 8 weeks",
+    source: "KP art. 180^1 §2 and poradnik p.33: leave lasts 7 days from the death. Poradnik p.33: funeral grant. No childcare leave after the death.",
+    answers: { ...born, birthDate: "2026-08-01", role: "mother", special: ["childDeath"], childDeathDate: "2026-11-01" },
+    expect: {
+      "maternity-period": { date: "2026-08-01", end: "2026-11-07" },
+      "funeral-claim": { recipient: "ZUS" },
+      paternity: "absent",
+      "parental-mother": "absent",
     },
   },
   {

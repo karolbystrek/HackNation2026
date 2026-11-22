@@ -67,6 +67,8 @@ export type LeaveResult = {
   flatRateApplied: boolean;
   deadline: string;
   warnings: string[];
+  /** The adopted or fostered child was past the age limit when taken in (KP art. 183), so no leave or benefit. */
+  noRight: boolean;
 };
 
 /** Exclusive end of the legal paternity window. */
@@ -235,5 +237,6 @@ export function planLeave(input: LeaveInput, p: Params): LeaveResult {
     flatRateApplied,
     deadline,
     warnings,
+    noRight,
   };
 }

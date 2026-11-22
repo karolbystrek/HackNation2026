@@ -50,19 +50,34 @@ export type Facts = {
 
 const INSURED_TYPE = { uop: "employee", zlec: "contractor", jdg: "self_employed" } as const;
 
+/**
+ * Special situations from "Dodaj wydarzenie" in the vocabulary of knowledge/enums.json, the same as the questionnaire's answers.
+ * Job events (new contract, contract end, business) do not change the insurance: the event alone does not establish it
+ * (docs/project-conventions.md), so the timeline asks the family to check it instead.
+ */
+function eventFacts(parent: ParentKey, events: TimelineEvent[]): string[] {
+  const has = (circumstance: string) => events.some((event) => event.type === "circumstance" && event.circumstance === circumstance);
+  return [
+    ...(has("supplementaryLeave") ? ["child_hospitalisation"] : []),
+    ...(has("motherHospital") ? ["mother_hospitalisation"] : []),
+    ...(parent === "mother" && has("employerInsolvency") ? ["job_loss_liquidation"] : []),
+    ...(events.some((event) => event.type === "returnToWork" && (event.who === parent || event.who === "both")) ? ["combine_parental_with_work"] : []),
+  ];
+}
+
 export function factsFor(persona: Persona, parent: ParentKey, events: TimelineEvent[], chosen: Variant | null): Facts {
   const me = persona.parents[parent];
   const takesParental = (who: ParentKey) => !!chosen?.result.periods[who].some((period) => period.kind === "parental");
-  const sickInPregnancy = parent === "mother" && events.some((event) => event.type === "sickLeave" && event.who === "mother");
+  const afterInsurance = parent === "mother" && events.some((event) => event.circumstance === "sicknessAfterInsurance");
+  const sickInPregnancy = parent === "mother" && (afterInsurance || events.some((event) => event.type === "sickLeave" && event.who === "mother"));
   const worksOnParental = !!chosen?.result.periods[parent].some((period) => period.kind === "parental" && period.workFraction > 0);
   const childEvents = persona.childEvents ?? ["birth"];
   return {
-    insured_type: me.insuredType ?? INSURED_TYPE[me.contract],
+    insured_type: afterInsurance ? "after_insurance" : me.insuredType ?? INSURED_TYPE[me.contract],
     payer_size: me.payerSize,
     parent_role: parent,
     events: [...new Set([
-      ...childEvents, ...(me.events ?? []),
-      ...(events.some((event) => event.circumstance === "supplementaryLeave") ? ["child_hospitalisation"] : []),
+      ...childEvents, ...(me.events ?? []), ...eventFacts(parent, events),
       ...(sickInPregnancy ? ["sickness_in_pregnancy"] : []),
       ...(worksOnParental ? ["combine_parental_with_work"] : []),
     ])],
@@ -73,6 +88,7 @@ export function factsFor(persona: Persona, parent: ParentKey, events: TimelineEv
       no_pesel: false,
       has_za_zyciem: childEvents.includes("za_zyciem"),
       school_deferral: false,
+      child_over_age_limit: !!chosen?.result.noRight,
     },
   };
 }

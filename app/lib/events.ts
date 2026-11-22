@@ -48,7 +48,7 @@ export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] =
   {
     type: "contract",
     label: "Zmiana pracy lub umowy",
-    effect: "Nowa umowa to nowe ubezpieczenie. Prawo do zasiłku chorobowego co do zasady po 30 dniach. Wcześniejsze okresy się liczą, jeśli przerwa nie przekroczy 30 dni.",
+    effect: "Nowa umowa to nowe ubezpieczenie. Prawo do zasiłku chorobowego co do zasady po 30 dniach. Wcześniejsze okresy się liczą, jeśli przerwa nie przekroczy 30 dni. Plan doda zadanie: sprawdź ubezpieczenie w dniu porodu.",
   },
   {
     type: "salary",
@@ -58,12 +58,12 @@ export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] =
   {
     type: "contractEnd",
     label: "Koniec umowy",
-    effect: "Umowa o pracę na czas określony, która skończyłaby się po 3. miesiącu ciąży, przedłuża się do porodu. Bez ubezpieczenia w dniu porodu nie ma zasiłku macierzyńskiego.",
+    effect: "Umowa o pracę na czas określony, która skończyłaby się po 3. miesiącu ciąży, przedłuża się do porodu. Bez ubezpieczenia w dniu porodu nie ma zasiłku macierzyńskiego. Plan doda zadanie: sprawdź ubezpieczenie w dniu porodu.",
   },
   {
     type: "business",
     label: "Działalność gospodarcza",
-    effect: "Dobrowolne ubezpieczenie chorobowe daje prawo do zasiłku po 90 dniach. Sprawdzimy też, czy nie macie zaległości w składkach.",
+    effect: "Zasiłek macierzyński z działalności wymaga dobrowolnego ubezpieczenia chorobowego, a zasiłek chorobowy – 90 dni tego ubezpieczenia. Plan doda zadanie: sprawdź zgłoszenie i brak zaległości w składkach.",
   },
   {
     type: "returnToWork",
