@@ -4,22 +4,22 @@ export type EventType = "birth" | "adoption" | "contract" | "salary" | "contract
 export type EventWho = ParentKey | "both";
 
 export const CIRCUMSTANCES = {
-  childLoss: { label: "Śmierć dziecka", forms: [] },
-  zaZyciem: { label: "Otrzymanie zaświadczenia „Za życiem”", forms: [] },
-  preBirthLeave: { label: "Rozpoczęcie urlopu macierzyńskiego przed porodem", forms: ["lr.maternity_pre_birth", "ff.zas2"] },
-  maternityTakeover: { label: "Powrót matki po 14 tygodniach i przejęcie urlopu przez ojca", forms: ["lr.maternity_resign_14w", "lr.maternity_takeover", "ff.zas23", "ff.zas24"] },
-  motherIncapacity: { label: "Przerwanie urlopu przez matkę z orzeczeniem o niezdolności do samodzielnej egzystencji", forms: ["lr.maternity_resign_incapacity"] },
-  motherHospital: { label: "Przerwanie urlopu przez matkę z powodu pobytu w szpitalu", forms: ["ff.zas40", "lr.maternity_mother_hospital"] },
-  motherDeath: { label: "Śmierć matki dziecka", forms: ["ff.zas33", "lr.maternity_mother_death"] },
-  abandonment: { label: "Porzucenie dziecka przez matkę", forms: ["ff.zas33", "lr.maternity_abandonment"] },
-  uninsuredMotherIncapacity: { label: "Niezdolność nieubezpieczonej matki do samodzielnej egzystencji", forms: ["lr.maternity_uninsured_mother_incapacity"] },
-  uninsuredMotherWorks: { label: "Podjęcie pracy na co najmniej pół etatu przez nieubezpieczoną matkę", forms: ["lr.maternity_uninsured_mother_works"] },
-  supplementaryLeave: { label: "Wcześniactwo lub hospitalizacja dziecka po porodzie", forms: ["lr.supplementary_maternity"] },
-  employerInsolvency: { label: "Ustanie zatrudnienia w ciąży z powodu upadłości, likwidacji lub śmierci pracodawcy, bez innego zatrudnienia", forms: ["ff.zas55"] },
-  sicknessAfterInsurance: { label: "Zwolnienie lekarskie po ustaniu ubezpieczenia", forms: ["ff.z10"] },
-  rehabilitation: { label: "Dalsze leczenie po wyczerpaniu zasiłku chorobowego", forms: ["ff.znp7"] },
-  laterSickLeave: { label: "Płatnik otrzymał kolejne e-ZLA po przekazaniu pierwszego zaświadczenia", forms: ["ff.zas12"] },
-  additionalBirthCertificate: { label: "Potrzebny kolejny odpis aktu urodzenia", forms: ["civil.birth_certificate"] },
+  childLoss: { label: "Śmierć dziecka", forms: [], dateLabel: "Data śmierci dziecka", effect: "Plan uwzględni zdarzenie przy ustalaniu okresów świadczeń." },
+  zaZyciem: { label: "Otrzymanie zaświadczenia „Za życiem”", forms: [], dateLabel: "Data otrzymania zaświadczenia", effect: "Plan uwzględni zaświadczenie przy planowaniu urlopu rodzicielskiego." },
+  preBirthLeave: { label: "Rozpoczęcie urlopu macierzyńskiego przed porodem", forms: ["lr.maternity_pre_birth", "ff.zas2"], dateLabel: "Planowany pierwszy dzień urlopu", effect: "Jeśli jesteś pracownicą, przygotuj wniosek do pracodawcy oraz zaświadczenie o przewidywanej dacie porodu." },
+  maternityTakeover: { label: "Powrót matki po 14 tygodniach i przejęcie urlopu przez ojca", forms: ["lr.maternity_resign_14w", "lr.maternity_takeover", "ff.zas23", "ff.zas24"], dateLabel: "Data powrotu matki do pracy", effect: "Wpisz uzgodnioną datę przekazania opieki. Formalności zależą od zatrudnienia obojga rodziców i płatnika zasiłku." },
+  motherIncapacity: { label: "Przerwanie urlopu przez matkę z orzeczeniem o niezdolności do samodzielnej egzystencji", forms: ["lr.maternity_resign_incapacity"], dateLabel: "Data powrotu matki do pracy", effect: "Przygotuj orzeczenie, które będzie potrzebne przy rezygnacji z urlopu." },
+  motherHospital: { label: "Przerwanie urlopu przez matkę z powodu pobytu w szpitalu", forms: ["ff.zas40", "lr.maternity_mother_hospital"], dateLabel: "Data przyjęcia matki do szpitala", effect: "Poproś szpital o zaświadczenie. Podaj osobno datę rozpoczęcia opieki przez drugą osobę, jeśli ją znasz." },
+  motherDeath: { label: "Śmierć matki dziecka", forms: ["ff.zas33", "lr.maternity_mother_death"], dateLabel: "Data śmierci matki", effect: "Uzupełnij datę przejęcia opieki, aby użyć jej w formularzach dotyczących pozostałego okresu." },
+  abandonment: { label: "Porzucenie dziecka przez matkę", forms: ["ff.zas33", "lr.maternity_abandonment"], dateLabel: "Data porzucenia dziecka", effect: "Jeśli opieka zaczęła się w innym dniu, podaj tę datę osobno." },
+  uninsuredMotherIncapacity: { label: "Niezdolność nieubezpieczonej matki do samodzielnej egzystencji", forms: ["lr.maternity_uninsured_mother_incapacity"], dateLabel: "Data rozpoczęcia opieki przez ojca", effect: "Przygotuj orzeczenie matki do wniosku ojca o urlop." },
+  uninsuredMotherWorks: { label: "Podjęcie pracy na co najmniej pół etatu przez nieubezpieczoną matkę", forms: ["lr.maternity_uninsured_mother_works"], dateLabel: "Data podjęcia pracy przez matkę", effect: "Wpisz datę rozpoczęcia zatrudnienia wskazaną w umowie matki." },
+  supplementaryLeave: { label: "Wcześniactwo lub hospitalizacja dziecka po porodzie", forms: ["lr.supplementary_maternity"], dateLabel: "Data rozpoczęcia hospitalizacji dziecka", effect: "Użyj danych z zaświadczenia szpitala i wskaż rodzica, który chce skorzystać z urlopu uzupełniającego." },
+  employerInsolvency: { label: "Ustanie zatrudnienia w ciąży z powodu upadłości, likwidacji lub śmierci pracodawcy, bez innego zatrudnienia", forms: ["ff.zas55"], dateLabel: "Data ustania zatrudnienia", effect: "Skorzystaj z daty wskazanej w dokumencie potwierdzającym rozwiązanie lub wygaśnięcie umowy." },
+  sicknessAfterInsurance: { label: "Zwolnienie lekarskie po ustaniu ubezpieczenia", forms: ["ff.z10"], dateLabel: "Początek zwolnienia", effect: "Przepisz daty zwolnienia oraz datę ustania ubezpieczenia chorobowego." },
+  rehabilitation: { label: "Dalsze leczenie po wyczerpaniu zasiłku chorobowego", forms: ["ff.znp7"], dateLabel: "Planowana data rozpoczęcia świadczenia", effect: "Przygotuj wniosek ZNp-7 i poproś lekarza prowadzącego o zaświadczenie o stanie zdrowia." },
+  laterSickLeave: { label: "Płatnik otrzymał kolejne e-ZLA po przekazaniu pierwszego zaświadczenia", forms: ["ff.zas12"], dateLabel: "Data otrzymania kolejnego e-ZLA", effect: "Podaj dzień, w którym płatnik otrzymał zwolnienie. Plan użyje tej daty do ustalenia terminu dla płatnika." },
+  additionalBirthCertificate: { label: "Potrzebny kolejny odpis aktu urodzenia", forms: ["civil.birth_certificate"], dateLabel: "Data dodania potrzeby odpisu", effect: "Wypełnij wniosek do USC, gdy potrzebujesz kolejnego odpisu aktu urodzenia." },
 } as const;
 
 export type Circumstance = keyof typeof CIRCUMSTANCES;
@@ -68,12 +68,12 @@ export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] =
   {
     type: "adoption",
     label: "Adopcja / rodzina zastępcza",
-    effect: "Urlop na warunkach urlopu macierzyńskiego – do 7. roku życia dziecka (rodzina zastępcza, 10. przy odroczeniu obowiązku szkolnego) lub 14. (przysposobienie).",
+    effect: "Plan uwzględni rodzaj przyjęcia, wiek dziecka i daty z dokumentów, aby pokazać odpowiednie okresy opieki i formalności.",
   },
   {
     type: "contract",
     label: "Zmiana pracy lub umowy",
-    effect: "Nowa umowa to nowe ubezpieczenie. Prawo do zasiłku chorobowego co do zasady po 30 dniach. Wcześniejsze okresy się liczą, jeśli przerwa nie przekroczy 30 dni. Plan doda zadanie: sprawdź ubezpieczenie w dniu porodu.",
+    effect: "W planie pojawi się krok do sprawdzenia ubezpieczenia w dniu porodu. Przygotuj daty poprzedniej i nowej umowy oraz informację o ubezpieczeniu chorobowym.",
   },
   {
     type: "salary",
@@ -83,12 +83,12 @@ export const EVENT_TYPES: { type: EventType; label: string; effect: string }[] =
   {
     type: "contractEnd",
     label: "Koniec umowy",
-    effect: "Umowa o pracę na czas określony, która skończyłaby się po 3. miesiącu ciąży, przedłuża się do porodu. Bez ubezpieczenia w dniu porodu nie ma zasiłku macierzyńskiego. Plan doda zadanie: sprawdź ubezpieczenie w dniu porodu.",
+    effect: "Plan podpowie sprawdzenie prawa do świadczeń. Przygotuj datę i przyczynę zakończenia umowy. Jeśli w ciąży doszło do upadłości, likwidacji lub śmierci pracodawcy, sprawdź też szczególne sytuacje.",
   },
   {
     type: "business",
     label: "Działalność gospodarcza",
-    effect: "Zasiłek macierzyński z działalności wymaga dobrowolnego ubezpieczenia chorobowego, a zasiłek chorobowy – 90 dni tego ubezpieczenia. Plan doda zadanie: sprawdź zgłoszenie i brak zaległości w składkach.",
+    effect: "Plan doda krok do sprawdzenia zgłoszenia do ubezpieczenia chorobowego i zaległości w składkach. Do obliczeń przygotuj podstawy składek.",
   },
   {
     type: "returnToWork",

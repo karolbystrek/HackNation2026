@@ -8,6 +8,7 @@ import { formatPln, parseAmount } from "@/lib/format";
 import { startChildCase, updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 import { DateField } from "@/components/ui/date-field";
+import { SituationForms } from "@/components/situation-forms";
 import { todayInWarsaw } from "@/lib/dates";
 
 export default function AddEventPage() {
@@ -15,7 +16,7 @@ export default function AddEventPage() {
 }
 
 function AddEvent() {
-  const { names, viewer, persona, caseLabel } = useFamily();
+  const { names, viewer, persona, caseLabel, journey } = useFamily();
   const router = useRouter();
   // "?sytuacja=" opens the form on a special situation, e.g. from the applications page; it keeps its own draft.
   const search = useSearchParams();
@@ -39,6 +40,15 @@ function AddEvent() {
   const unavailable = !allowedTypes.some((event) => event.type === type);
   const who = hospital ? details.supplementaryParent : type === "circumstance" || type === "birth" || selectedWho === "both" ? "both" : viewer;
   const def = EVENT_TYPES.find((t) => t.type === type)!;
+  const situation = type === "circumstance" && circumstance ? CIRCUMSTANCES[circumstance] : null;
+  const effect = situation?.effect ?? def.effect;
+  const origin = search.get("z") === "wnioski" ? "/wnioski#szczegolne" : "/plan";
+  const dateLabel = situation?.dateLabel ?? {
+    sickLeave: "Początek zwolnienia", birth: "Data porodu", adoption: "Data przyjęcia na wychowanie",
+    contract: "Data rozpoczęcia pracy na nowej umowie", salary: "Od kiedy obowiązuje nowe wynagrodzenie?",
+    contractEnd: "Data końca umowy", business: "Data rozpoczęcia działalności",
+    returnToWork: "Data powrotu do pracy", circumstance: "Data wydarzenia",
+  }[type];
 
   function add() {
     if (unavailable || (type === "circumstance" && !circumstance)) return;
@@ -109,7 +119,7 @@ function AddEvent() {
     const title = type === "salary" && amount ? `Zmiana pensji${whoName}: ${formatPln(parseAmount(amount))} brutto` : type === "circumstance" && circumstance ? CIRCUMSTANCES[circumstance].label : `${def.label}${whoName}`;
     const id = crypto.randomUUID();
     const event: TimelineEvent = {
-      id, type, who, date, title, source: "new", description: def.effect, decision: childEvent,
+      id, type, who, date, title, source: "new", description: effect, decision: childEvent,
       circumstance: type === "circumstance" && circumstance ? circumstance : undefined,
       ...(childEvent && {
         childDetails: {
@@ -169,6 +179,17 @@ function AddEvent() {
         </label>
       )}
 
+      <Notice>
+        <p className="font-bold">Co zmieni się w planie</p>
+        <p>{effect}</p>
+        {!!situation?.forms.length && (
+          <div className="mt-3 space-y-2">
+            <p className="font-bold">Formularze, które mogą być potrzebne</p>
+            <SituationForms ids={situation.forms} guidance={journey.formGuidance} expanded />
+          </div>
+        )}
+      </Notice>
+
       {!unavailable && type !== "sickLeave" && type !== "circumstance" && type !== "birth" && (
         <RadioGroup
           label="Kogo dotyczy?"
@@ -182,11 +203,9 @@ function AddEvent() {
       )}
 
       <div className="flex flex-wrap gap-4">
-        <DateField label={type === "sickLeave" || afterInsurance ? "Początek zwolnienia" :
-          type === "birth" ? "Data porodu" : type === "adoption" ? "Data przyjęcia na wychowanie" :
-          circumstance === "laterSickLeave" && type === "circumstance" ? "Data otrzymania kolejnego e-ZLA" : motherHospital ? "Data przyjęcia matki do szpitala" : "Kiedy?"} max={childEvent ? todayInWarsaw() : undefined} value={date} onChange={(value) => { setDraft({ ...draft, date: value }); setError(""); }} className="flex-[1_1_220px]" />
+        <DateField label={dateLabel} max={childEvent ? todayInWarsaw() : undefined} value={date} onChange={(value) => { setDraft({ ...draft, date: value }); setError(""); }} className="flex-[1_1_220px]" />
         {type === "salary" && (
-          <Field label="Nowe wynagrodzenie brutto" inputMode="numeric" placeholder="np. 7000" value={amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} className="flex-[1_1_220px]" />
+          <Field label="Nowe wynagrodzenie brutto" hint="Podaj miesięczną kwotę w złotych przed potrąceniami." inputMode="decimal" placeholder="np. 7000" value={amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} className="flex-[1_1_220px]" />
         )}
       </div>
       {type === "returnToWork" && (
@@ -208,7 +227,7 @@ function AddEvent() {
               }} />
           ))}
           {type === "birth" ? (
-            <DateField label="Data sporządzenia karty urodzenia (opcjonalnie)" value={details.birthCardDate}
+            <DateField label="Data sporządzenia karty urodzenia (opcjonalnie)" hint="Plan wyznacza termin zgłoszenia urodzenia na podstawie tej daty." value={details.birthCardDate}
               onChange={(value) => setDetails({ ...details, birthCardDate: value })} />
           ) : (
             <>
@@ -218,7 +237,7 @@ function AddEvent() {
               <DateField label={Number(details.count) > 1 ? "Data urodzenia najstarszego dziecka uwzględnianego w planie" : "Data urodzenia dziecka"}
                 value={details.childBirthDate} onChange={(value) => setDetails({ ...details, childBirthDate: value })} />
               {details.placement === "adoption" ? (
-                <DateField label="Data uprawomocnienia orzeczenia (jeśli jest już znana)" value={details.adoptionOrderDate}
+                <DateField label="Data uprawomocnienia orzeczenia (jeśli jest już znana)" hint="Sprawdź datę prawomocności w dokumentach sądu. Plan używa jej m.in. przy urlopie ojcowskim." value={details.adoptionOrderDate}
                   onChange={(value) => setDetails({ ...details, adoptionOrderDate: value })} />
               ) : (
                 <Checkbox title="Odroczony obowiązek szkolny" checked={details.schoolDeferred}
@@ -249,11 +268,11 @@ function AddEvent() {
         onChange={(value) => setDetails({ ...details, careFrom: value })} />}
       {hospital && (
         <div className="flex flex-col gap-4">
-          <Field label="Tydzień ciąży w dniu porodu" type="number" min={1} max={45} value={details.gestationWeek}
+          <Field label="Tydzień ciąży w dniu porodu" hint="Sprawdź tydzień wskazany przez szpital w zaświadczeniu." type="number" min={1} max={45} value={details.gestationWeek}
             onChange={(e) => setDetails({ ...details, gestationWeek: e.target.value })} />
-          <Field label="Masa urodzeniowa (g)" type="number" min={1} value={details.birthWeight}
+          <Field label="Masa urodzeniowa (g)" hint="Podaj masę dziecka przy urodzeniu w gramach." type="number" min={1} value={details.birthWeight}
             onChange={(e) => setDetails({ ...details, birthWeight: e.target.value })} />
-          <Field label="Czas pobytu w szpitalu (w tygodniach)" type="number" min={0} step="any"
+          <Field label="Czas pobytu w szpitalu (w tygodniach)" hint="Użyj okresu z zaświadczenia szpitala. Możesz wpisać część tygodnia." type="number" min={0} step="any"
             value={details.hospitalWeeks} onChange={(e) => setDetails({ ...details, hospitalWeeks: e.target.value })} />
           <RadioGroup label="Kto skorzysta z urlopu uzupełniającego?" value={details.supplementaryParent}
             onChange={(supplementaryParent) => setDetails({ ...details, supplementaryParent })}
@@ -266,16 +285,11 @@ function AddEvent() {
         </div>
       )}
 
-      <Notice>
-        <div className="font-bold">Co to zmienia</div>
-        <div className="text-[15px] leading-relaxed">{def.effect}</div>
-      </Notice>
-
       <div className="flex flex-wrap gap-3">
         <Button disabled={unavailable || (type === "circumstance" && !circumstance)} onClick={add} className="min-h-[52px]">
           Dodaj do osi czasu
         </Button>
-        <ButtonLink href="/plan" variant="outline" className="min-h-[52px]">
+        <ButtonLink href={origin} variant="outline" className="min-h-[52px]">
           Anuluj
         </ButtonLink>
       </div>

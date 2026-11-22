@@ -49,6 +49,8 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   }
 
   const spec = specs[found.entry.form!];
+  const guidance = journey.formGuidance?.[spec.id];
+  const guide = found.entry.guide ?? guidance?.guide;
   const submission = plan.submissions[taskId];
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
@@ -58,12 +60,18 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
           <span className="block">Formularz: {spec.title}</span>
           <span className="block">Adresat: {found.ctx.recipientName}</span>
           {found.entry.due && <span className="block">Termin: {formatDate(found.entry.due)}{found.entry.estimated ? " (szacunkowo)" : ""}</span>}
-          {found.entry.guide && <a className="text-link" href={found.entry.guide}>Oficjalna instrukcja złożenia</a>}
+          {guide && <a className="text-link" href={guide}>Oficjalna instrukcja złożenia</a>}
           {!submission && <span className="mt-2 block text-base">Sprawdź dane przeniesione do formularza z planu i uzupełnij brakujące pola. Szkic zostanie w tej karcie.</span>}
         </>}
       />
       <div className="page">
       <BackLink href={returnHref}>{returnLabel}</BackLink>
+      <div className="max-w-prose space-y-2">
+        {found.entry.description && <p>{found.entry.description}</p>}
+        {guidance && guidance.summary !== found.entry.description && <p>{guidance.summary}</p>}
+        {guidance?.preparedBy && <p><strong>Wypełnia</strong> {guidance.preparedBy}. Tutaj możesz przejrzeć formularz w symulacji.</p>}
+        {found.entry.deadlineDetail && <p>{found.entry.deadlineDetail}</p>}
+      </div>
       {submission
         ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />
         : <Wizard key={taskId} spec={spec} ctx={found.ctx} documents={found.entry.documents} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
@@ -436,8 +444,11 @@ function FieldInput({ field, value, onChange, required, error }: {
 }) {
   const id = useId();
   const errorId = `${id}-error`;
+  const helpId = `${id}-help`;
+  const help = field.help && <p id={helpId} className="mb-2 text-sm text-muted-foreground">{field.help}</p>;
   const invalid = error ? true : undefined;
   const describedBy = error ? errorId : undefined;
+  const groupDescription = [field.help && helpId, describedBy].filter(Boolean).join(" ") || undefined;
   const label = <>{field.label}{!required && field.type !== "boolean" && <span className="font-normal text-muted-foreground"> (opcjonalnie)</span>}</>;
   const wrap = (children: ReactNode) => (
     <div data-field={field.key} className="min-w-0">{children}<FieldError id={errorId} message={error} /></div>
@@ -456,15 +467,15 @@ function FieldInput({ field, value, onChange, required, error }: {
     case "choice":
       return wrap(
         <>
-          <RadioGroup label={field.label} options={(field.options ?? []).map((o) => [o.value, o.label] as [string, string])} value={String(value ?? "")} onChange={onChange} />
-          {field.help && <p className="mt-1 text-sm text-muted-foreground">{field.help}</p>}
+          <RadioGroup label={label} hint={field.help} options={(field.options ?? []).map((o) => [o.value, o.label] as [string, string])} value={String(value ?? "")} onChange={onChange} />
         </>,
       );
     case "multi_choice": {
       const selected = (value as string[] | undefined) ?? [];
       return wrap(
-        <fieldset className="min-w-0">
+        <fieldset className="min-w-0" aria-describedby={groupDescription}>
           <legend className="mb-2 font-bold">{label}</legend>
+          {help}
           {field.options?.map((o) => (
             <Checkbox key={o.value} checked={selected.includes(o.value)} title={o.label}
               onChange={() => onChange(selected.includes(o.value) ? selected.filter((v) => v !== o.value) : [...selected, o.value])} />
@@ -475,9 +486,9 @@ function FieldInput({ field, value, onChange, required, error }: {
     case "date_range": {
       const range = (value as DateRange | undefined) ?? { from: "", to: "" };
       return wrap(
-        <fieldset className="min-w-0">
+        <fieldset className="min-w-0" aria-describedby={groupDescription}>
           <legend className="mb-2 font-bold">{label}</legend>
-          {field.help && <p className="mb-2 text-sm text-muted-foreground">{field.help}</p>}
+          {help}
           <div className="grid gap-3 sm:grid-cols-2">
             <DateField label="Od" value={range.from} aria-invalid={invalid} aria-describedby={describedBy} onChange={(value) => onChange({ ...range, from: value })} />
             <DateField label="Do" value={range.to} aria-invalid={invalid} aria-describedby={describedBy} onChange={(value) => onChange({ ...range, to: value })} />
@@ -488,8 +499,9 @@ function FieldInput({ field, value, onChange, required, error }: {
     case "person": {
       const person = (value as Person | undefined) ?? { name: "", pesel: "" };
       return wrap(
-        <fieldset className="min-w-0">
+        <fieldset className="min-w-0" aria-describedby={groupDescription}>
           <legend className="mb-2 font-bold">{label}</legend>
+          {help}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Imię i nazwisko" value={person.name} autoComplete="off" aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => onChange({ ...person, name: e.target.value })} />
             <Field label="PESEL" inputMode="numeric" value={person.pesel} autoComplete="off" aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => onChange({ ...person, pesel: e.target.value })} />
@@ -501,8 +513,9 @@ function FieldInput({ field, value, onChange, required, error }: {
       const children = (value as Child[] | undefined) ?? [];
       const update = (i: number, change: Partial<Child>) => onChange(children.map((c, j) => (j === i ? { ...c, ...change } : c)));
       return wrap(
-        <fieldset className="flex min-w-0 flex-col gap-3">
+        <fieldset className="flex min-w-0 flex-col gap-3" aria-describedby={groupDescription}>
           <legend className="mb-2 font-bold">{label}</legend>
+          {help}
           {children.map((child, i) => (
             <div key={i} className="grid gap-3 border-l-4 border-border pl-3 sm:grid-cols-3">
               <Field label="Imię i nazwisko dziecka" value={child.name} aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => update(i, { name: e.target.value })} />
@@ -522,7 +535,8 @@ function FieldInput({ field, value, onChange, required, error }: {
         <div className="flex min-w-0 flex-col gap-1">
           <label htmlFor={id} className="font-bold">{label}</label>
           {/* shortcut: free-text table, add row editing when a timeline step needs a form with tables */}
-          <textarea id={id} rows={3} className={inputClass} value={String(value ?? "")} aria-invalid={invalid} aria-describedby={describedBy} onChange={(e) => onChange(e.target.value)} />
+          {help}
+          <textarea id={id} rows={3} className={inputClass} value={String(value ?? "")} aria-invalid={invalid} aria-describedby={groupDescription} onChange={(e) => onChange(e.target.value)} />
         </div>,
       );
     default:

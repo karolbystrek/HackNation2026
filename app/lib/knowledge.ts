@@ -79,7 +79,25 @@ export async function loadJourney(): Promise<Journey> {
     if (href) documentLinks[doc.id] = href;
   }
 
+  const formGuidance: NonNullable<Journey["formGuidance"]> = {};
+  for (const form of forms.filter((record) => record.status === "current" && record.field_set_id)) {
+    const roles: Record<string, string> = {
+      employer: "Pracodawca", payer: "Płatnik składek", payer_of_benefit: "Płatnik zasiłku",
+      hospital: "Szpital", doctor: "Lekarz",
+    };
+    formGuidance[form.field_set_id] = {
+      title: form.title_pl,
+      summary: form.summary_pl,
+      guide: form.page_url,
+      preparedBy: form.filled_by?.includes("insured") ? undefined : roles[form.filled_by?.[0]],
+    };
+  }
+  for (const leave of leaveRequests.filter((record) => record.status === "current")) {
+    formGuidance[leave.id] = { title: leave.title_pl, summary: leave.summary_pl };
+  }
+
   return {
+    formGuidance,
     scenarios: scenarios
       .filter((s) => s.status === "current")
       .map((s) => ({

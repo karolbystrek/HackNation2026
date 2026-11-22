@@ -71,11 +71,12 @@ export function RadioOption({ children, className, ...props }: ComponentProps<"i
   );
 }
 
-export function RadioGroup<T extends string | number>({ label, options, value, onChange }: { label: string; options: [T, string][]; value: T; onChange: (v: T) => void }) {
+export function RadioGroup<T extends string | number>({ label, hint, options, value, onChange }: { label: ReactNode; hint?: ReactNode; options: [T, string][]; value: T; onChange: (v: T) => void }) {
   const name = useId();
   return (
-    <fieldset className="min-w-0">
+    <fieldset className="min-w-0" aria-describedby={hint ? `${name}-hint` : undefined}>
       <legend className="mb-2 font-bold">{label}</legend>
+      {hint && <p id={`${name}-hint`} className="mb-2 text-sm text-muted-foreground">{hint}</p>}
       <div className="flex flex-wrap gap-2">
         {options.map(([v, text]) => (
           <RadioOption key={v} name={name} checked={v === value} onChange={() => onChange(v)}>
