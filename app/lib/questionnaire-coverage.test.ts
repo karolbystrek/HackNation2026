@@ -105,3 +105,22 @@ for (const id of Object.keys(EFFECTS)) {
     else expect(changed, `${id} should change nothing: ${effect.none}`).toEqual({ actions: false, dates: false, money: false });
   });
 }
+
+test("an earlier change drops answers to options that are hidden now", () => {
+  const pregnant: Answers = { situation: "pregnant", role: "mother", insurance: ["employment"], special: ["insuranceEnded"] };
+  expect(activeAnswers({ ...pregnant, role: "father" }).special).toBeUndefined();
+  expect(activeAnswers({ ...pregnant, special: ["insuranceEnded", "zaZyciem"], role: "father" }).special).toEqual(["zaZyciem"]);
+  const adopted = activeAnswers({ situation: "adoption", role: "father", insurance: ["employment"], special: ["stillbirth"] });
+  expect(adopted.special).toBeUndefined();
+  expect(activeAnswers({ situation: "born", role: "mother", insurance: ["employment"], largeEmployer: "maybe" }).largeEmployer).toBeUndefined();
+});
+
+test("no living-child questions after a miscarriage, no paternity leave for a child of 14", () => {
+  const ids = (a: Answers) => questions.filter((q) => holds(q.showIf, activeAnswers(a))).map((q) => q.id);
+  const lost = ids({ situation: "pregnant", role: "mother", insurance: ["employment"], special: ["miscarriage"] });
+  expect(lost).not.toContain("wantsAveragedRate");
+  expect(lost).not.toContain("combineWithWork");
+  const father: Answers = { situation: "adoption", role: "father", insurance: ["employment"] };
+  expect(ids({ ...father, childAge: 13 })).toContain("paternityParts");
+  expect(ids({ ...father, childAge: 14 })).not.toContain("paternityParts");
+});

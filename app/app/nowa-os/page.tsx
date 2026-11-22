@@ -7,7 +7,7 @@ import { HelpPopover, TermText } from "@/components/term-text";
 import { AlertCircle, ChevronLeft } from "lucide-react";
 import { BackLink, Button, Field, RadioOption } from "@/components/ui";
 import { DateField } from "@/components/ui/date-field";
-import { formatDate } from "@/lib/dates";
+import { formatDate, todayInWarsaw } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
 import { GUIDE_ID } from "@/lib/guide/persona";
 import { logIn, updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
@@ -130,6 +130,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
     if (empty && !q.optional) return setError(q.type === "multi" ? "Zaznacz co najmniej jedną odpowiedź." : "Odpowiedz na pytanie, aby przejść dalej.");
     if (q.type === "number" && (Number.isNaN(value) || (q.min !== undefined && (value as number) < q.min) || (q.max !== undefined && (value as number) > q.max)))
       return setError(`Podaj liczbę od ${q.min} do ${q.max}.`);
+    if (q.past && typeof value === "string" && value > todayInWarsaw()) return setError("Podaj datę, która już minęła.");
     onSave(value ?? []);
   };
 
@@ -153,6 +154,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
             <DateField
               label={<span className="sr-only">{plainText(q.label)}</span>}
               hint={q.hint && <TermText text={q.hint} />}
+              max={q.past ? todayInWarsaw() : undefined}
               value={typeof value === "string" ? value : ""}
               aria-invalid={!!error}
               aria-describedby={error ? `${q.id}-error` : undefined}

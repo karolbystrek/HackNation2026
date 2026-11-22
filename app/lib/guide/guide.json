@@ -118,6 +118,16 @@
           ]
         }
       ]
+    },
+    "noChild": {
+      "has": [
+        "special",
+        [
+          "stillbirth",
+          "childDeath",
+          "miscarriage"
+        ]
+      ]
     }
   },
   "questions": [
@@ -307,7 +317,8 @@
             ]
           }
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "dueDate",
@@ -331,7 +342,8 @@
           "situation",
           "born"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "placementDate",
@@ -340,7 +352,8 @@
       "label": "Kiedy przyjęto dziecko na wychowanie?",
       "showIf": {
         "ref": "isPlacement"
-      }
+      },
+      "past": true
     },
     {
       "id": "childAge",
@@ -442,6 +455,12 @@
               },
               {
                 "ref": "isMother"
+              },
+              {
+                "has": [
+                  "insurance",
+                  "employment"
+                ]
               }
             ]
           }
@@ -514,13 +533,21 @@
               "situation",
               "born"
             ]
-          }
+          },
+          "exclusive": true
         },
         {
           "value": "childDeath",
           "label": "Śmierć dziecka",
           "showIf": {
-            "ref": "notPlanning"
+            "in": [
+              "situation",
+              [
+                "born",
+                "adoption",
+                "foster"
+              ]
+            ]
           }
         },
         {
@@ -610,7 +637,7 @@
           },
           {
             "not": {
-              "ref": "lostChild"
+              "ref": "noChild"
             }
           }
         ]
@@ -631,7 +658,7 @@
           },
           {
             "not": {
-              "ref": "lostChild"
+              "ref": "noChild"
             }
           }
         ]
@@ -712,7 +739,8 @@
           "special",
           "insuranceEnded"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "sicknessStartAfterInsurance",
@@ -726,7 +754,8 @@
           "special",
           "insuranceEnded"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "birthCardDate",
@@ -740,7 +769,8 @@
           "situation",
           "born"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "childDeathDate",
@@ -754,7 +784,8 @@
           "special",
           "childDeath"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "supplementaryParent",
@@ -788,7 +819,8 @@
           "situation",
           "adoption"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "adoptionOrderDate",
@@ -802,7 +834,8 @@
           "situation",
           "adoption"
         ]
-      }
+      },
+      "past": true
     },
     {
       "id": "paternityParts",
@@ -832,8 +865,26 @@
           },
           {
             "not": {
-              "ref": "lostChild"
+              "ref": "noChild"
             }
+          },
+          {
+            "any": [
+              {
+                "not": {
+                  "eq": [
+                    "situation",
+                    "adoption"
+                  ]
+                }
+              },
+              {
+                "lt": [
+                  "childAge",
+                  14
+                ]
+              }
+            ]
           }
         ]
       },
@@ -1021,7 +1072,7 @@
           },
           {
             "not": {
-              "ref": "lostChild"
+              "ref": "noChild"
             }
           }
         ]
@@ -1209,7 +1260,7 @@
               },
               {
                 "not": {
-                  "ref": "lostChild"
+                  "ref": "noChild"
                 }
               }
             ]
@@ -1326,7 +1377,7 @@
           },
           {
             "not": {
-              "ref": "lostChild"
+              "ref": "noChild"
             }
           }
         ]
@@ -1409,6 +1460,29 @@
                 "foster"
               ]
             }
+          },
+          {
+            "not": {
+              "ref": "noChild"
+            }
+          },
+          {
+            "any": [
+              {
+                "not": {
+                  "eq": [
+                    "situation",
+                    "adoption"
+                  ]
+                }
+              },
+              {
+                "lt": [
+                  "childAge",
+                  14
+                ]
+              }
+            ]
           }
         ]
       },

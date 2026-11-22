@@ -29,6 +29,8 @@ export type Question = {
   label: string;
   hint?: string;
   optional?: boolean;
+  /** Date question: the event has already happened, so no future dates. */
+  past?: boolean;
   min?: number;
   max?: number;
   options?: Option[];
@@ -73,10 +75,19 @@ export function test(p: Predicate | undefined, a: Answers): boolean {
   return test(named, a);
 }
 
-/** Drops answers to questions that are hidden now, e.g. after the user went back and changed an earlier one. */
+/** Drops answers to questions and options that are hidden now, e.g. after the user went back and changed an earlier one. */
 export function activeAnswers(a: Answers): Answers {
   const kept: Answers = {};
-  for (const q of questions) if (test(q.showIf, kept) && a[q.id] !== undefined) kept[q.id] = a[q.id];
+  for (const q of questions) {
+    const value = a[q.id];
+    if (!test(q.showIf, kept) || value === undefined) continue;
+    const shown = new Set((q.options ?? []).filter((o) => test(o.showIf, kept)).map((o) => o.value));
+    if (q.type === "multi" && Array.isArray(value)) {
+      const left = value.filter((v) => shown.has(v));
+      // Emptied by hidden options: ask again rather than record "nothing applies".
+      if (left.length || !value.length) kept[q.id] = left;
+    } else if (q.type !== "single" || Array.isArray(value) || shown.has(value as string)) kept[q.id] = value;
+  }
   return kept;
 }
 
