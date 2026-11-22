@@ -113,7 +113,7 @@ export default function Benefits() {
           </ul>
         </Disclosure>
       )}
-      <ButtonLink href="/zadania" className="self-start">Zobacz terminy i zadania</ButtonLink>
+      <ButtonLink href="/plan" className="self-start">Zobacz terminy i zadania</ButtonLink>
       <section aria-labelledby="informacje" className="grid gap-2">
         <SectionTitle id="informacje">Oficjalne informacje</SectionTitle>
         <LinkList links={[

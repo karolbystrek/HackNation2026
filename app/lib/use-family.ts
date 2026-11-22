@@ -32,7 +32,7 @@ export function useFamily() {
   const chosen = variants.find((v) => v.key === plan.chosenVariant) ?? null;
   const viewer = fromGuide ? (plan.guideAnswers.role === "father" ? "father" : "mother") : plan.viewer ?? "mother";
   const solo = fromGuide || plan.solo === true;
-  const names = { mother: persona.parents.mother.name, father: persona.parents.father.name, both: solo ? "Sprawa dziecka" : "Wspólne" };
+  const names = { mother: persona.parents.mother.name, father: persona.parents.father.name, both: solo ? "Rodzina" : "Wspólne" };
   // Demo profiles and questionnaire answers go through the same knowledge-driven timeline.
   const timeline = planTimeline(persona, plan.events, chosen, params, journey, plan.doneTasks, today);
   const entries = timeline.filter((entry) => entry.who === "both" || entry.who === viewer);

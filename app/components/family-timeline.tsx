@@ -3,31 +3,61 @@
 import { DocumentList } from "@/components/document-list";
 
 import Link from "next/link";
-import { useLayoutEffect, type MouseEvent, type ReactNode } from "react";
+import { Check } from "lucide-react";
+import { useLayoutEffect, type ReactNode } from "react";
+import { ApplicationAction } from "@/components/application-action";
 import { Button, ButtonLink, Chip } from "@/components/ui";
 import { RememberedDisclosure } from "@/components/remembered-disclosure";
+import { TaskCard } from "@/components/task-card";
+import { nextTask, type Task } from "@/lib/calc/tasks";
 import { formatDate, parseIso } from "@/lib/dates";
 import type { EventType, EventWho, TimelineEvent } from "@/lib/events";
 import { canConfirmDocument, timelineDate, type FamilyTimelineEntry } from "@/lib/family-timeline";
 import { updatePlan, usePlan } from "@/lib/plan-store";
+import { openRelated, revealEntry, scrollBehavior } from "@/lib/timeline-reveal";
 import { attentionEntries, deadlineNotice } from "@/lib/timeline-view";
 
 const statuses = {
-  confirmed: "Potwierdzone", planned: "Zaplanowane", blocked: "Oczekuje na dokument lub działanie",
+  confirmed: "Potwierdzone", planned: "Zaplanowane", blocked: "Czeka na wcześniejszy krok",
   ready: "Do zrobienia", completed: "Zakończone", late: "Po terminie",
   active: "W trakcie", ended: "Okres zakończony", review: "Do sprawdzenia",
+};
+
+/** Text type of each row, so tasks and events differ by more than shape or colour. */
+const kinds: Record<FamilyTimelineEntry["kind"], string> = {
+  event: "Wydarzenie", document: "Dokument", application: "Do załatwienia", period: "Początek okresu",
+};
+
+/** Who issues each confirmable document; the button says what the parent confirms. */
+const confirmLabels: Record<string, string> = {
+  "birth-card": "Szpital wydał kartę urodzenia",
+  "birth-certificate": "USC sporządził akt urodzenia",
+  "sick-ezla": "Lekarz wystawił e-ZLA",
 };
 
 const calculatorLabels: Partial<Record<EventType, string>> = {
   birth: "Oblicz zasiłek po narodzinach",
   adoption: "Oblicz zasiłek po przyjęciu dziecka",
   sickLeave: "Sprawdź zasiłek chorobowy",
-  returnToWork: "Sprawdź pracę podczas urlopu",
+  returnToWork: "Sprawdź, jak praca wpłynie na zasiłek",
   salary: "Przelicz podstawę zasiłku",
-  contract: "Sprawdź dane do wyliczenia zasiłku",
-  contractEnd: "Sprawdź dane do wyliczenia zasiłku",
-  business: "Sprawdź dane do wyliczenia zasiłku",
+  contract: "Przelicz zasiłek po zmianie pracy",
+  contractEnd: "Przelicz zasiłek po zmianie pracy",
+  business: "Przelicz zasiłek po zmianie pracy",
 };
+
+/** Periods set by law; the leave split in /warianty does not change them. */
+const fixedPeriods = new Set(["maternity-period", "supplementary-period"]);
+
+/** Rail marker: square for tasks (checked when done), filled dot for events, outline dot for documents, bar for periods. */
+function Marker({ entry, done }: { entry: FamilyTimelineEntry; done: boolean }) {
+  const base = "absolute top-5 border-2";
+  if (entry.kind === "application") return done
+    ? <span aria-hidden="true" className={`${base} -left-[9px] grid size-4 place-items-center rounded-[3px] border-primary bg-primary text-primary-foreground`}><Check className="size-3" strokeWidth={3} /></span>
+    : <span aria-hidden="true" className={`${base} -left-[9px] size-4 rounded-[3px] border-foreground bg-background`} />;
+  if (entry.kind === "period") return <span aria-hidden="true" className={`${base} -left-1 h-4 w-1.5 rounded-full border-input bg-background`} />;
+  return <span aria-hidden="true" className={`${base} -left-[6px] size-2.5 rounded-full ${entry.kind === "event" ? "border-foreground bg-foreground" : "border-input bg-background"}`} />;
+}
 
 const dayFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeZone: "UTC" });
 
@@ -56,33 +86,17 @@ function DeadlineNotice({ notice }: { notice: ReturnType<typeof deadlineNotice> 
   return <strong className={`block text-sm ${notice.critical ? "text-destructive" : "text-foreground"}`}>{notice.label}</strong>;
 }
 
-function revealEntry(hash: string) {
-  const entry = document.getElementById(hash.slice(1));
-  if (!(entry instanceof HTMLDetailsElement)) return;
-  const history = entry.parentElement?.closest("details");
-  if (history) history.open = true;
-  entry.open = true;
-  return entry;
-}
-
-function openRelated(event: MouseEvent<HTMLAnchorElement>) {
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  const { hash } = event.currentTarget;
-  const entry = revealEntry(hash);
-  if (!entry) return;
-  event.preventDefault();
-  if (window.location.hash !== hash) window.history.pushState(null, "", hash);
-  entry.scrollIntoView({ block: "start" });
-  entry.querySelector("summary")?.focus({ preventScroll: true });
-}
-
 /** The family timeline: earlier entries folded, a "Dzisiaj" panel with what to do now, then upcoming entries. */
-export function FamilyTimeline({ entries, names, today, actions, profileEvents = [] }: {
-  entries: FamilyTimelineEntry[]; names: Record<EventWho, string>; today: string; actions?: ReactNode; profileEvents?: TimelineEvent[];
+export function FamilyTimeline({ entries, names, today, actions, tasks = [], viewer, solo = false, profileEvents = [] }: {
+  entries: FamilyTimelineEntry[]; names: Record<EventWho, string>; today: string; actions?: ReactNode;
+  tasks?: Task[]; viewer: EventWho; solo?: boolean; profileEvents?: TimelineEvent[];
 }) {
+  // One parent: every row is theirs, so a person chip is noise.
+  const person = (who: EventWho) => !solo && <PersonLabel name={names[who]} />;
   const plan = usePlan();
   const { submissions } = plan;
-  const attention = attentionEntries(entries, today);
+  const next = nextTask(tasks);
+  const attention = attentionEntries(entries, today).filter((entry) => entry.id !== next?.id);
   const active = entries.filter((entry) => entry.status === "active" ||
     (entry.kind === "event" && entry.status === "confirmed" && entry.end && today <= entry.end));
   const points = entries.flatMap((entry) => [
@@ -93,24 +107,33 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
   const todayIndex = firstUpcoming < 0 ? points.length : firstUpcoming;
 
   useLayoutEffect(() => {
-    function revealHash() {
+    function revealHash(arriving = false) {
       const hash = window.location.hash;
       if (!hash) return;
       const target = revealEntry(hash) ?? document.getElementById(hash.slice(1));
-      target?.scrollIntoView({ block: "start" });
+      if (!target) return;
+      // Next frame: after Next.js's own instant route scroll, which would cancel a smooth one.
+      requestAnimationFrame(() => {
+        const behavior = scrollBehavior();
+        // Arriving from another page: start at the top so the glide shows where the entry sits.
+        if (arriving && behavior === "smooth") window.scrollTo(0, 0);
+        target.scrollIntoView({ block: "start", behavior });
+      });
     }
 
-    revealHash();
-    window.addEventListener("hashchange", revealHash);
-    return () => window.removeEventListener("hashchange", revealHash);
+    revealHash(true);
+    const onHashChange = () => revealHash();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  const tasksById = new Map(tasks.map((task) => [task.id, task]));
   const eventsByEntry = new Map(plan.events.map((event) => [`event-${event.id}`, event]));
   const rows = points.map(({ entry, date, end }) => {
     if (end) return (
-      <li key={`${entry.id}-end`} className="relative pb-2 pl-4 sm:pl-6">
+      <li key={`${entry.id}-end`} className="relative pl-4 sm:pl-6">
         <span aria-hidden="true" className="absolute top-5 -left-[6px] size-2.5 rounded-full border-2 border-input bg-background" />
-        <div className="grid gap-1 border-b px-3 py-3 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4 sm:px-4">
+        <div className="grid gap-1 border border-transparent px-3 py-3 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4 sm:px-4">
           <div className="text-sm leading-snug text-muted-foreground">
             <time dateTime={date} className="whitespace-nowrap font-bold text-foreground">{formatDate(date)}</time>
             {entry.estimated && <span className="block">Szacunkowo</span>}
@@ -119,7 +142,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
             <p className="text-sm text-muted-foreground">{date >= today ? "Planowany koniec" : "Koniec"}</p>
             <div className="flex items-baseline gap-2">
               <p className="min-w-0 leading-snug font-bold">{entry.title}</p>
-              <PersonLabel name={names[entry.who]} />
+              {person(entry.who)}
             </div>
           </div>
         </div>
@@ -129,57 +152,78 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
     const event = eventsByEntry.get(entry.id);
     const profileBirth = event?.type === "birth" && profileEvents.some((item) => item.id === event.id);
     const notice = deadlineNotice(entry, today);
-    const isPeriod = entry.end !== undefined;
     const required = entries.filter((item) => entry.requires?.includes(item.id));
     const confirmDocument = canConfirmDocument(entry.id) && !entry.completedOn;
     const birthCertificate = entry.id === "birth-certificate" && confirmDocument;
     const certificateConfirmed = confirmDocument && plan.doneTasks.includes(entry.id);
     const showStatus = entry.kind === "application" && entry.status !== "blocked";
     const submission = submissions[entry.id];
+    const task = tasksById.get(entry.id);
+
+    const done = !!submission || entry.status === "completed";
+    const calculator = event && calculatorLabels[event.type];
+    const estimatedBirth = entry.kind === "event" && entry.estimated;
+    const leavePeriod = entry.kind === "period" && !fixedPeriods.has(entry.id);
 
     return (
-      <li key={entry.id} className="relative pb-2 pl-4 sm:pl-6">
-        <span aria-hidden="true" className={`absolute top-5 rounded-full border-2 border-input bg-background ${isPeriod ? "-left-1 h-4 w-1.5" : "-left-[6px] size-2.5"}`} />
-        <RememberedDisclosure section={`plan/${entry.id}`} id={`timeline-${entry.id}`} className="scroll-mt-4 border-b open:bg-secondary target:bg-secondary" label={
+      <li key={entry.id} className={`relative pl-4 sm:pl-6 ${task ? "py-1.5" : ""}`}>
+        <Marker entry={entry} done={done} />
+        <RememberedDisclosure section={`plan/${entry.id}`} id={`timeline-${entry.id}`} className={`scroll-mt-4 rounded-sm border open:bg-secondary target:bg-secondary ${task ? "bg-background" : "border-transparent"}`} label={
           <span className="grid gap-1 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4">
             <span className="text-sm leading-snug text-muted-foreground">
               <EntryDate entry={entry} />
             </span>
             <span className="min-w-0">
               <DeadlineNotice notice={notice} />
-              {isPeriod && <span className="block text-sm text-muted-foreground">Początek</span>}
+              <span className="block text-sm text-muted-foreground">{kinds[entry.kind]}</span>
               <span className="flex items-baseline gap-2">
-                <span className="min-w-0 leading-snug font-bold">{entry.title}</span>
-                <PersonLabel name={names[entry.who]} />
+                <span className={`min-w-0 leading-snug ${!task ? "font-semibold" : done ? "font-semibold text-muted-foreground" : "font-bold"}`}>{entry.title}</span>
+                {person(entry.who)}
               </span>
+              {task && <Chip className={`mt-1 border ${submission || entry.status === "completed" ? "border-primary bg-background text-primary" : entry.status === "late" ? "border-destructive bg-background text-destructive" : "bg-background"}`}>
+                {submission ? "Wysłano (symulacja)" : statuses[entry.status]}
+              </Chip>}
             </span>
           </span>
         }>
           <div className="max-w-[70ch] space-y-3 px-3 pb-4 sm:px-4">
-            <p>{entry.description}</p>
-            {birthCertificate && (
-              <p>{certificateConfirmed
-                ? "Potwierdziliście, że USC sporządził akt urodzenia."
-                : entry.status === "blocked"
-                  ? "Najpierw zgłoście urodzenie i oznaczcie zgłoszenie jako wykonane na liście zadań."
-                  : "Gdy USC sporządzi akt, potwierdźcie to tutaj, żeby odblokować powiązane zadania."}</p>
+            {task ? <TaskCard task={task} names={names} viewer={viewer} /> : <p>{entry.description}</p>}
+            {birthCertificate && entry.status === "blocked" && (
+              <p>Najpierw oznacz jako wykonane{" "}
+                <a href="#timeline-birth-registration" onClick={openRelated} className="text-link">zgłoszenie urodzenia</a>.</p>
             )}
             {confirmDocument && (certificateConfirmed || entry.status === "planned") && (
-              <Button variant="outline" onClick={() => updatePlan((state) => ({
-                ...state,
-                doneTasks: certificateConfirmed
-                  ? state.doneTasks.filter((id) => id !== entry.id)
-                  : [...state.doneTasks, entry.id],
-              }))}>
-                {certificateConfirmed ? "Cofnij potwierdzenie" : birthCertificate ? "Potwierdź sporządzenie aktu" : "Potwierdź wystawienie dokumentu"}
-              </Button>
+              <div className="flex flex-col items-start gap-1">
+                <Button variant="outline" onClick={() => updatePlan((state) => ({
+                  ...state,
+                  doneTasks: certificateConfirmed
+                    ? state.doneTasks.filter((id) => id !== entry.id)
+                    : [...state.doneTasks, entry.id],
+                }))}>
+                  {certificateConfirmed ? "Cofnij potwierdzenie" : confirmLabels[entry.id]}
+                </Button>
+                <p className="text-sm text-muted-foreground">{certificateConfirmed ? "Potwierdzone." : "Potwierdzenie odblokuje powiązane sprawy."}</p>
+              </div>
             )}
-            {event && calculatorLabels[event.type] && (
-              <ButtonLink variant="outline" href={profileBirth ? `/warianty?wydarzenie=${encodeURIComponent(event.id)}` : `/kalkulator?wydarzenie=${encodeURIComponent(event.id)}`}>
-                {profileBirth ? "Porównaj podział opieki" : calculatorLabels[event.type]}
-              </ButtonLink>
+            {(calculator || estimatedBirth || event?.source === "new" || leavePeriod) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {calculator && (
+                  <ButtonLink variant="outline" href={profileBirth ? `/warianty?wydarzenie=${encodeURIComponent(event.id)}` : `/kalkulator?wydarzenie=${encodeURIComponent(event.id)}`}>
+                    {profileBirth ? "Porównaj podział opieki" : calculator}
+                  </ButtonLink>
+                )}
+                {estimatedBirth && <ButtonLink variant="outline" href="/dodaj">Wpisz datę porodu</ButtonLink>}
+                {leavePeriod && <ButtonLink variant="outline" href="/warianty">Zmień podział urlopu</ButtonLink>}
+                {event?.source === "new" && (
+                  <Button variant="link" onClick={() => {
+                    if (window.confirm(`Usunąć wydarzenie „${entry.title}” z planu?`)) {
+                      updatePlan((state) => ({ ...state, events: state.events.filter((item) => item.id !== event.id) }));
+                    }
+                  }}>Usuń wydarzenie</Button>
+                )}
+              </div>
             )}
-            {(entry.end || entry.recipient || entry.review || required.length > 0 || entry.documents?.length || entry.guide || entry.form || showStatus) && (
+            {(entry.end || entry.review || (!task && (entry.recipient || required.length > 0 || entry.documents?.length || entry.guide || entry.form || showStatus))) && (
               <dl className="divide-y border-y [&>div]:grid [&>div]:gap-1 [&>div]:py-3 [&_dt]:font-bold sm:[&>div]:grid-cols-[10rem_minmax(0,1fr)] sm:[&>div]:gap-4">
                 {entry.end && (
                   <div><dt>{entry.estimated ? "Szacowany okres" : "Okres"}</dt><dd>
@@ -188,10 +232,10 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                     </span>
                   </dd></div>
                 )}
-                {showStatus && <div><dt>Status</dt><dd>{statuses[entry.status]}</dd></div>}
-                {entry.recipient && <div><dt>Gdzie</dt><dd>{entry.recipient}</dd></div>}
-                {entry.deadlineDetail && <div><dt>Skutek przekroczenia terminu</dt><dd>{entry.deadlineDetail}</dd></div>}
-                {required.length > 0 && (
+                {!task && showStatus && <div><dt>Status</dt><dd>{statuses[entry.status]}</dd></div>}
+                {!task && entry.recipient && <div><dt>Gdzie</dt><dd>{entry.recipient}</dd></div>}
+                {!task && entry.deadlineDetail && <div><dt>Skutek przekroczenia terminu</dt><dd>{entry.deadlineDetail}</dd></div>}
+                {!task && required.length > 0 && (
                   <div>
                     <dt>Co jest potrzebne</dt>
                     <dd>
@@ -208,7 +252,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                     </dd>
                   </div>
                 )}
-                {!!entry.documents?.length && (
+                {!task && !!entry.documents?.length && (
                   <div>
                     <dt>Dokumenty</dt>
                     <dd><DocumentList documents={entry.documents} /></dd>
@@ -222,14 +266,14 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                     </dd>
                   </div>
                 )}
-                {entry.form && (submission || entry.status !== "completed") && (
+                {!task && entry.form && (submission || entry.status !== "completed") && (
                   <div><dt>Wniosek</dt><dd>
                     {submission
                       ? <>Symulacja z {formatDate(submission.sentAt.slice(0, 10))}, nr <span className="font-mono">{submission.number}</span>. <Link href={`/wnioski/${entry.id}`} className="text-link">Zobacz wynik symulacji</Link></>
                       : <ButtonLink href={`/wnioski/${entry.id}`}>Wypełnij wniosek</ButtonLink>}
                   </dd></div>
                 )}
-                {entry.guide && <div><dt>Instrukcja</dt><dd><a href={entry.guide} className="text-link">Przeczytaj instrukcję</a></dd></div>}
+                {!task && entry.guide && <div><dt>Instrukcja</dt><dd><a href={entry.guide} className="text-link">Przeczytaj instrukcję</a></dd></div>}
               </dl>
             )}
           </div>
@@ -259,9 +303,17 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
             <h3 id="today-title" className="text-lg font-bold text-primary">Dzisiaj</h3>
             <time dateTime={today} className="text-sm text-muted-foreground">{dayFormat.format(parseIso(today)!)}</time>
           </div>
+          {next && (
+            <div className="mt-2 flex flex-col items-start gap-2 rounded-sm border bg-background p-4">
+              <p className="text-sm font-bold text-muted-foreground">Następny krok</p>
+              <a href={`#timeline-${next.id}`} onClick={openRelated} className="text-link text-lg font-bold">{next.title}</a>
+              <p className="text-muted-foreground">{[next.when, next.recipient].filter(Boolean).join(" · ")}</p>
+              <ApplicationAction origin="plan" task={next} submission={submissions[next.id]} />
+            </div>
+          )}
           {attention.length > 0 ? (
             <>
-              <p className="mt-1 font-bold">Co zrobić teraz</p>
+              <p className="mt-3 font-bold">{next ? "Też wkrótce" : "Co zrobić teraz"}</p>
               <ul className="divide-y">
                 {attention.map((item) => {
                   const notice = deadlineNotice(item, today);
@@ -271,7 +323,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                         <a href={`#timeline-${item.id}`} onClick={openRelated} className="text-link inline-flex min-h-11 items-center">
                           {item.title}
                         </a>
-                        <PersonLabel name={names[item.who]} />
+                        {person(item.who)}
                       </div>
                       {item.due && (
                         <span className={`inline-flex items-center gap-2 rounded-sm border bg-background px-2 py-1 text-sm whitespace-nowrap ${notice?.critical ? "border-destructive text-destructive" : notice ? "border-input text-foreground" : "text-muted-foreground"}`}>
@@ -284,14 +336,14 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                 })}
               </ul>
             </>
-          ) : <p className="mt-1 text-muted-foreground">Nie masz teraz spraw wymagających działania.</p>}
+          ) : !next && <p className="mt-1 text-muted-foreground">Nie masz teraz spraw wymagających działania.</p>}
           {active.length === 1 && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3">
               <span className="text-sm font-bold">W trakcie</span>
               <a href={`#timeline-${active[0].id}`} onClick={openRelated} className="text-link inline-flex min-h-11 items-center text-sm">
                 {active[0].title}
               </a>
-              <PersonLabel name={names[active[0].who]} />
+              {person(active[0].who)}
             </div>
           )}
           {active.length > 1 && (
@@ -302,7 +354,7 @@ export function FamilyTimeline({ entries, names, today, actions, profileEvents =
                     <a href={`#timeline-${item.id}`} onClick={openRelated} className="text-link inline-flex min-h-11 items-center text-sm">
                       {item.title}
                     </a>
-                    <PersonLabel name={names[item.who]} />
+                    {person(item.who)}
                   </li>
                 ))}
               </ul>

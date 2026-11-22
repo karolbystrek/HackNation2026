@@ -11,6 +11,8 @@ import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
 import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageBand, RadioGroup, WarningBox } from "@/components/ui";
 import type { RequiredDocument } from "@/lib/journey";
+import { Progress } from "@/components/ui/progress";
+import { buildTasks, nextTask, progress } from "@/lib/calc/tasks";
 import { formatDate } from "@/lib/dates";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { prefill } from "@/lib/forms/prefill";
@@ -29,8 +31,8 @@ const sentFormat = new Intl.DateTimeFormat("pl-PL", { dateStyle: "long", timeSty
 export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) {
   const { taskId } = useParams<{ taskId: string }>();
   const origin = useSearchParams().get("z");
-  const returnHref = origin === "wnioski" ? "/wnioski" : origin === "zadania" ? "/zadania" : `/plan#timeline-${taskId}`;
-  const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : origin === "zadania" ? "Wróć do zadań" : "Wróć do planu";
+  const returnHref = origin === "wnioski" ? "/wnioski" : `/plan#timeline-${taskId}`;
+  const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : "Wróć do planu";
   const { persona, plan, params, journey, today, viewer } = useFamily();
   const found = useMemo(
     () => formContext(persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave, viewer),
@@ -236,8 +238,10 @@ function Submitted({ spec, ctx, submission, doneTasks, returnHref, returnLabel }
         <p className="mt-3">Aby złożyć wniosek, przekaż go do: {ctx.recipientName}. {ctx.recipient === "zus" && <a className="text-link" href="https://www.zus.pl/ezus/logowanie">Przejdź do eZUS</a>}
           {ctx.recipient === "usc" && <a className="text-link" href="https://www.gov.pl/web/gov/uzyskaj-odpis-aktu-stanu-cywilnego-urodzenia-malzenstwa-zgonu">Zamów odpis na gov.pl</a>}</p>
       </Notice>
+      <WhatNext taskId={ctx.taskId} origin={returnHref === "/wnioski" ? "wnioski" : "plan"} />
       <div className="flex flex-wrap items-start gap-3">
-        <ButtonLink href={returnHref}>{returnLabel}</ButtonLink>
+        <ButtonLink href={returnHref} variant="outline">{returnLabel}</ButtonLink>
+        {returnHref === "/wnioski" && <ButtonLink href={`/plan#timeline-${ctx.taskId}`} variant="link">Zobacz na osi czasu</ButtonLink>}
         {!(spec.id in ZUS_TEMPLATES) && <PrintButton spec={spec} ctx={ctx} values={submission.values} date={submission.sentAt.slice(0, 10)} number={submission.number} />}
       </div>
       {spec.id in ZUS_TEMPLATES && <ZusPdf specId={spec.id} ctx={ctx} values={submission.values} doneTasks={doneTasks} />}
@@ -246,6 +250,30 @@ function Submitted({ spec, ctx, submission, doneTasks, returnHref, returnLabel }
         <Summary spec={spec} ctx={ctx} values={submission.values} />
       </section>
     </div>
+  );
+}
+
+/** After a submission: overall progress and the next task, so the parent never lands on a dead end. */
+function WhatNext({ taskId, origin }: { taskId: string; origin: "plan" | "wnioski" }) {
+  const { timeline, viewer } = useFamily();
+  const tasks = buildTasks(timeline).filter((task) => task.who === "both" || task.who === viewer);
+  const { done, total } = progress(tasks);
+  const next = nextTask(tasks.filter((task) => task.id !== taskId));
+  return (
+    <section aria-labelledby="co-dalej" className="flex flex-col gap-3 border-t-4 border-brand pt-4">
+      <h2 id="co-dalej" className="text-2xl font-bold">Co dalej</h2>
+      <Progress label={`Załatwione sprawy: ${done} z ${total}`} value={done} total={total} />
+      {next ? (
+        <div className="flex flex-col items-start gap-2 border border-border p-4">
+          <p className="text-sm font-bold text-muted-foreground">Następny krok</p>
+          <p className="text-lg font-bold">{next.title}</p>
+          <p className="text-muted-foreground">{[next.when, next.recipient].filter(Boolean).join(" · ")}</p>
+          {next.form
+            ? <ButtonLink href={`/wnioski/${next.id}?z=${origin}`}>Wypełnij następny wniosek</ButtonLink>
+            : <ButtonLink href={`/plan#timeline-${next.id}`}>Zobacz, co zrobić</ButtonLink>}
+        </div>
+      ) : <p className="font-bold">Wszystkie sprawy z planu są załatwione.</p>}
+    </section>
   );
 }
 

@@ -11,8 +11,7 @@ export function PanelNav() {
   const { entries, plan } = useFamily();
   const remaining = buildTasks(entries).filter((task) => !task.done && !task.extra).length;
   const tabs = [
-    { href: "/plan", label: "Oś czasu" },
-    { href: "/zadania", label: `Do zrobienia (${remaining})` },
+    { href: "/plan", label: remaining ? `Twój plan (${remaining} do zrobienia)` : "Twój plan" },
     { href: plan.calculatorHref ?? "/kalkulator", label: "Kalkulatory" },
     { href: "/swiadczenia", label: "Świadczenia" },
     { href: "/wnioski", label: "Wnioski" },

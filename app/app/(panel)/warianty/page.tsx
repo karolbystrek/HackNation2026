@@ -18,9 +18,8 @@ function Variants() {
   const { params, variants, chosen, plan, names } = useFamily();
   const router = useRouter();
   const query = useSearchParams();
-  const fromTasks = query.get("z") === "zadania";
   const event = plan.events.find((item) => item.id === query.get("wydarzenie"));
-  const returnHref = fromTasks ? "/zadania" : event ? `/plan#timeline-event-${encodeURIComponent(event.id)}` : "/plan";
+  const returnHref = event ? `/plan#timeline-event-${encodeURIComponent(event.id)}` : "/plan";
 
   const base = (chosen ?? variants.find((variant) => variant.key === "custom") ?? variants[0]).input;
   const main = base.main;
@@ -53,7 +52,7 @@ function Variants() {
         lead="Sprawdźcie, jak podział urlopu wpływa na szacunkowe kwoty zasiłków brutto."
       />
       <div className="page">
-        <BackLink href={returnHref}>{fromTasks ? "Wróć do zadań" : event ? "Wróć do wydarzenia" : "Wróć do osi czasu"}</BackLink>
+        <BackLink href={returnHref}>{event ? "Wróć do wydarzenia" : "Wróć do planu"}</BackLink>
 
         <Card className="flex flex-col gap-4">
           {limit > 0 ? (
@@ -115,7 +114,7 @@ function Variants() {
             disabled={!customLeave}
             onClick={() => {
               updatePlan((state) => ({ ...state, customLeave, chosenVariant: "custom" }));
-              router.push("/zadania");
+              router.push("/plan");
             }}
           >
             Zapisz podział i przejdź do zadań

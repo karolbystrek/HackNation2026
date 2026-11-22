@@ -320,7 +320,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
         </CalculatorDetails>
         {customLeave && <Button className="self-start" onClick={() => {
           updatePlan((state) => ({ ...state, customLeave, chosenVariant: "custom" }));
-          router.push("/zadania");
+          router.push("/plan");
         }}>Zapisz podział urlopu w planie</Button>}
       </>
     } />

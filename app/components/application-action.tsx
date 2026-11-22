@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/dates";
 import type { Submission } from "@/lib/plan-store";
 
 /** "Fill in" button for a task with a form, or the confirmation once it was sent. */
-export function ApplicationAction({ task, submission, origin }: { task: Task; submission?: Submission; origin: "zadania" | "wnioski" }) {
+export function ApplicationAction({ task, submission, origin }: { task: Task; submission?: Submission; origin: "plan" | "wnioski" }) {
   if (submission) {
     return (
       <p className="text-sm">

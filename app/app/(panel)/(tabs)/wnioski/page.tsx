@@ -4,7 +4,7 @@ import { DocumentList } from "@/components/document-list";
 
 import { ApplicationAction } from "@/components/application-action";
 import { CaseCheck } from "@/components/case-check";
-import { Button, ButtonLink, Chip, PageBand, SectionTitle } from "@/components/ui";
+import { Button, ButtonLink, Chip, Notice, PageBand, SectionTitle } from "@/components/ui";
 import { buildTasks, type Task } from "@/lib/calc/tasks";
 import { formatDate, shiftIso } from "@/lib/dates";
 import { CIRCUMSTANCES, type Circumstance } from "@/lib/events";
@@ -13,14 +13,9 @@ import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Applications() {
-  const { params, plan, names, entries, persona, today, chosen } = useFamily();
-  const tasks = buildTasks(entries);
-  const forms = tasks.filter((task) => task.form);
+  const { params, plan, names, entries, persona, today, chosen, solo } = useFamily();
+  const forms = buildTasks(entries).filter((task) => task.form);
   const civil = forms.filter((task) => task.form!.startsWith("civil."));
-  // Paperwork without a form of our own (e.g. documents for the employer who pays the benefit) still belongs here.
-  const paperwork = tasks.filter((task) => !task.form && !task.extra && task.documents.length > 0);
-  const yours = [...forms.filter((task) => !task.extra && !civil.includes(task)), ...paperwork]
-    .sort((a, b) => (a.due ?? "9999").localeCompare(b.due ?? "9999"));
   const special = forms.filter((task) => task.extra && !civil.includes(task));
   const showPreBirth = !persona.birthDate && persona.parents.mother.contract === "uop" && !forms.some((task) => task.id === "pre-birth-leave");
   const situations = (Object.entries(CIRCUMSTANCES) as [Circumstance, (typeof CIRCUMSTANCES)[Circumstance]][])
@@ -44,7 +39,7 @@ export default function Applications() {
       <div className="flex min-w-0 grow flex-col gap-1">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="text-sm font-bold">{task.when}</span>
-          <Chip>{names[task.who]}</Chip>
+          {!solo && <Chip>{names[task.who]}</Chip>}
         </div>
         <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
         {task.recipient && <p className="text-muted-foreground">{task.recipient}</p>}
@@ -71,7 +66,7 @@ export default function Applications() {
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
         title="Wnioski"
-        lead="Wypełnij wnioski do ZUS, pracodawcy i urzędu stanu cywilnego albo sprawdź dokumenty, które już masz."
+        lead="Sprawdź decyzję lub dokumenty z ZUS i wypełnij wnioski na szczególne sytuacje."
       />
       <div className="page gap-12">
 
@@ -80,19 +75,14 @@ export default function Applications() {
         <CaseCheck params={params} />
       </section>
 
-      <section aria-labelledby="twoje-wnioski">
-        <SectionTitle id="twoje-wnioski" className="mb-1">Twoje wnioski</SectionTitle>
-        <p className="mb-3 text-muted-foreground">Wynikają z Waszego planu i osi czasu.</p>
-        {yours.length > 0 && <ul role="list">{yours.map(row)}</ul>}
-        {!chosen && (
-          <div className="flex flex-col items-start gap-2 border-t py-4">
-            <h3 className="text-lg font-bold">Wnioski o urlop rodzicielski i ojcowski</h3>
-            <p>Przygotujemy je, gdy zapiszecie podział urlopu: daty i wymiar trafią do wniosków.</p>
-            <ButtonLink href="/warianty" variant="outline">Podzielcie urlop</ButtonLink>
-          </div>
-        )}
-        {!yours.length && chosen && <p className="text-muted-foreground">Na razie nie ma wniosków do wypełnienia.</p>}
-      </section>
+      <Notice className="flex flex-col items-start gap-2">
+        <p>Wnioski z Waszego planu wypełnisz w zakładce Twój plan – przy każdym kroku osi czasu, w kolejności terminów.</p>
+        {!chosen && <p>Wnioski o urlop rodzicielski i ojcowski przygotujemy, gdy zapiszecie podział urlopu: daty i wymiar trafią do wniosków.</p>}
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href="/plan" variant="outline">Przejdź do planu</ButtonLink>
+          {!chosen && <ButtonLink href="/warianty" variant="outline">Podzielcie urlop</ButtonLink>}
+        </div>
+      </Notice>
 
       {(civil.length > 0 || recordedBirth) && (
         <section aria-labelledby="usc">

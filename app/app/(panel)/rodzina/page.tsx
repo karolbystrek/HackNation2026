@@ -11,11 +11,10 @@ import { useFamily } from "@/lib/use-family";
 import { debtOn } from "@/lib/mock/personas";
 
 const returnPages = new Map([
-  ["/plan", "Wróć do osi czasu"],
+  ["/plan", "Wróć do planu"],
   ["/kalkulator", "Wróć do kalkulatora"],
   ["/wnioski", "Wróć do wniosków"],
   ["/swiadczenia", "Wróć do świadczeń"],
-  ["/zadania", "Wróć do zadań"],
   ["/warianty", "Wróć do wariantów"],
   ["/dodaj", "Wróć do dodawania wydarzenia"],
 ]);
