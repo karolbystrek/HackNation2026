@@ -15,7 +15,7 @@ const DESTINATIONS = new Map([
   ["rodzicielski", "/warianty"],
   ["podstawa", "/kalkulator?tryb=basis"],
   ["adopcja", "/kalkulator?tryb=adoption"],
-  ["wnioski", "/wnioski#twoje-wnioski"],
+  ["wnioski", "/wnioski"],
 ]);
 
 export default function MObywatelLogin() {

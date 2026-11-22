@@ -57,6 +57,11 @@ export default function Applications() {
       />
       <div className="page gap-12">
 
+      <section aria-labelledby="sprawdz-dokumenty">
+        <SectionTitle id="sprawdz-dokumenty" className="mb-3">Sprawdź decyzję lub dokumenty z ZUS</SectionTitle>
+        <CaseCheck params={params} />
+      </section>
+
       <section aria-labelledby="twoje-wnioski">
         <SectionTitle id="twoje-wnioski" className="mb-1">Twoje wnioski</SectionTitle>
         <p className="mb-3 text-muted-foreground">Wynikają z Waszego planu i osi czasu.</p>
@@ -83,10 +88,6 @@ export default function Applications() {
           </div>}
         </section>
       )}
-      <details className="border-y py-4">
-        <summary className="cursor-pointer text-xl font-bold">Sprawdź decyzję lub dokumenty z ZUS</summary>
-        <div className="mt-3"><CaseCheck params={params} /></div>
-      </details>
       </div>
     </main>
   );
