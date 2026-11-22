@@ -8,7 +8,7 @@ description: Visual style for this project's UI - ZUS colour theming combined wi
 Our app should look like it belongs to the Polish public-service family:
 **ZUS colours** (institutional green, amber action, deep navy) laid out with
 the **gov.pl page grammar** (flat white page, full-width bands, service tiles,
-step lists, a dark footer). It must still read as an independent
+step lists, a full-width footer). It must still read as an independent
 hackathon project.
 
 This skill **replaces the "Visual direction" and "Starting theme" sections of
@@ -42,7 +42,7 @@ write raw hex in components.
 | `action` | `#ffb34f` | The single most important CTA per screen | – |
 | `action-hover` | `#f59f2a` | Hover of amber button | – |
 | `action-foreground` | `#00416e` | Text on amber | 6.0:1 (5.0:1 on hover) |
-| `navy` | `#00416e` | Footer, help band, dark headers of tables | – |
+| `navy` | `#00416e` | Help band, dark headers of tables | – |
 | `navy-foreground` | `#ffffff` | Text on navy | 10.6:1 |
 | `secondary` / `muted` | `#f3f4f3` | Alternating bands, quiet surfaces | – |
 | `muted-foreground` | `#525252` | Supporting text | 7.8:1 |
@@ -53,7 +53,7 @@ write raw hex in components.
 | `destructive` | `#b42318` | Errors with text | – |
 
 Rules: green = navigation and "go"; amber = **one** hero action per screen
-(not every button); navy = closing bands and the footer. No gradients, no
+(not every button); navy = help bands, primary green = footer. No gradients, no
 glass, no decorative shadows. Shadow is allowed only as `hover:shadow-sm` on
 tiles.
 
@@ -104,8 +104,10 @@ Build pages from full-width **bands**, each with a `shell` inside:
 9. **Link lists** ("Na skróty", documents) – `divide-y border-y`, each row a
    link with title, optional meta in `text-muted-foreground`, `ChevronRight`
    at the end, row hover `bg-secondary`.
-10. **Help band + footer** – `bg-navy text-navy-foreground`; links white and
-    semibold; columns collapse to one on phones; the demo statement here.
+10. **Help band and footer** – use `bg-navy text-navy-foreground` for help
+    bands and `bg-primary text-primary-foreground` for the footer. Footer links
+    are white and semibold. Its columns collapse to one on phones and it
+    carries the demo statement.
 
 ## Components
 

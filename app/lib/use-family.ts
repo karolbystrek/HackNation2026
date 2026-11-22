@@ -34,7 +34,7 @@ export function useFamily() {
   const solo = fromGuide || plan.solo === true;
   const names = { mother: persona.parents.mother.name, father: persona.parents.father.name, both: solo ? "Sprawa dziecka" : "Wspólne" };
   // Demo profiles and questionnaire answers go through the same knowledge-driven timeline.
-  const entries = planTimeline(persona, plan.events, chosen, params, journey, plan.doneTasks, today)
-    .filter((entry) => entry.who === "both" || entry.who === viewer);
-  return { plan, persona, viewer, solo, fromGuide, params, journey, variants, chosen, names, entries, today };
+  const timeline = planTimeline(persona, plan.events, chosen, params, journey, plan.doneTasks, today);
+  const entries = timeline.filter((entry) => entry.who === "both" || entry.who === viewer);
+  return { plan, persona, viewer, solo, fromGuide, params, journey, variants, chosen, names, entries, timeline, today };
 }

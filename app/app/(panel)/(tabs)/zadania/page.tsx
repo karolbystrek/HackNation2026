@@ -3,17 +3,16 @@
 import Link from "next/link";
 import { ApplicationAction } from "@/components/application-action";
 import { Button, Chip, PageBand, SectionTitle } from "@/components/ui";
-import { RememberedDisclosure } from "@/components/remembered-disclosure";
-import { Progress } from "@/components/ui/progress";
 import { buildTasks } from "@/lib/calc/tasks";
+import { canConfirmDocument } from "@/lib/family-timeline";
 import { tasksToIcs } from "@/lib/ics";
 import { updatePlan } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function Tasks() {
-  const { plan, chosen, names, entries } = useFamily();
+  const { plan, chosen, names, viewer, timeline } = useFamily();
 
-  const tasks = buildTasks(entries);
+  const tasks = buildTasks(timeline).filter((task) => task.who === "both" || task.who === viewer);
   const main = tasks.filter((task) => !task.extra);
   const remaining = main.filter((task) => !task.done);
   const completed = main.filter((task) => task.done);
@@ -28,8 +27,10 @@ export default function Tasks() {
   function renderTask(task: (typeof tasks)[number]) {
     const inputId = `task-${task.id}`;
     const submission = plan.submissions[task.id];
+    const waiting = task.waitingFor;
+    const statusId = `${inputId}-status`;
     return (
-      <li key={task.id} className="flex items-start gap-3 border-t py-5">
+      <li id={`checklist-${task.id}`} key={task.id} className="flex scroll-mt-4 items-start gap-2 border-t py-7 sm:gap-4">
         <label className="grid size-11 shrink-0 cursor-pointer place-items-center">
           <input
             id={inputId}
@@ -37,7 +38,7 @@ export default function Tasks() {
             checked={task.done}
             disabled={task.locked || !!submission}
             aria-label={task.title}
-            aria-describedby={task.locked && !task.done && task.waitingFor.length > 0 ? `${inputId}-waiting` : undefined}
+            aria-describedby={task.locked || submission ? statusId : undefined}
             onChange={() => {
               updatePlan((state) => ({
                 ...state,
@@ -48,29 +49,80 @@ export default function Tasks() {
             className="size-5"
           />
         </label>
-        <div className="flex min-w-0 grow flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <span className="text-sm font-bold">{task.when}</span>
-            <Chip>{names[task.who]}</Chip>
+        <div className="flex min-w-0 grow flex-col gap-4">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 pt-2">
+            <h3 className="min-w-0 text-xl leading-snug font-bold">{task.title}</h3>
+            <Chip className="shrink-0 border bg-background whitespace-nowrap">{names[task.who]}</Chip>
           </div>
-          <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
-          {task.recipient && <p className="text-muted-foreground">{task.recipient}</p>}
-          <ApplicationAction origin="zadania" task={task} submission={submission} />
-          <details className="text-sm">
-            <summary className="cursor-pointer font-bold">Dokumenty i termin</summary>
-            <p>{task.description}</p>
-            {task.deadlineDetail && <p>{task.deadlineDetail}</p>}
-            {task.documents.length > 0 && <ul className="list-disc pl-5">{task.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>}
-            {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start">Oficjalna instrukcja</a>}
-          </details>
-          {task.waitingFor.length > 0 && !task.done && (
-            <div id={`${inputId}-waiting`} className="text-sm text-muted-foreground">
-              <p className="font-bold">Oczekuje na potwierdzenie w Planie</p>
-              <ul role="list">
-                {task.waitingFor.map(({ id, title }) => (
-                  <li key={id}><Link href={`/plan#timeline-${id}`} className="text-link inline-flex min-h-11 items-center">{title}</Link></li>
-                ))}
-              </ul>
+          {(task.recipient || task.when !== "Po spełnieniu warunków") && (
+            <dl className="flex flex-wrap gap-x-8 gap-y-3 border-b pb-4 text-sm">
+              {task.recipient && (
+                <div>
+                  <dt className="text-muted-foreground">Gdzie załatwić</dt>
+                  <dd className="font-semibold">{task.recipient}</dd>
+                </div>
+              )}
+              {task.when !== "Po spełnieniu warunków" && (
+                <div>
+                  <dt className="text-muted-foreground">{task.done && task.locked ? "Ukończenie" : task.due ? "Termin" : "Kiedy"}</dt>
+                  <dd className="font-semibold">{task.when}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {task.description && <p className="max-w-[70ch] leading-relaxed">{task.description}</p>}
+          {(task.deadlineDetail || task.documents.length > 0) && (
+            <dl className="max-w-[70ch] space-y-4">
+              {task.deadlineDetail && (
+                <div><dt className="font-bold">Po przekroczeniu terminu</dt><dd>{task.deadlineDetail}</dd></div>
+              )}
+              {task.documents.length > 0 && (
+                <div>
+                  <dt className="font-bold">Dokumenty do przygotowania</dt>
+                  <dd>
+                    <ul className="list-disc space-y-1 pl-5">
+                      {task.documents.map((doc) => (
+                        <li key={doc.id}>
+                          {doc.title}
+                          {doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {waiting.length > 0 && (
+            <div id={statusId} className="max-w-[70ch] border-l-4 border-action bg-warning-soft px-4 py-3 text-sm">
+              <p className="font-bold">Aby oznaczyć zadanie jako wykonane</p>
+              <ol className="list-decimal pl-5">
+                {waiting.map((entry) => {
+                  const plannedBirth = entry.kind === "event" && entry.estimated;
+                  const otherProfile = entry.who !== "both" && entry.who !== viewer;
+                  const label = plannedBirth ? "Po porodzie dodaj rzeczywistą datę urodzenia"
+                    : canConfirmDocument(entry.id) ? `Potwierdź w Planie: ${entry.title}`
+                    : entry.kind === "application" ? `Wykonaj i oznacz jako ukończone: ${entry.title}` : entry.title;
+                  const href = plannedBirth ? "/dodaj"
+                    : remaining.some((task) => task.id === entry.id) ? `#checklist-${entry.id}` : `/plan#timeline-${entry.id}`;
+                  return (
+                    <li key={entry.id}>
+                      {otherProfile
+                        ? <span className="block py-2">{entry.title} (profil: {names[entry.who]})</span>
+                        : <Link href={href} className="text-link inline-flex min-h-11 items-center">{label}</Link>}
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+          {task.guide && <a href={task.guide} className="text-link min-h-11 content-center self-start text-sm">Oficjalna instrukcja</a>}
+          {(task.form || submission || (task.done && task.locked)) && (
+            <div id={waiting.length === 0 && (task.locked || submission) ? statusId : undefined}>
+              {task.done && task.locked && !submission && (
+                <p className="text-sm text-muted-foreground">Wykonanie zapisano w danych sprawy.</p>
+              )}
+              <ApplicationAction origin="zadania" task={task} submission={submission} />
             </div>
           )}
         </div>
@@ -86,8 +138,8 @@ export default function Tasks() {
       />
 
       <div className="page">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-        <Progress label={`Ukończono ${completed.length} z ${main.length} zadań`} value={completed.length} total={main.length} />
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+        <p className="text-sm font-bold text-muted-foreground">Ukończono {completed.length} z {main.length} zadań</p>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <Link href="/warianty?z=zadania" className="text-link font-bold">
             {chosen ? "Zmień podział urlopu" : "Ustal podział urlopu"}
@@ -105,9 +157,10 @@ export default function Tasks() {
       </section>
 
       {completed.length > 0 && (
-        <RememberedDisclosure section="zadania/ukonczone" className="border-y" label={<span className="font-bold">Ukończone zadania ({completed.length})</span>}>
+        <section aria-labelledby="ukonczone-zadania">
+          <SectionTitle id="ukonczone-zadania" className="mb-3">Ukończone zadania ({completed.length})</SectionTitle>
           <ul role="list">{completed.map(renderTask)}</ul>
-        </RememberedDisclosure>
+        </section>
       )}
       </div>
     </main>
