@@ -88,7 +88,7 @@
         {
           "order": 3,
           "actor": "insured",
-          "action_pl": "Wniosek o zasiłek: ZAM (sekcja 1 – przysposobienie, data przyjęcia) + ZAS-26; wariant 81,5% do 21 dni od przyjęcia.",
+          "action_pl": "Wniosek o zasiłek: ZAM (sekcja 1 – przysposobienie, data przyjęcia) + ZAS-26.",
           "recipient": "payer_of_benefit",
           "form_ids": [
             "form.zam",
@@ -97,6 +97,15 @@
         },
         {
           "order": 4,
+          "actor": "insured",
+          "action_pl": "Wariant 81,5%: wniosek o zasiłek za pełny wymiar do 21 dni od przyjęcia.",
+          "recipient": "payer_of_benefit",
+          "form_ids": [
+            "form.zam"
+          ]
+        },
+        {
+          "order": 5,
           "actor": "insured",
           "action_pl": "Rodzicielski (W11) z dokumentami adopcyjnymi; urlop ojcowski – po uprawomocnieniu postanowienia (12 miesięcy).",
           "recipient": "employer",
@@ -540,11 +549,20 @@
         {
           "order": 4,
           "actor": "insured",
+          "action_pl": "Wariant 81,5%: wniosek o zasiłek za pełny wymiar do 21 dni od przyjęcia.",
+          "recipient": "payer_of_benefit",
+          "form_ids": [
+            "form.zam"
+          ]
+        },
+        {
+          "order": 5,
+          "actor": "insured",
           "action_pl": "Przy późniejszym wniosku o przysposobienie – urlopy pomniejsza się o wykorzystane jako rodzina zastępcza.",
           "recipient": "employer"
         },
         {
-          "order": 5,
+          "order": 6,
           "actor": "insured",
           "action_pl": "Po urlopie na warunkach urlopu macierzyńskiego: wniosek o urlop rodzicielski (W11) z dokumentem o umieszczeniu dziecka.",
           "recipient": "employer",
