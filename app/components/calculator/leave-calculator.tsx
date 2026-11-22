@@ -12,6 +12,7 @@ import { addDays, formatDate, parseIso, shiftIso, toIso } from "@/lib/dates";
 import { formatPln, formatRate, formatWeeks, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 import { DateField } from "@/components/ui/date-field";
+import { supplementaryLeave } from "@/lib/calc/supplementary";
 
 type Bases = Record<ParentKey, string>;
 
@@ -55,6 +56,16 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
   const form = { ...draft, uninsuredParents: draft.uninsuredParents ?? PARENTS.filter((parent) => persona.parents[parent].insuredType === "uninsured") };
   const [advance, setAdvance] = usePlanDraft(`${draftKey}/zaliczka-pit`, { mother: "", father: "" });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
+  const [supplementaryInput, setSupplementaryInput] = usePlanDraft(`${draftKey}/uzupelniajacy`, { gestationWeek: "", birthWeightG: "", hospitalDays: "" });
+  const supplementaryOf = (raw: typeof supplementaryInput) => {
+    const number = (text: string) => (text.trim() && Number.isFinite(Number(text)) ? Number(text) : null);
+    return supplementaryLeave({ gestationWeek: number(raw.gestationWeek), birthWeightG: number(raw.birthWeightG), hospitalDays: number(raw.hospitalDays) ?? 0 }, params);
+  };
+  const supplementaryCap = supplementaryOf(supplementaryInput).cap;
+  const setSupplementary = (raw: typeof supplementaryInput) => {
+    setSupplementaryInput(raw);
+    set("supplementaryWeeks", supplementaryOf(raw).weeks);
+  };
 
   const flatDeadline = parseIso(form.startDate) ? shiftIso(form.startDate, params.flatRateRequestDays) : null;
   const flatExpired = flatDeadline !== null && today > flatDeadline;
@@ -111,9 +122,21 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             <DateField label="Początek macierzyńskiego przed porodem" max={form.startDate}
               min={parseIso(form.startDate) ? addDays(parseIso(form.startDate)!, -params.preBirthMaxWeeks * 7).toISOString().slice(0, 10) : undefined}
               value={form.preBirthStartDate ?? ""} onChange={(value) => set("preBirthStartDate", value)} />
-            <Field label="Tygodnie uzupełniającego urlopu macierzyńskiego" type="number" min={0} max={params.supplementary.capSevereWeeks}
-              hint="Wpisz wymiar wynikający z zaświadczenia o pobycie dziecka w szpitalu."
-              value={form.supplementaryWeeks ?? 0} onChange={(e) => set("supplementaryWeeks", Number(e.target.value))} />
+            <CalculatorDetails label="Wcześniak lub pobyt dziecka w szpitalu" initiallyOpen={!!form.supplementaryWeeks}>
+              <p className="text-sm">Uzupełniający urlop macierzyński to tydzień za każdy rozpoczęty tydzień pobytu dziecka w szpitalu. Dane znajdziesz w zaświadczeniu ze szpitala.</p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {([
+                  ["gestationWeek", "Ukończony tydzień ciąży przy porodzie"],
+                  ["birthWeightG", "Masa urodzeniowa (g)"],
+                  ["hospitalDays", "Dni w szpitalu łącznie"],
+                ] as const).map(([key, label]) => (
+                  <Field key={key} label={label} type="number" min={0} inputMode="numeric" value={supplementaryInput[key]}
+                    onChange={(e) => setSupplementary({ ...supplementaryInput, [key]: e.target.value })} />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">Przy dziecku urodzonym od {params.supplementary.weekTerm}. tygodnia licz dni od 5. dnia życia. Przy wieloraczkach podaj najniższą masę i najdłuższy pobyt.</p>
+              <p className="font-bold">Uzupełniający urlop macierzyński: {formatWeeks(form.supplementaryWeeks ?? 0)} (najwyżej {formatWeeks(supplementaryCap)})</p>
+            </CalculatorDetails>
           </>}
           {adoption && (
             <DateField required label="Data urodzenia dziecka" max={form.startDate || undefined}
@@ -153,7 +176,9 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             <Checkbox key={parent} checked={form.uninsuredParents.includes(parent)}
               onChange={() => set("uninsuredParents", form.uninsuredParents.includes(parent)
                 ? form.uninsuredParents.filter((item) => item !== parent) : [...form.uninsuredParents, parent])}
-              title={`Brak prawa do zasiłku macierzyńskiego: ${names[parent]}`} />
+              title={`${names[parent]} nie ma prawa do zasiłku macierzyńskiego`}>
+              Na przykład brak ubezpieczenia chorobowego w dniu porodu.
+            </Checkbox>
           ))}
           <div className="space-y-1">
             <p className="text-lg font-bold">Wspólna pula urlopu rodzicielskiego: {r.pool} tyg.</p>
@@ -216,13 +241,13 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
         <>
           <p className="text-muted-foreground">Podstawa to kwota, od której naliczany jest zasiłek.</p>
           {PARENTS.filter((parent) => !form.uninsuredParents.includes(parent)).map((parent) => (
-            <div key={parent}>
-              <Field required label={`Podstawa zasiłku (zł) dla ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
+            <div key={parent} className="flex flex-col gap-4">
+              <Field required label={`Podstawa zasiłku ${persona.parents[parent].nameGenitive} (zł)`} inputMode="decimal" pattern={amountPattern}
                 title={amountHint} maxLength={24} value={bases[parent]} onChange={(e) => setBases({ ...bases, [parent]: e.target.value })} />
-              <Field label={`Miesięczna zaliczka PIT od zasiłku (zł) dla ${names[parent]}`} inputMode="decimal" pattern={amountPattern}
+              <Field label={`Miesięczna zaliczka PIT od zasiłku ${persona.parents[parent].nameGenitive} (zł)`} inputMode="decimal" pattern={amountPattern}
                 hint="Opcjonalnie. Kwota służy do obliczenia wyrównania świadczenia."
                 maxLength={24} value={advance[parent]} onChange={(e) => setAdvance({ ...advance, [parent]: e.target.value })} />
-              <Button variant="link" onClick={() => onBasis(parent, form.startDate.slice(0, 7))}>
+              <Button variant="link" className="self-start" onClick={() => onBasis(parent, form.startDate.slice(0, 7))}>
                 Oblicz z 12 miesięcy
               </Button>
             </div>
@@ -245,7 +270,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             <a className="text-link" href="https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-macierzynski/wysokosc">Zasady wypłaty zasiłku w ZUS</a>
             {form.flatRate && !r.flatRateAllowed && (
               <span className="text-sm leading-snug text-foreground">
-                W tym wariancie kalkulator stosuje stawki {formatRate(params.rates.full)} i {formatRate(params.rates.parental)}.
+                {names[form.main]} nie ma prawa do zasiłku macierzyńskiego, więc stawki uśrednionej nie można wybrać. Kalkulator stosuje stawki {formatRate(params.rates.full)} i {formatRate(params.rates.parental)}.
               </span>
             )}
           </div>
@@ -258,7 +283,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
     <UrlCalculatorSteps steps={steps} onBack={onBack} active={active} result={
       <>
         <ResultSummary label="Szacowane zasiłki łącznie (brutto)" value={formatPln(r.familyTotal)}>
-          <p>Koniec urlopów: <strong>{formatDate(r.end)}</strong></p>
+          {r.end && <p>Ostatni dzień urlopów: <strong>{formatDate(shiftIso(r.end, -1))}</strong></p>}
           <p>{r.deadline}</p>
           <p>Prawo do zasiłku ustala ZUS lub płatnik składek.</p>
         </ResultSummary>

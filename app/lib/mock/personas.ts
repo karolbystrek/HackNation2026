@@ -32,7 +32,8 @@ export type ParentProfile = {
   waitingWaived?: boolean;
   insurance: string;
   contributions: string;
-  contributionDebt?: { date: string; amount: number };
+  /** Contribution arrears from `date` until `repaidOn` (exclusive), shown on the ZUS debt certificate for any day in between. */
+  contributionDebt?: { date: string; amount: number; repaidOn?: string };
   sickLeaveFrom: string | null;
   /** Gross pay for the 12 months before the benefit, oldest first. */
   monthlyGross: number[];
@@ -53,6 +54,8 @@ export type Persona = {
   birthCertificateDate?: string;
   birthPlace?: string;
   childName?: string;
+  /** Child's surname in its grammatical form (e.g. "Wiśniewska" for a girl); forms fall back to the father's surname. */
+  childLastName?: string;
   paternityStart: string;
   /** Paternity leave in one 14-day block or two 7-day parts (KP art. 182^3 § 1); each part needs its own request. */
   paternityParts?: 1 | 2;
@@ -73,6 +76,13 @@ export type Persona = {
   parents: Record<ParentKey, ParentProfile>;
   events: TimelineEvent[];
 };
+
+/** Debt on the day a right arises (null when the profile has no data for it, 0 when contributions are paid). */
+export function debtOn(parent: ParentProfile, day: string | null | undefined): number | null {
+  const debt = parent.contributionDebt;
+  if (day && debt && debt.date <= day && (!debt.repaidOn || day < debt.repaidOn)) return debt.amount;
+  return parent.contributions.includes("brak zaległości") || (day && debt) ? 0 : null;
+}
 
 export const personas: Persona[] = [
   {

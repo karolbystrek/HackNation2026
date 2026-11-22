@@ -137,7 +137,7 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
   const basisAmount = parseAmount(basisInput);
   const invalidBasis = basisInput.trim() !== "" && (!validAmount.test(basisInput) || basisAmount <= 0);
   const analysis = analyzeCase(c, params, invalidBasis ? undefined : basisAmount);
-  const hasAmounts = analysis.eligible === false || (analysis.eligible === true && analysis.basis !== null);
+  const hasAmounts = analysis.eligible === false || (analysis.eligible === true && analysis.monthly !== null);
   const unsure = (path: string) => c.uncertain.some((u) => u === path || u.startsWith(`${path}.`) || u.startsWith(`${path}[`));
   const hint = (path: string) => (unsure(path) ? <span className="font-bold text-destructive">Odczyt niepewny, sprawdź ze skanem.</span> : undefined);
   const set = (patch: Partial<CaseExtraction>) => setC((prev) => ({ ...prev, ...patch }));
@@ -208,6 +208,9 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                   </div>
                 ))}
                 <Button variant="outline" className="self-start" onClick={() => set({ sickInsurance: [...c.sickInsurance, { from: "", to: null, voluntary: false }], uninsuredOnStart: undefined })}>Dodaj okres ubezpieczenia</Button>
+                <DateField label="ZUS ustalił niepodleganie ubezpieczeniu od" value={c.notInsuredFrom ?? ""} className="max-w-sm"
+                  hint="Np. umowa uznana za zawartą dla pozoru. Puste, jeśli nie ma takiego ustalenia."
+                  onChange={(value) => set({ notInsuredFrom: value || null })} />
               </fieldset>
             </div>
           </div>
@@ -229,6 +232,12 @@ function CaseResult({ loaded, params, headingRef, previewUrl }: { loaded: Loaded
                 setDecisionBasis(true);
               }}>Użyj podstawy z decyzji ZUS</Button>
             )}
+            <div className="mb-4">
+              <Checkbox checked={c.parentalAllowanceTopUp === true} onChange={() => set({ parentalAllowanceTopUp: !c.parentalAllowanceTopUp })}
+                title="ZUS podwyższa zasiłek do kwoty świadczenia rodzicielskiego">
+                Pismo ZUS mówi, że zasiłek jest niższy niż {formatPln(params.parentalAllowanceMonthly)} miesięcznie.
+              </Checkbox>
+            </div>
             <div className="pb-4">
               <fieldset className="flex flex-col gap-3">
                 <legend className="mb-1 font-bold">Kwoty za poszczególne miesiące</legend>

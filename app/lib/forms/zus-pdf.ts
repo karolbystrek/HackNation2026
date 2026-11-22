@@ -22,7 +22,7 @@ const range = (v: FieldValue | undefined) => {
 };
 const digits = (v: string) => v.replace(/\D/g, "");
 const children = (v: FieldValue | undefined) =>
-  ((v as Child[] | undefined) ?? []).map((c) => `${c.name}, ur. ${formatDate(c.birthDate)}${c.birthPlace ? ` w ${c.birthPlace}` : ""}`).join("; ");
+  ((v as Child[] | undefined) ?? []).map((c) => `${c.name}, ur. ${formatDate(c.birthDate)}${c.birthPlace ? `, miejsce urodzenia: ${c.birthPlace}` : ""}`).join("; ");
 const person = (v: FieldValue | undefined) => {
   const p = v as Person | undefined;
   return p?.name ? `${p.name}${p.pesel ? `, PESEL ${p.pesel}` : ""}` : "";

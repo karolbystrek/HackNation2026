@@ -3,7 +3,7 @@ import { computeBasis } from "./basis";
 import { planLeave } from "./leave";
 import { calcPregnancy, type PregnancyInput } from "./pregnancy";
 import { leaveInputFor } from "./variants";
-import { personas } from "@/lib/mock/personas";
+import { debtOn, personas } from "@/lib/mock/personas";
 import { defaultParams } from "@/lib/params";
 
 test("overlapping parental periods share the pool and their rates follow the reserved weeks", () => {
@@ -56,4 +56,12 @@ test("sickness benefit payout is suspended for a self-employed parent above the 
   const input: PregnancyInput = { contract: "jdg", insuredFrom: "2024-01-01", sickLeaveFrom: "2026-03-01", dueDate: "2026-03-11", basis: 6000, employerInsolvent: false };
   expect(calcPregnancy({ ...input, contributionDebt: 48.06 }, defaultParams).total).toBe(2000);
   expect(calcPregnancy({ ...input, contributionDebt: 48.07 }, defaultParams).total).toBe(0);
+});
+
+test("contribution debt applies from its date until repaid", () => {
+  const maja = personas.find((p) => p.id === "maja-piotr")!.parents.mother;
+  expect(debtOn(maja, "2026-11-17")).toBe(375);
+  expect(debtOn(maja, "2026-10-01")).toBe(0);
+  expect(debtOn({ ...maja, contributionDebt: { date: "2026-11-02", amount: 375, repaidOn: "2026-11-10" } }, "2026-11-17")).toBe(0);
+  expect(debtOn(personas[0].parents.mother, "2027-03-15")).toBe(0);
 });

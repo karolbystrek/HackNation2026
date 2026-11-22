@@ -40,8 +40,13 @@ export function AdminSettings({ initial }: { initial: Settings }) {
   return <main id="main-content" tabIndex={-1} className="page max-w-xl">
     <PageTitle lead="Zmiany obowiązują w kalkulatorach i planach po ponownym wczytaniu.">Parametry świadczeń</PageTitle>
     <form onSubmit={save} className="flex flex-col gap-4">
-      {settingsFields.map(({ key, label, min, max, step }) =>
-        <Field key={key} label={label} name={key} type="number" min={min} max={max} step={step} required defaultValue={initial[key]} />)}
+      {[...new Set(settingsFields.map((field) => field.group))].map((group) => (
+        <fieldset key={group} className="flex flex-col gap-4 border-t pt-4">
+          <legend className="pr-2 text-lg font-bold">{group}</legend>
+          {settingsFields.filter((field) => field.group === group).map(({ key, label, min, max, step }) =>
+            <Field key={key} label={label} name={key} type="number" min={min} max={max} step={step} required defaultValue={initial[key]} />)}
+        </fieldset>
+      ))}
       <Field label="E-mail administratora" name="email" type="email" autoComplete="username" required />
       <Field label="Hasło administratora" name="password" type="password" autoComplete="current-password" required />
       <Button className="self-start" type="submit" disabled={busy}>{busy ? "Zapisuję…" : "Zapisz parametry"}</Button>

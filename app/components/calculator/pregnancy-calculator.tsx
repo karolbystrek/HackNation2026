@@ -8,6 +8,7 @@ import { addDays, parseIso, toIso } from "@/lib/dates";
 import type { ParentKey } from "@/lib/calc/leave";
 import { formatPln, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
+import { debtOn } from "@/lib/mock/personas";
 import { DateField } from "@/components/ui/date-field";
 
 export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, startDate, endDate, draftKey }: {
@@ -37,7 +38,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
   const insolvency = form.contract === "uop" && form.employerInsolvent;
   const [debt, setDebt] = usePlanDraft(`${draftKey}/zadluzenie`, "");
-  const debtFromProfile = mother.contributionDebt?.date === form.sickLeaveFrom ? mother.contributionDebt?.amount : undefined;
+  const debtFromProfile = debtOn(mother, form.sickLeaveFrom) || undefined;
   const debtInput = debt || (debtFromProfile === undefined ? "" : String(debtFromProfile));
   const r = calcPregnancy({ ...form, employerInsolvent: insolvency, basis: parseAmount(basis), contributionDebt: debtInput ? parseAmount(debtInput) : undefined }, params);
 

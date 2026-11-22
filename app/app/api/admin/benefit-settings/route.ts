@@ -10,7 +10,7 @@ export async function PUT(request: Request) {
     return Response.json({ error: "Brak uprawnień do zmiany parametrów." }, { status: 403 });
   }
   const settings = readSettings(await request.json().catch(() => null));
-  if (!settings) return Response.json({ error: "Sprawdź zakres wartości. Pula dla wieloraczków musi być co najmniej równa puli dla jednego dziecka." }, { status: 400 });
+  if (!settings) return Response.json({ error: "Sprawdź zakres wartości. Pula dla wieloraczków nie może być mniejsza niż dla jednego dziecka, każda pula musi mieścić 2 części nieprzenoszalne, a część tylko dla matki nie może przekraczać macierzyńskiego." }, { status: 400 });
   const { error } = await db.from("benefit_settings").upsert({ id: true, overrides: settings });
   if (error) return Response.json({ error: "Nie udało się zapisać parametrów. Spróbuj ponownie." }, { status: 503 });
   return Response.json({ settings });

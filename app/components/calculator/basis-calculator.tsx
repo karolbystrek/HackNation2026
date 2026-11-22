@@ -26,14 +26,17 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
   const [startMonth, setStartMonth] = usePlanDraft(`${draftKey}/startMonth`, request?.startMonth || persona.dueDate.slice(0, 7));
   const [months, setMonths] = usePlanDraft(`${draftKey}/months`, persona.parents[parent].monthlyGross.map(String));
   const [employmentPercent, setEmploymentPercent] = usePlanDraft(`${draftKey}/etat`, "100");
+  const [bonuses, setBonuses] = usePlanDraft(`${draftKey}/premie`, { quarterly: "", annual: "" });
 
-  const r = computeBasis(months.map(parseAmount), params, incomeType, Number(employmentPercent) / 100);
+  const r = computeBasis(months.map(parseAmount), params, incomeType, Number(employmentPercent) / 100,
+    { quarterly: parseAmount(bonuses.quarterly), annual: parseAmount(bonuses.annual) });
   const [startYear, startMon] = startMonth.split("-").map(Number);
   const firstMonth = (startYear || 2027) * 12 + ((startMon || 1) - 1) - 12;
   const basisText = r.basis.toFixed(2).replace(".", ",");
 
   const rows: [string, string][] = [
-    [`Średnia z ${r.months} mies.`, formatPln(r.average, 2)],
+    [`Średnia z ${r.months} mies.`, formatPln(r.average - r.bonus, 2)],
+    ...(r.bonus ? [["Premie kwartalne i roczne (1/12)", formatPln(r.bonus, 2)] as [string, string]] : []),
     [`Minus składki ${formatRate(params.employeeContributionRate)}`, formatPln(-r.contributions, 2)],
     ...(r.floored ? [["Podniesiono do minimum dla wymiaru etatu", formatPln(r.basis, 2)] as [string, string]] : []),
     ["Stawka dzienna (podstawa / 30)", formatPln(r.daily, 2)],
@@ -99,15 +102,28 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
           <p className="text-muted-foreground">
             {incomeType === "jdg" ? "Zadeklarowana podstawa składek" : "Wynagrodzenie brutto"} w miesiącach przed rozpoczęciem zasiłku.
           </p>
+          <p className="text-sm text-muted-foreground">
+            Miesiąc, w którym przepracowano mniej niż połowę czasu pracy, zostaw pusty: nie wlicza się do średniej. Jeśli przepracowano co najmniej połowę, wpisz kwotę po uzupełnieniu do pełnego miesiąca.
+          </p>
           {source === "manual" ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{incomeFields}</div>
           ) : (
             <>
-              <p>Średnio miesięcznie ({names[source]}) <strong>{formatPln(r.average, 2)}</strong></p>
+              <p>Średnio miesięcznie ({names[source]}) <strong>{formatPln(r.average - r.bonus, 2)}</strong></p>
               <CalculatorDetails label="Sprawdź lub zmień kwoty" initiallyOpen={months.some((value, i) => value !== String(persona.parents[source].monthlyGross[i]))}>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{incomeFields}</div>
               </CalculatorDetails>
             </>
+          )}
+          {incomeType !== "jdg" && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Premie kwartalne za 4 ostatnie kwartały (zł)" hint="Opcjonalnie. Suma brutto; do średniej dodajemy 1/12."
+                inputMode="decimal" pattern={amountPattern} title={amountHint} maxLength={24}
+                value={bonuses.quarterly} onChange={(e) => setBonuses({ ...bonuses, quarterly: e.target.value })} />
+              <Field label="Premia roczna za poprzedni rok (zł)" hint="Opcjonalnie. Np. trzynastka; do średniej dodajemy 1/12."
+                inputMode="decimal" pattern={amountPattern} title={amountHint} maxLength={24}
+                value={bonuses.annual} onChange={(e) => setBonuses({ ...bonuses, annual: e.target.value })} />
+            </div>
           )}
         </>
       ),
@@ -129,7 +145,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
         <div className="flex flex-wrap gap-2">
           {(request ? [request.parent] : PARENTS).map((p, i) => (
             <Button key={p} variant={i === 0 ? "primary" : "outline"} onClick={() => onUse(p, basisText)}>
-              {request ? "Użyj tej kwoty" : `Użyj dla ${names[p]}`}
+              {request ? "Użyj tej kwoty" : `Użyj dla ${persona.parents[p].nameGenitive}`}
             </Button>
           ))}
         </div>

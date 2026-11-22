@@ -26,6 +26,8 @@ The parameter editor is available at `/admin`. Provision a Supabase Auth user wi
 accepts that user’s email and password. The API checks the current user record
 before writing to `benefit_settings`. The calculator, case analyzer and form wizard
 read the same settings. Apply the migration before enabling the editor.
+Editable fields are listed in `app/lib/benefit-settings.ts`, each mapped to a path in `app/lib/params.ts`.
+A field missing from the stored `overrides` keeps its default, so adding a field needs no migration.
 
 See [local commands](local-development.md) and
 [client entry points](../app/README.md#supabase-clients).

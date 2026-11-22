@@ -1,9 +1,9 @@
-import { computeBasis } from "@/lib/calc/basis";
+import { computeBasis, type Bonuses } from "@/lib/calc/basis";
 import { planLeave, type LeaveInput } from "@/lib/calc/leave";
 import { calcPregnancy, type ContractType, type PregnancyInput } from "@/lib/calc/pregnancy";
 import { loadParams } from "@/lib/server-params";
 
-type Body = { type: "leave"; input: LeaveInput } | { type: "pregnancy"; input: PregnancyInput } | { type: "basis"; input: { monthlyGross: number[]; contract?: ContractType; employmentFraction?: number } };
+type Body = { type: "leave"; input: LeaveInput } | { type: "pregnancy"; input: PregnancyInput } | { type: "basis"; input: { monthlyGross: number[]; contract?: ContractType; employmentFraction?: number; bonuses?: Bonuses } };
 
 // Bounds keep the day-by-day pregnancy loop short and the leave engine away from dividing by zero.
 const inRange = (date: unknown) => typeof date !== "string" || date === "" || (date >= "2000-01-01" && date <= "2100-12-31");
@@ -34,6 +34,8 @@ function invalid(body: Body): string | null {
       Object.values(advance).some((n) => !Number.isFinite(n) || n < 0))) return "monthlyPitAdvance must contain nonnegative amounts";
   }
   if (body.type === "basis" && !Array.isArray(input.monthlyGross)) return "monthlyGross must be an array";
+  if (body.type === "basis" && body.input.bonuses !== undefined && (!body.input.bonuses || typeof body.input.bonuses !== "object" ||
+    Object.values(body.input.bonuses).some((n) => typeof n !== "number" || !Number.isFinite(n) || n < 0))) return "bonuses must contain nonnegative amounts";
   if (body.type === "basis" && body.input.employmentFraction !== undefined &&
     (!Number.isFinite(body.input.employmentFraction) || body.input.employmentFraction <= 0 || body.input.employmentFraction > 1)) return "employmentFraction must be greater than 0 and at most 1";
   return null;
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
     case "pregnancy":
       return Response.json(calcPregnancy(body.input, params));
     case "basis":
-      return Response.json(computeBasis(body.input.monthlyGross, params, body.input.contract, body.input.employmentFraction));
+      return Response.json(computeBasis(body.input.monthlyGross, params, body.input.contract, body.input.employmentFraction, body.input.bonuses));
     default:
       return Response.json({ error: "type must be leave, pregnancy or basis" }, { status: 400 });
   }

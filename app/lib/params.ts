@@ -7,8 +7,9 @@ export const defaultParams = {
   // Maternity weeks after birth only the mother can use; the father may take over the rest.
   motherOnlyWeeks: 14,
   paternityWeeks: 2,
-  // Supplementary maternity leave: 1 week per week in hospital, up to capSevereWeeks when born before weekLow or at most weightLow grams.
-  supplementary: { capSevereWeeks: 15, capWeeks: 8, weekLow: 28, weightLow: 1000 },
+  // Supplementary maternity leave: 1 week per week in hospital, up to capSevereWeeks when born before weekLow or at most weightLow grams;
+  // a child born from weekTerm needs at least termMinDays in hospital between the 5th and 28th day of life.
+  supplementary: { capSevereWeeks: 15, capWeeks: 8, weekLow: 28, weightLow: 1000, weekTerm: 37, termMinDays: 2 },
   // Maternity benefit after stillbirth or death before 8 weeks of life.
   stillbirthWeeks: 8,
   // Maternity leave may start up to this many weeks before the due date.

@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "cn";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -39,6 +39,21 @@ function FieldFrame({ label, hint, labelId, hintId, className, children }: { lab
   );
 }
 
+/**
+ * The picker is a button, so a required value is guarded by a hidden input that joins native form validation:
+ * an empty value blocks submit, focuses the picker and shows the message.
+ */
+function useRequired(value: string, required: boolean | undefined, message: string, trigger: RefObject<HTMLButtonElement | null>) {
+  const [missing, setMissing] = useState(false);
+  const show = missing && !value;
+  const guard = required ? (
+    <input tabIndex={-1} aria-hidden required value={value} onChange={() => {}} className="sr-only"
+      onInvalid={(event) => { event.preventDefault(); setMissing(true); trigger.current?.focus(); }} />
+  ) : null;
+  const error = show ? <p className="text-sm font-bold text-destructive">{message}</p> : null;
+  return { invalid: show || undefined, guard, error };
+}
+
 /** shadcn date picker (Popover + Calendar, Polish locale) that reads and writes ISO "YYYY-MM-DD". */
 export function DateField({ label, hint, value, onChange, required, className, id, min, max, ...aria }: Props & { min?: string; max?: string }) {
   const [open, setOpen] = useState(false);
@@ -48,6 +63,8 @@ export function DateField({ label, hint, value, onChange, required, className, i
   const [from, to] = [fromIso(min), fromIso(max)];
   const year = new Date().getFullYear();
 
+  const trigger = useRef<HTMLButtonElement>(null);
+  const check = useRequired(value, required, "Wybierz datę.", trigger);
   return (
     <FieldFrame label={label} hint={hint} labelId={labelId} hintId={hintId} className={className}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -56,7 +73,8 @@ export function DateField({ label, hint, value, onChange, required, className, i
           className={triggerClass}
           aria-labelledby={`${labelId} ${labelId}-value`}
           aria-describedby={[hintId, aria["aria-describedby"]].filter(Boolean).join(" ") || undefined}
-          aria-invalid={aria["aria-invalid"]}
+          ref={trigger}
+          aria-invalid={aria["aria-invalid"] ?? check.invalid}
           aria-required={required}
         >
           <span id={`${labelId}-value`} className={selected ? "" : "text-muted-foreground"}>{selected ? formatDate(value) : "Wybierz datę"}</span>
@@ -81,6 +99,8 @@ export function DateField({ label, hint, value, onChange, required, className, i
           )}
         </PopoverContent>
       </Popover>
+      {check.guard}
+      {check.error}
     </FieldFrame>
   );
 }
@@ -96,6 +116,8 @@ export function MonthField({ label, hint, value, onChange, required, className, 
   const selected = fromIso(value);
   const [year, setYear] = useState(selected?.getFullYear() ?? new Date().getFullYear());
 
+  const trigger = useRef<HTMLButtonElement>(null);
+  const check = useRequired(value, required, "Wybierz miesiąc.", trigger);
   return (
     <FieldFrame label={label} hint={hint} labelId={labelId} hintId={hintId} className={className}>
       <Popover open={open} onOpenChange={setOpen}>
@@ -104,7 +126,8 @@ export function MonthField({ label, hint, value, onChange, required, className, 
           className={triggerClass}
           aria-labelledby={`${labelId} ${labelId}-value`}
           aria-describedby={[hintId, aria["aria-describedby"]].filter(Boolean).join(" ") || undefined}
-          aria-invalid={aria["aria-invalid"]}
+          ref={trigger}
+          aria-invalid={aria["aria-invalid"] ?? check.invalid}
           aria-required={required}
         >
           <span id={`${labelId}-value`} className={selected ? "" : "text-muted-foreground"}>
@@ -137,6 +160,8 @@ export function MonthField({ label, hint, value, onChange, required, className, 
           </div>
         </PopoverContent>
       </Popover>
+      {check.guard}
+      {check.error}
     </FieldFrame>
   );
 }

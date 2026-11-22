@@ -47,6 +47,10 @@ export function LeaveLanes({ result, names, endLabel }: { result: LeaveResult; n
         <span>{formatDate(result.start)}</span>
         <span>{endLabel ?? formatDate(end && start && end > start ? addDays(end, -1) : end)}</span>
       </div>
+      <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm" aria-label="Legenda">
+        <li className="flex items-center gap-2"><span aria-hidden className={`size-3 rounded-xs ${periodColors.maternity}`} />Macierzyński, uzupełniający, ojcowski</li>
+        <li className="flex items-center gap-2"><span aria-hidden className={`size-3 rounded-xs ${periodColors.parental}`} />Rodzicielski</li>
+      </ul>
     </div>
   );
 }

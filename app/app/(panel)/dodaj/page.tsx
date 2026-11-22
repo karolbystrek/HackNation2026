@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageBand, RadioGroup } from "@/components/ui";
 import { CIRCUMSTANCES, EVENT_TYPES, type Circumstance, type EventType, type EventWho, type TimelineEvent } from "@/lib/events";
 import { formatPln, parseAmount } from "@/lib/format";
@@ -9,11 +9,19 @@ import { startChildCase, updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 import { DateField } from "@/components/ui/date-field";
 
-export default function AddEvent() {
+export default function AddEventPage() {
+  return <Suspense><AddEvent /></Suspense>;
+}
+
+function AddEvent() {
   const { names, viewer, persona, caseLabel } = useFamily();
   const router = useRouter();
-  const initialDraft = { type: "contract" as EventType, selectedWho: viewer as EventWho, date: "", amount: "", circumstance: "" as Circumstance | "" };
-  const [draft, setDraft] = usePlanDraft("dodaj", initialDraft);
+  // "?sytuacja=" opens the form on a special situation, e.g. from the applications page; it keeps its own draft.
+  const search = useSearchParams();
+  const requested = search.get("sytuacja");
+  const preset = requested && Object.hasOwn(CIRCUMSTANCES, requested) ? requested as Circumstance : null;
+  const initialDraft = { type: (preset ? "circumstance" : "contract") as EventType, selectedWho: viewer as EventWho, date: "", amount: "", circumstance: (preset ?? "") as Circumstance | "" };
+  const [draft, setDraft] = usePlanDraft(preset ? `dodaj/${preset}` : "dodaj", initialDraft);
   const { type, selectedWho, date, amount, circumstance } = draft;
   const [details, setDetails] = usePlanDraft("dodaj/szczegoly", {
     count: "", caseMode: "" as "" | "current" | "new", childNames: [] as string[], placement: "adoption" as "adoption" | "foster", childBirthDate: "", adoptionOrderDate: "",
@@ -127,7 +135,7 @@ export default function AddEvent() {
         events: [...s.events, event],
       }));
     }
-    router.replace(`/plan#timeline-event-${id}`);
+    router.replace(search.get("z") === "wnioski" ? "/wnioski#szczegolne" : `/plan#timeline-event-${id}`);
   }
 
   return (
@@ -135,7 +143,7 @@ export default function AddEvent() {
       <PageBand title="Dodaj wydarzenie" />
       <div className="page">
       <div className="flex w-full max-w-3xl flex-col gap-6">
-      <BackLink href="/plan">Wróć do osi czasu</BackLink>
+      {search.get("z") === "wnioski" ? <BackLink href="/wnioski">Wróć do wniosków</BackLink> : <BackLink href="/plan">Wróć do osi czasu</BackLink>}
 
       <RadioGroup
         label="Co się wydarzy?"
