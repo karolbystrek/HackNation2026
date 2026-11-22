@@ -9,19 +9,21 @@ import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 
 export default function AddEvent() {
-  const { names } = useFamily();
+  const { names, viewer } = useFamily();
   const router = useRouter();
-  const initialDraft = { type: "contract" as EventType, selectedWho: "father" as EventWho, date: "", amount: "", circumstance: "" as Circumstance | "" };
+  const initialDraft = { type: "contract" as EventType, selectedWho: viewer as EventWho, date: "", amount: "", circumstance: "" as Circumstance | "" };
   const [draft, setDraft] = usePlanDraft("dodaj", initialDraft);
   const { type, selectedWho, date, amount, circumstance } = draft;
   const [error, setError] = useState("");
-  const who = type === "sickLeave" ? "mother" : type === "circumstance" ? "both" : selectedWho;
+  const allowedTypes = EVENT_TYPES.filter((event) => event.type !== "sickLeave" || viewer === "mother");
+  const unavailable = !allowedTypes.some((event) => event.type === type);
+  const who = type === "circumstance" || type === "birth" || selectedWho === "both" ? "both" : viewer;
   const def = EVENT_TYPES.find((t) => t.type === type)!;
 
   function add() {
-    if (type === "circumstance" && !circumstance) return;
+    if (unavailable || (type === "circumstance" && !circumstance)) return;
     if (!date) {
-      setError("Wybierzcie datę wydarzenia.");
+      setError("Wybierz datę wydarzenia.");
       return;
     }
     const whoName = who === "both" ? "" : ` – ${names[who]}`;
@@ -46,12 +48,12 @@ export default function AddEvent() {
         label="Co się wydarzy?"
         value={type}
         onChange={(type) => setDraft({ ...draft, type })}
-        options={EVENT_TYPES.map((event) => [event.type, event.label])}
+        options={allowedTypes.map((event) => [event.type, event.label])}
       />
 
       {type === "circumstance" && (
         <label className="flex flex-col gap-2">
-          <span className="font-bold">Która sytuacja Was dotyczy?</span>
+          <span className="font-bold">Która sytuacja Cię dotyczy?</span>
           <select className="min-h-11 rounded-sm border border-input bg-background px-3" value={circumstance ?? ""}
             onChange={(event) => setDraft({ ...draft, circumstance: event.target.value as Circumstance | "" })}>
             <option value="">Wybierz sytuację</option>
@@ -60,14 +62,13 @@ export default function AddEvent() {
         </label>
       )}
 
-      {type !== "sickLeave" && type !== "circumstance" && (
+      {!unavailable && type !== "sickLeave" && type !== "circumstance" && type !== "birth" && (
         <RadioGroup
           label="Kogo dotyczy?"
           value={who}
           onChange={(selectedWho) => setDraft({ ...draft, selectedWho })}
           options={[
-            ["mother", names.mother],
-            ["father", names.father],
+            [viewer, names[viewer]],
             ["both", names.both],
           ]}
         />
@@ -91,7 +92,7 @@ export default function AddEvent() {
       </Notice>
 
       <div className="flex flex-wrap gap-3">
-        <Button disabled={type === "circumstance" && !circumstance} onClick={add} className="min-h-[52px]">
+        <Button disabled={unavailable || (type === "circumstance" && !circumstance)} onClick={add} className="min-h-[52px]">
           Dodaj do osi czasu
         </Button>
         <ButtonLink href="/plan" variant="outline" className="min-h-[52px]">

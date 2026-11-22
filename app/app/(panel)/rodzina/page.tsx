@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { BackLink, Button, Card, Chip, PageBand } from "@/components/ui";
 import { computeBasis } from "@/lib/calc/basis";
-import { PARENTS } from "@/lib/calc/leave";
 import { formatDate } from "@/lib/dates";
 import { formatPln } from "@/lib/format";
 import { Disclosure } from "@/components/ui/disclosure";
@@ -25,7 +24,7 @@ export default function FamilyPage() {
 }
 
 function FamilyData() {
-  const { persona, fromGuide, params, entries } = useFamily();
+  const { persona, fromGuide, params, entries, viewer } = useFamily();
   const from = useSearchParams().get("z") ?? "";
   const returnLabel = returnPages.get(from.split("?")[0]);
   const [question, setQuestion] = useState("insurance");
@@ -33,7 +32,7 @@ function FamilyData() {
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
-      <PageBand title="Wasze dane" lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja). ${persona.parents.father.name} dołączył przez mObywatel.`} />
+      <PageBand title="Twoje dane i dane dziecka" lead={fromGuide ? "Wprowadzone w formularzu." : `Pobrane z ZUS, KAS i rejestru PESEL ${formatDate(persona.fetchedAt)} (symulacja).`} />
       <div className="page">
       <BackLink href={returnLabel ? from : "/plan"}>{returnLabel ?? "Wróć do osi czasu"}</BackLink>
       <Card>
@@ -47,7 +46,7 @@ function FamilyData() {
             ["Data wystawienia karty urodzenia", persona.birthCardDate ? formatDate(persona.birthCardDate) : "Brak karty"],
             ["Zgłoszenie do USC", persona.birthRegistrationDate ? formatDate(persona.birthRegistrationDate) : "Oczekuje na zgłoszenie"],
             ["Akt urodzenia", persona.birthCertificateDate ? formatDate(persona.birthCertificateDate) : "Oczekuje na sporządzenie"],
-            ["Planowany początek ojcowskiego", formatDate(persona.paternityStart)],
+            ...(viewer === "father" ? [["Planowany początek ojcowskiego", formatDate(persona.paternityStart)]] : []),
             ...(persona.wantsAveragedRate ? [["Preferowana stawka zasiłku", "81,5% (jeśli pozwala na to podział urlopu)"]] : []),
           ].map(([label, value]) => (
             <div key={label}>
@@ -57,7 +56,7 @@ function FamilyData() {
         </dl>
       </Card>
       <div className="grid gap-6 md:grid-cols-2">
-        {PARENTS.map((key) => {
+        {[viewer].map((key) => {
           const parent = persona.parents[key];
           const last = parent.monthlyGross[parent.monthlyGross.length - 1];
           const rows: [string, string, string][] = [
@@ -91,7 +90,7 @@ function FamilyData() {
       <Disclosure className="border-y" label={<strong>Sprawdź stan składek w symulacji eZUS</strong>}>
         <div className="grid gap-3 px-3 pb-4">
           <p>Zaświadczenie o zadłużeniu składkowym (symulacja).</p>
-          <dl>{PARENTS.map((key) => <div key={key} className="flex gap-2">
+          <dl>{[viewer].map((key) => <div key={key} className="flex gap-2">
             <dt>{persona.parents[key].name}</dt>
             <dd>{persona.parents[key].contributionDebt
               ? `${formatPln(persona.parents[key].contributionDebt!.amount, 2)} na dzień ${formatDate(persona.parents[key].contributionDebt!.date)}`
@@ -106,7 +105,7 @@ function FamilyData() {
           </Disclosure>
           <form className="flex flex-col items-start gap-2" onSubmit={(event) => {
             event.preventDefault();
-            setReply(question === "insurance" ? "Ubezpieczenie każdego rodzica znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Zwolnienia każdego rodzica znajdziesz w sekcji „Zwolnienia e-ZLA”.");
+            setReply(question === "insurance" ? "Twoje ubezpieczenie znajdziesz w sekcji „Ubezpieczenie chorobowe”." : "Twoje zwolnienia znajdziesz w sekcji „Zwolnienia e-ZLA”.");
           }}>
             <label className="grid gap-1 font-bold">O co chcesz zapytać w symulacji?
               <select className="min-h-11 rounded-sm border border-input bg-background px-3 font-normal" value={question}

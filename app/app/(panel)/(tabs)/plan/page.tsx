@@ -7,13 +7,13 @@ import { attentionEntries } from "@/lib/timeline-view";
 import { useFamily } from "@/lib/use-family";
 
 export default function Timeline() {
-  const { persona, plan, fromGuide, chosen, names, entries, today } = useFamily();
+  const { persona, plan, fromGuide, viewer, solo, chosen, names, entries, today } = useFamily();
   const attention = attentionEntries(entries, today);
 
   return (
     <main id="main-content" tabIndex={-1} className="flex flex-col">
       <PageBand
-        title={fromGuide ? "Twój plan" : "Plan rodziny"}
+        title={solo ? "Twój plan" : `Twój plan – ${names[viewer]}`}
         lead={fromGuide ? "Na podstawie Twoich odpowiedzi. Daty przed porodem są szacunkowe." : persona.birthDate
           ? <span className="flex flex-wrap items-baseline gap-x-3">
               <span className="font-bold">{persona.childName ?? "Dziecko"}</span>
@@ -27,7 +27,7 @@ export default function Timeline() {
       />
 
       <div className="page">
-      <FamilyTimeline profileEvents={fromGuide ? [] : persona.events} entries={entries} names={names} today={today} actions={<>
+      <FamilyTimeline profileEvents={fromGuide ? [] : persona.events.filter((event) => event.who === "both" || event.who === viewer)} entries={entries} names={names} today={today} actions={<>
         <ButtonLink href="/zadania" variant={attention.length > 0 ? "primary" : "outline"}>Lista zadań</ButtonLink>
         <ButtonLink href="/warianty" variant={attention.length > 0 || chosen ? "link" : "primary"}>
           {chosen ? "Zmień podział urlopu" : "Zaplanuj podział urlopu"}

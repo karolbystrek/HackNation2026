@@ -26,10 +26,10 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
   const origin = useSearchParams().get("z");
   const returnHref = origin === "wnioski" ? "/wnioski" : origin === "zadania" ? "/zadania" : `/plan#timeline-${taskId}`;
   const returnLabel = origin === "wnioski" ? "Wróć do wniosków" : origin === "zadania" ? "Wróć do zadań" : "Wróć do planu";
-  const { persona, plan, params, journey, today } = useFamily();
+  const { persona, plan, params, journey, today, viewer } = useFamily();
   const found = useMemo(
-    () => formContext(persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave),
-    [persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave],
+    () => formContext(persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave, viewer),
+    [persona, plan.events, plan.chosenVariant, params, journey, plan.doneTasks, today, taskId, plan.guideAnswers, plan.customLeave, viewer],
   );
 
   if (!found) {
@@ -73,7 +73,7 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
 
 function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormSpec; ctx: FormContext; doneTasks: string[]; returnHref: string; returnLabel: string }) {
   const router = useRouter();
-  const [values, setValues] = usePlanDraft(`wniosek/${ctx.taskId}/${spec.id}`, prefill(spec, ctx));
+  const [values, setValues] = usePlanDraft(`wniosek/${ctx.parent}/${ctx.taskId}/${spec.id}`, prefill(spec, ctx));
   const [step, setStep] = useState(0);
   const [navigated, setNavigated] = useState(false);
   const [checkedSteps, setCheckedSteps] = useState<number[]>([]);
@@ -116,7 +116,7 @@ function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormS
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null,
-          events: ctx.events, guideAnswers: ctx.guideAnswers, customLeave: ctx.customLeave, doneTasks, values,
+          events: ctx.events, guideAnswers: ctx.guideAnswers, customLeave: ctx.customLeave, viewer: ctx.viewer, doneTasks, values,
         }),
       });
       const data = await response.json();
@@ -246,7 +246,7 @@ function ZusPdf({ specId, ctx, values, doneTasks }: { specId: string; ctx: FormC
       const response = await fetch("/api/applications/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, guideAnswers: ctx.guideAnswers, customLeave: ctx.customLeave, doneTasks, values }),
+        body: JSON.stringify({ taskId: ctx.taskId, personaId: ctx.persona.id, chosenVariant: ctx.chosen?.key ?? null, events: ctx.events, guideAnswers: ctx.guideAnswers, customLeave: ctx.customLeave, viewer: ctx.viewer, doneTasks, values }),
       });
       if (!response.ok) throw new Error(String(response.status));
       setUrl(URL.createObjectURL(await response.blob()));

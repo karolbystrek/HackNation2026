@@ -2,14 +2,17 @@
 
 // Client-only session state of the family's plan, kept in sessionStorage so a refresh keeps it.
 import { useSyncExternalStore } from "react";
+import type { ParentKey } from "@/lib/calc/leave";
 import type { CustomLeave, VariantKey } from "@/lib/calc/variants";
 import type { TimelineEvent } from "@/lib/events";
 import type { Answers } from "@/lib/guide/tree";
-import { currentPersona } from "@/lib/guide/persona";
+import { currentPersona, GUIDE_ID } from "@/lib/guide/persona";
 import type { FormValues } from "@/lib/forms/spec";
 
 export type PlanState = {
   personaId: string | null;
+  viewer?: ParentKey;
+  solo?: boolean;
   events: TimelineEvent[];
   chosenVariant: VariantKey | null;
   customLeave?: CustomLeave;
@@ -79,10 +82,17 @@ export function usePlanDraft<T>(key: string, initialValue: T) {
 }
 
 /** Starts a plan for a demo profile or, with GUIDE_ID, for the questionnaire answers, which are kept. */
-export function logIn(personaId: string) {
+export function logIn(personaId: string, viewer: ParentKey = "mother", solo = false) {
   const { guideAnswers } = read();
   const persona = currentPersona({ personaId, guideAnswers })!;
-  updatePlan(() => ({ personaId, events: persona.events, chosenVariant: persona.initialVariant ?? null, doneTasks: [], guideAnswers, submissions: {} }));
+  if (personaId === GUIDE_ID) {
+    viewer = guideAnswers.role === "father" ? "father" : "mother";
+    solo = true;
+  }
+  updatePlan((plan) => plan.personaId === personaId ? { ...plan, viewer, solo } : {
+    personaId, viewer, solo, events: persona.events, chosenVariant: persona.initialVariant ?? null,
+    doneTasks: [], guideAnswers, submissions: {},
+  });
 }
 
 export function submitApplication(taskId: string, submission: Submission) {

@@ -30,7 +30,10 @@ export function SiteHeader() {
           <nav aria-label="Konto demonstracyjne" className="flex flex-wrap items-center gap-x-5">
             {plan.personaId === GUIDE_ID
               ? <Link href="/nowa-os" className="text-link min-h-11 content-center">Zmień odpowiedzi</Link>
-              : <Suspense><FamilyLink name={persona.label} /></Suspense>}
+              : <>
+                  <Suspense><FamilyLink name={persona.parents[plan.viewer ?? "mother"].name} /></Suspense>
+                  <Link href="/logowanie" className="text-link min-h-11 content-center">Zmień profil demo</Link>
+                </>}
             <Button
               variant="link"
               onClick={() => {
