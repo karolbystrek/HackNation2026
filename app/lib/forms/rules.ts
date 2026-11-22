@@ -34,35 +34,12 @@ export function requiredAttachments(spec: FormSpec, ctx: FormContext, values: Fo
   return spec.attachments.filter((a) => a.required === "always" || (a.condition && holds(a.condition, ctx, values)));
 }
 
-// Official checksum algorithms of Polish identifiers.
-function weighted(digits: string, weights: number[]) {
-  return weights.reduce((sum, w, i) => sum + w * Number(digits[i]), 0);
-}
-
-export function validPesel(value: string) {
-  const d = value.replace(/\s/g, "");
-  return /^\d{11}$/.test(d) && (10 - (weighted(d, [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]) % 10)) % 10 === Number(d[10]);
-}
-
-export function validNip(value: string) {
-  const d = value.replace(/[\s-]/g, "");
-  const check = weighted(d, [6, 5, 7, 2, 3, 4, 5, 6, 7]) % 11;
-  return /^\d{10}$/.test(d) && check !== 10 && check === Number(d[9]);
-}
-
-export function validRegon(value: string) {
-  const d = value.replace(/\s/g, "");
-  const w = d.length === 9 ? [8, 9, 2, 3, 4, 5, 6, 7] : [2, 4, 8, 5, 0, 9, 7, 3, 6, 1, 2, 4, 8];
-  return /^(\d{9}|\d{14})$/.test(d) && (weighted(d, w) % 11) % 10 === Number(d[d.length - 1]);
-}
-
-export function validIban(value: string) {
-  let s = value.replace(/\s/g, "").toUpperCase();
-  if (/^\d{26}$/.test(s)) s = `PL${s}`;
-  if (!/^PL\d{26}$/.test(s)) return false;
-  const digits = (s.slice(4) + s.slice(0, 4)).replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
-  return digits.split("").reduce((r, c) => (r * 10 + Number(c)) % 97, 0) === 1;
-}
+// Demo: identifiers are checked by digit count only, so made-up numbers pass.
+const digits = (value: string) => value.replace(/[\s-]/g, "");
+const validPesel = (value: string) => /^\d{11}$/.test(digits(value));
+const validNip = (value: string) => /^\d{10}$/.test(digits(value));
+const validRegon = (value: string) => /^(\d{9}|\d{14})$/.test(digits(value));
+const validIban = (value: string) => /^(PL)?\d{26}$/i.test(digits(value));
 
 const days = (range: DateRange) => diffDays(parseIso(range.from)!, parseIso(range.to)!) + 1;
 const shift = (date: string, n: number) => toIso(addDays(parseIso(date)!, n));
@@ -71,9 +48,9 @@ const plural = (n: number, one: string, few: string, many: string) =>
 
 function formatIssue(field: FormField, value: FieldValue | undefined): string | null {
   const text = typeof value === "string" ? value.trim() : "";
-  if (field.type === "pesel" && text && !validPesel(text)) return "Numer PESEL jest niepoprawny. Sprawdź 11 cyfr.";
-  if (field.type === "nip" && text && !validNip(text)) return "Numer NIP jest niepoprawny. Sprawdź 10 cyfr.";
-  if (field.type === "regon" && text && !validRegon(text)) return "Numer REGON jest niepoprawny. Sprawdź 9 albo 14 cyfr.";
+  if (field.type === "pesel" && text && !validPesel(text)) return "PESEL ma 11 cyfr.";
+  if (field.type === "nip" && text && !validNip(text)) return "NIP ma 10 cyfr.";
+  if (field.type === "regon" && text && !validRegon(text)) return "REGON ma 9 albo 14 cyfr.";
   if (field.type === "bank_account" && text && !validIban(text)) return "Numer rachunku jest niepoprawny. Wpisz 26 cyfr polskiego rachunku.";
   if (field.type === "phone" && text && text.replace(/\D/g, "").length < 9) return "Wpisz numer telefonu, co najmniej 9 cyfr.";
   if (field.type === "number" && text && !/^\d+([.,]\d+)?$/.test(text)) return "Wpisz liczbę, np. 1 albo 0,5.";
@@ -84,7 +61,7 @@ function formatIssue(field: FormField, value: FieldValue | undefined): string | 
   }
   if (field.type === "person" && value) {
     const person = value as Person;
-    if (person.pesel && !validPesel(person.pesel)) return "Numer PESEL jest niepoprawny. Sprawdź 11 cyfr.";
+    if (person.pesel && !validPesel(person.pesel)) return "PESEL ma 11 cyfr.";
   }
   if (field.type === "child_list" && Array.isArray(value)) {
     if ((value as Child[]).some((child) => !child.name.trim() || !child.birthDate)) return "Podaj imię i datę urodzenia każdego dziecka.";
@@ -194,11 +171,6 @@ function ruleIssues(spec: FormSpec, values: FormValues, ctx: FormContext): Valid
         break;
       }
     }
-  }
-
-  const payerIds = ["payer_nip", "payer_regon", "payer_pesel"];
-  if (payerIds.every((key) => spec.fields.some((f) => f.key === key)) && !payerIds.some((key) => isFilled(values[key]))) {
-    errors.push({ field: "payer_nip", message: "Podaj NIP płatnika składek, a gdy go nie ma, REGON albo PESEL." });
   }
 
   if (ctx.waitingFor.length) warnings.push(`Ten krok czeka jeszcze na: ${ctx.waitingFor.join(", ")}. Wniosek zostanie rozpatrzony, gdy to się wydarzy.`);

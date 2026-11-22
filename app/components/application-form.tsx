@@ -2,6 +2,8 @@
 
 import { DocumentList } from "@/components/document-list";
 import { useJourney } from "@/components/journey-provider";
+import { TermText } from "@/components/term-text";
+import { RiskNotice } from "@/components/risk-notice";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
@@ -72,6 +74,11 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
         {guidance?.preparedBy && <p><strong>Wypełnia</strong> {guidance.preparedBy}. Tutaj możesz przejrzeć dokument w symulacji.</p>}
         {found.entry.deadlineDetail && <p>{found.entry.deadlineDetail}</p>}
       </div>
+      {!submission && <RiskNotice ids={[
+        found.entry.status === "late" && "risk.claim_limitation",
+        // ZAM replaced the old forms on 24.10.2026; a sole trader files it without a payer certificate.
+        spec.id === "ff.zam" && "risk.old_forms",
+      ]} />}
       {submission
         ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />
         : <Wizard key={taskId} spec={spec} ctx={found.ctx} documents={found.entry.documents} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
@@ -267,6 +274,8 @@ function WhatNext({ taskId, origin }: { taskId: string; origin: "plan" | "wniosk
   const tasks = buildTasks(timeline).filter((task) => task.who === "both" || task.who === viewer);
   const { done, total } = progress(tasks);
   const next = nextTask(tasks.filter((task) => task.id !== taskId));
+  // Blocked tasks are not actionable yet but still open, so "all done" would be false.
+  const waiting = tasks.find((task) => !task.done && !task.extra && task.id !== taskId);
   return (
     <section aria-labelledby="co-dalej" className="flex flex-col gap-3 border-t-4 border-brand pt-4">
       <h2 id="co-dalej" className="text-2xl font-bold">Co dalej</h2>
@@ -279,6 +288,13 @@ function WhatNext({ taskId, origin }: { taskId: string; origin: "plan" | "wniosk
           {next.form
             ? <ButtonLink href={`/wnioski/${next.id}?z=${origin}`}>Wypełnij następny wniosek</ButtonLink>
             : <ButtonLink href={`/plan#timeline-${next.id}`}>Zobacz, co zrobić</ButtonLink>}
+        </div>
+      ) : waiting ? (
+        <div className="flex flex-col items-start gap-2 border border-border p-4">
+          <p className="text-sm font-bold text-muted-foreground">Czeka na wcześniejszy krok</p>
+          <p className="text-lg font-bold">{waiting.title}</p>
+          {waiting.waitingFor.length > 0 && <p className="text-muted-foreground">Najpierw: {waiting.waitingFor.map((entry) => entry.title).join(", ")}</p>}
+          <ButtonLink href={`/plan#timeline-${waiting.id}`}>Zobacz w planie</ButtonLink>
         </div>
       ) : <p className="font-bold">Wszystkie sprawy z planu są załatwione.</p>}
     </section>
@@ -445,7 +461,9 @@ function FieldInput({ field, value, onChange, required, error }: {
   const id = useId();
   const errorId = `${id}-error`;
   const helpId = `${id}-help`;
-  const help = field.help && <p id={helpId} className="mb-2 text-sm text-muted-foreground">{field.help}</p>;
+  // Hints may carry [phrase](term.id) markup that opens the same glossary popovers as the questionnaire.
+  const helpText = field.help ? <TermText text={field.help} /> : undefined;
+  const help = helpText && <p id={helpId} className="mb-2 text-sm text-muted-foreground">{helpText}</p>;
   const invalid = error ? true : undefined;
   const describedBy = error ? errorId : undefined;
   const groupDescription = [field.help && helpId, describedBy].filter(Boolean).join(" ") || undefined;
@@ -463,11 +481,11 @@ function FieldInput({ field, value, onChange, required, error }: {
         </Checkbox>,
       );
     case "boolean":
-      return wrap(<Checkbox checked={value === true} onChange={() => onChange(value !== true)} title={field.label}>{field.help}</Checkbox>);
+      return wrap(<Checkbox checked={value === true} onChange={() => onChange(value !== true)} title={field.label}>{helpText}</Checkbox>);
     case "choice":
       return wrap(
         <>
-          <RadioGroup label={label} hint={field.help} options={(field.options ?? []).map((o) => [o.value, o.label] as [string, string])} value={String(value ?? "")} onChange={onChange} />
+          <RadioGroup label={label} hint={helpText} options={(field.options ?? []).map((o) => [o.value, o.label] as [string, string])} value={String(value ?? "")} onChange={onChange} />
         </>,
       );
     case "multi_choice": {
@@ -541,13 +559,13 @@ function FieldInput({ field, value, onChange, required, error }: {
       );
     default:
       if (field.type === "date") {
-        return wrap(<DateField id={id} label={label} hint={field.help} value={String(value ?? "")} aria-invalid={invalid} aria-describedby={describedBy} onChange={onChange} />);
+        return wrap(<DateField id={id} label={label} hint={helpText} value={String(value ?? "")} aria-invalid={invalid} aria-describedby={describedBy} onChange={onChange} />);
       }
       return wrap(
         <Field
           id={id}
           label={label}
-          hint={field.help}
+          hint={helpText}
           type={field.type === "phone" ? "tel" : "text"}
           inputMode={["pesel", "nip", "regon", "number"].includes(field.type) ? "numeric" : undefined}
           spellCheck={field.type === "bank_account" ? false : undefined}

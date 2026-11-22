@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { readCustomLeave } from "@/lib/calc/variants";
 import { updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { LeaveLanes } from "@/components/leave-lanes";
+import { RiskNotice } from "@/components/risk-notice";
 import { amountHint, amountPattern, CalculatorDetails, UrlCalculatorSteps } from "./calculator-steps";
 import { Button, Card, Checkbox, Field, RadioGroup, ResultSummary, WarningBox } from "@/components/ui";
 import { otherParent, PARENTS, paternityEndLimit, planLeave, type LeaveInput, type ParentKey } from "@/lib/calc/leave";
@@ -136,6 +137,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               </div>
               <p className="text-sm text-muted-foreground">Przy dziecku urodzonym od {params.supplementary.weekTerm}. tygodnia licz dni od 5. dnia życia. Przy wieloraczkach podaj najniższą masę i najdłuższy pobyt.</p>
               <p className="font-bold">Uzupełniający urlop macierzyński: {formatWeeks(form.supplementaryWeeks ?? 0)} (najwyżej {formatWeeks(supplementaryCap)})</p>
+              <RiskNotice ids={[!!form.supplementaryWeeks && "risk.supplementary_too_late"]} />
             </CalculatorDetails>
           </>}
           {adoption && (
@@ -180,6 +182,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
               Na przykład brak ubezpieczenia chorobowego w dniu porodu.
             </Checkbox>
           ))}
+          <RiskNotice ids={[form.uninsuredParents.length > 0 && "risk.no_insurance_on_birth_day"]} />
           <div className="space-y-1">
             <p className="text-lg font-bold">Wspólna pula urlopu rodzicielskiego: {r.pool} tyg.</p>
             <p className="text-sm text-muted-foreground">Każdy rodzic ma w tej puli {params.parentalOwnWeeks} tygodni, których nie może przekazać drugiej osobie.</p>
@@ -266,7 +269,7 @@ export function LeaveCalculator({ mode, bases, setBases, onBasis, onBack, active
             {form.flatRate && flatExpired && <Checkbox checked={!!form.filedOnTime} onChange={() => set("filedOnTime", !form.filedOnTime)}
               title="Wniosek o stawkę uśrednioną złożono w terminie" />}
             {form.flatRate && flatExpired && !form.filedOnTime && <p className="text-sm">Szacunek użyje stawek {formatRate(params.rates.full)} i {formatRate(params.rates.parental)}.</p>}
-            {form.flatRate && <p className="text-sm">Aby zachować stawkę uśrednioną, wykorzystaj przynajmniej jeden dzień objętego nią urlopu rodzicielskiego w pierwszym roku życia dziecka.</p>}
+            {form.flatRate && r.flatRateAllowed && <RiskNotice ids={[flatExpired && !form.filedOnTime ? "risk.late_81_5_request" : null, "risk.no_parental_first_year"]} />}
             <a className="text-link" href="https://www.zus.pl/pl/swiadczenia/zasilki/zasilek-macierzynski/wysokosc">Zasady wypłaty zasiłku w ZUS</a>
             {form.flatRate && !r.flatRateAllowed && (
               <span className="text-sm leading-snug text-foreground">

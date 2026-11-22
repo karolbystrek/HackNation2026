@@ -33,6 +33,7 @@ Każdy plik danych ma postać `{"$schema": "./schema/<plik>.schema.json", "recor
 - `id` – stabilny identyfikator `<prefiks>.<nazwa>` (np. `form.zam`, `deadline.parental_leave_request`). Nigdy nie zmieniaj istniejących id.
 - `title_pl`, `summary_pl` (≤ 3 zdania), `body_pl` (pełny opis; samowystarczalny tekst – nadaje się na pojedynczy chunk RAG).
 - `tags` – słowa kluczowe bez polskich znaków.
+- Pole `help_pl` w polach formularzy może zawierać znacznik `[fraza](term.id)` – aplikacja pokazuje wtedy definicję z `glossary.json` w okienku.
 - `applies_to` – komu dotyczy: `insured_type[]`, `payer_size[]`, `parent_role[]`, `events[]` (wartości z `enums.json`). Brak pola = dotyczy wszystkich.
 - `valid_from` / `valid_to` – daty obowiązywania (ISO, `null` = bez ograniczenia / nieustalone).
 - `status` – `current | superseded | withdrawn | pending | out_of_scope`. `superseded_by` – id następcy.

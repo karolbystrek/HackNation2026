@@ -97,6 +97,31 @@
   .text-link {
     @apply font-semibold text-primary hover:text-primary-hover;
   }
+
+  /* Unfolds a <details> instead of snapping open; browsers without ::details-content or
+     interpolate-size fall back to an instant toggle or an opacity-only fade. */
+  .details-unfold {
+    interpolate-size: allow-keywords;
+  }
+
+  .details-unfold::details-content {
+    block-size: 0;
+    opacity: 0;
+    overflow-y: clip;
+    transition: block-size 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+      content-visibility 250ms allow-discrete;
+  }
+
+  .details-unfold[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .details-unfold::details-content {
+      transition-property: opacity, content-visibility;
+    }
+  }
 }
 
 /* A printed application shows only its letter-style copy, which is hidden on screen. */

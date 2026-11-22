@@ -31,6 +31,8 @@ export type Question = {
   optional?: boolean;
   /** Date question: the event has already happened, so no future dates. */
   past?: boolean;
+  /** Number question: whole numbers only (counts, weeks, grams). */
+  integer?: boolean;
   min?: number;
   max?: number;
   options?: Option[];

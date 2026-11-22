@@ -8,6 +8,7 @@ import { PARENTS, type ParentKey } from "@/lib/calc/leave";
 import { formatPln, formatRate, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 import { MonthField } from "@/components/ui/date-field";
+import { RiskNotice } from "@/components/risk-notice";
 
 const MONTHS = ["sty", "lut", "mar", "kwi", "maj", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
 
@@ -33,6 +34,10 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
   const [startYear, startMon] = startMonth.split("-").map(Number);
   const firstMonth = (startYear || 2027) * 12 + ((startMon || 1) - 1) - 12;
   const basisText = r.basis.toFixed(2).replace(".", ",");
+  // shortcut: a 20% jump in the last 3 months against the earlier ones flags a raise; ZUS judges each case.
+  const amounts = months.map(parseAmount).filter((amount) => amount > 0);
+  const avg = (list: number[]) => list.reduce((sum, amount) => sum + amount, 0) / list.length;
+  const raised = amounts.length > 3 && avg(amounts.slice(-3)) > 1.2 * avg(amounts.slice(0, -3));
 
   const rows: [string, string][] = [
     [`Średnia z ${r.months} mies.`, formatPln(r.average - r.bonus, 2)],
@@ -92,6 +97,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
           {incomeType === "uop" && <Field required label="Wymiar etatu (%)" type="number" min={0.01} max={100} step="any"
             hint="Podaj np. 50 dla połowy etatu." value={employmentPercent} onChange={(e) => setEmploymentPercent(e.target.value)} />}
           <MonthField required label="Miesiąc startu zasiłku" value={startMonth} onChange={(value) => setStartMonth(value)} />
+          <RiskNotice ids={[incomeType === "zlec" && "risk.contract_with_employment"]} />
         </>
       ),
     },
@@ -125,6 +131,7 @@ export function BasisCalculator({ onUse, onBack, active, request, initialParent 
                 value={bonuses.annual} onChange={(e) => setBonuses({ ...bonuses, annual: e.target.value })} />
             </div>
           )}
+          <RiskNotice ids={[raised && "risk.base_inflation"]} />
         </>
       ),
     },

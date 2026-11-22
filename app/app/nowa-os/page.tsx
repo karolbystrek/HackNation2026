@@ -6,8 +6,9 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { HelpPopover, TermText } from "@/components/term-text";
 import { AlertCircle, ChevronLeft } from "lucide-react";
 import { BackLink, Button, Field, RadioOption } from "@/components/ui";
+import { RiskNotice, type RiskId } from "@/components/risk-notice";
 import { DateField } from "@/components/ui/date-field";
-import { formatDate, todayInWarsaw } from "@/lib/dates";
+import { diffDays, formatDate, parseIso, todayInWarsaw } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
 import { GUIDE_ID } from "@/lib/guide/persona";
 import { logIn, updatePlan, useIsClient, usePlan } from "@/lib/plan-store";
@@ -115,6 +116,28 @@ export default function NewTimeline() {
   );
 }
 
+/** Risks the answer being chosen triggers, shown before "Dalej" while the parent still decides. */
+function answerRisks(id: string, v: Answer | undefined): (RiskId | false)[] {
+  const has = (option: string) => v === option || (Array.isArray(v) && v.includes(option));
+  switch (id) {
+    case "insurance": return [has("business") && "risk.start_relief_no_cover", has("business") && "risk.jdg_debt", has("mandate") && "risk.student_contract"];
+    case "voluntarySickness": return [v === false && "risk.voluntary_no_backdating"];
+    case "employmentPeriod": return [v === "lt30days" && "risk.waiting_period"];
+    case "waitingWaiver": return [has("none") && "risk.waiting_period"];
+    // Voluntary cover pays sickness benefit only after 90 days.
+    case "insuredSince": {
+      const from = typeof v === "string" ? parseIso(v) : null;
+      return [!!from && diffDays(from, parseIso(todayInWarsaw())!) < 90 && "risk.waiting_period"];
+    }
+    case "special": return [has("jobLostInPregnancy") && "risk.unlawful_dismissal_no_equivalent", has("insuranceEnded") && "risk.no_insurance_on_birth_day"];
+    case "wantsAveragedRate": return [v === true && "risk.late_81_5_request", v === true && "risk.no_parental_first_year"];
+    case "otherParentInsured": return [v === false && "risk.reserved_9_weeks_lost"];
+    case "hospitalWeeks": return [typeof v === "number" && v > 0 && "risk.supplementary_too_late"];
+    case "paternityParts": return [!!v && "risk.paternity_expiry"];
+    default: return [];
+  }
+}
+
 function QuestionForm({ question: q, answers, onSave }: { question: Question; answers: Answers; onSave: (v: Answer) => void }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { titleRef.current?.focus(); }, []);
@@ -130,6 +153,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
     if (empty && !q.optional) return setError(q.type === "multi" ? "Zaznacz co najmniej jedną odpowiedź." : "Odpowiedz na pytanie, aby przejść dalej.");
     if (q.type === "number" && (Number.isNaN(value) || (q.min !== undefined && (value as number) < q.min) || (q.max !== undefined && (value as number) > q.max)))
       return setError(`Podaj liczbę od ${q.min} do ${q.max}.`);
+    if (q.integer && typeof value === "number" && !Number.isInteger(value)) return setError("Podaj liczbę całkowitą, bez ułamków.");
     if (q.past && typeof value === "string" && value > todayInWarsaw()) return setError("Podaj datę, która już minęła.");
     onSave(value ?? []);
   };
@@ -167,7 +191,8 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
               type="number"
               min={q.min}
               max={q.max}
-              inputMode="numeric"
+              step={q.integer ? 1 : "any"}
+              inputMode={q.integer ? "numeric" : "decimal"}
               value={value === undefined ? "" : String(value)}
               aria-invalid={!!error}
               aria-describedby={error ? `${q.id}-error` : undefined}
@@ -209,6 +234,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
           </div>
         </fieldset>
       )}
+      <RiskNotice className="w-full" ids={answerRisks(q.id, value)} />
       <Button type="submit" className="min-w-32">Dalej</Button>
     </form>
   );

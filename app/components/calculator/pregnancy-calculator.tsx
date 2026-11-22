@@ -9,6 +9,7 @@ import type { ParentKey } from "@/lib/calc/leave";
 import { formatPln, parseAmount } from "@/lib/format";
 import { useFamily } from "@/lib/use-family";
 import { debtOn } from "@/lib/mock/personas";
+import { RiskNotice } from "@/components/risk-notice";
 import { DateField } from "@/components/ui/date-field";
 
 export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, startDate, endDate, draftKey }: {
@@ -107,6 +108,7 @@ export function PregnancyCalculator({ basis, setBasis, onBasis, onBack, active, 
           <p>Prawo do zasiłku ustala ZUS lub płatnik składek.</p>
         </ResultSummary>
         <WarningBox items={r.warnings} />
+        <RiskNotice ids={[!form.uninsured && !insolvency && "risk.sick_leave_misuse"]} />
         <a className="text-link" href="https://www.zus.pl/swiadczenia/zasilki/zasilek-chorobowy/z-ubezpieczenia-chorobowego/niezbedne-dokumenty">Sprawdź w ZUS, które dokumenty złożyć</a>
         <CalculatorDetails label="Świadczenie rehabilitacyjne w ciąży">
           <p>Po wyczerpaniu zasiłku chorobowego ZUS może przyznać świadczenie, jeśli nadal nie możesz pracować, a dalsze leczenie lub rehabilitacja daje szansę na odzyskanie zdolności do pracy. W ciąży stawka wynosi {params.rates.full * 100}% podstawy. Świadczenie może trwać do {params.rehabilitationMaxMonths} miesięcy.</p>

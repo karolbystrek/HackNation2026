@@ -35,6 +35,10 @@ run `make dev` to resume hot reload.
 If the app still shows a page or layout deleted from the source tree, run
 `make up` to rebuild the image and recreate the app container.
 
+If a `globals.css` edit never reaches the served stylesheet (the CSS chunk
+name stays the same), Turbopack's cache is stale; a restart alone does not fix it. Run
+`docker compose exec app rm -rf .next/cache .next/dev` and then `docker compose restart app`.
+
 - App: http://localhost:3000
 - Supabase API: http://127.0.0.1:54321
 - Studio: http://127.0.0.1:54323

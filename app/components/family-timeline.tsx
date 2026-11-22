@@ -8,6 +8,7 @@ import { ApplicationAction, ApplicationReceipt } from "@/components/application-
 import { Button, ButtonLink } from "@/components/ui";
 import { RememberedDisclosure } from "@/components/remembered-disclosure";
 import { useJourney } from "@/components/journey-provider";
+import { RiskNotice, type RiskId } from "@/components/risk-notice";
 import { TaskCard } from "@/components/task-card";
 import { nextTask, type Task } from "@/lib/calc/tasks";
 import { formatDate, parseIso } from "@/lib/dates";
@@ -74,6 +75,16 @@ function EntryDate({ entry }: { entry: FamilyTimelineEntry }) {
       {entry.end === null && <span className="block">Koniec do ustalenia</span>}
     </span>
   );
+}
+
+// Risks tied to one timeline entry; deadlines with their own consequence text already show it as "Po przekroczeniu terminu".
+function entryRisk(entry: FamilyTimelineEntry): RiskId | null {
+  if (entry.kind === "application" && entry.status === "late") return "risk.claim_limitation";
+  if (entry.id.startsWith("resume-sickness-")) return "risk.voluntary_deregistration";
+  if (entry.id.startsWith("arrears-check-")) return "risk.jdg_debt";
+  if (entry.id === "sickness-claim") return "risk.sick_leave_misuse";
+  if (/^parental-(mother|father)-period$/.test(entry.id)) return "risk.parental_use_by";
+  return null;
 }
 
 /** A chronological list with one expandable row per entry and a summary of current actions. */
@@ -158,6 +169,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
     const event = eventsByEntry.get(entry.id);
     const profileBirth = event?.type === "birth" && profileEvents.some((item) => item.id === event.id);
     const notice = deadlineNotice(entry, today);
+    // Only what is still missing: a met requirement listed as "needed" looks like the task waits on itself.
     const required = entries.filter((item) => entry.requires?.includes(item.id) && item.status !== "completed" && item.status !== "confirmed");
     const confirmDocument = canConfirmDocument(entry.id) && !entry.completedOn;
     const birthCertificate = entry.id === "birth-certificate" && confirmDocument;
@@ -177,7 +189,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
     return (
       <li key={entry.id} className="relative border-b pl-4 sm:pl-6">
         <Marker entry={entry} done={done} />
-        <RememberedDisclosure section={`plan/${entry.id}`} id={`timeline-${entry.id}`} className="scroll-mt-4 target:bg-primary-soft" label={
+        <RememberedDisclosure section={`plan/${entry.id}`} id={`timeline-${entry.id}`} className="details-unfold scroll-mt-4 target:bg-primary-soft" label={
           <span className="grid gap-1 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-4">
             <span className="text-sm leading-snug text-muted-foreground">
               <EntryDate entry={entry} />
@@ -198,6 +210,7 @@ export function FamilyTimeline({ entries, names, today, actions, tasks = [], vie
           <div className="max-w-[70ch] space-y-3 px-3 pb-4 sm:ml-56 sm:px-4">
             {task && <TaskCard task={task} names={names} viewer={viewer} preparedBy={entry.form ? formGuidance?.[entry.form]?.preparedBy : undefined} />}
             {!task && entry.kind !== "period" && entry.description && <p>{entry.description}</p>}
+            {!done && <RiskNotice ids={[entryRisk(entry)]} />}
             {birthCertificate && entry.status === "blocked" && (
               <p>Najpierw oznacz jako wykonane{" "}
                 <a href="#timeline-birth-registration" onClick={openRelated} className="text-link">zgłoszenie urodzenia</a>.</p>

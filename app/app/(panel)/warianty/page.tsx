@@ -3,6 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LeaveLanes } from "@/components/leave-lanes";
+import { RiskNotice } from "@/components/risk-notice";
 import { BackLink, Button, Card, PageBand, WarningBox } from "@/components/ui";
 import { otherParent, planLeave } from "@/lib/calc/leave";
 import { bestLeaveSplit, readCustomLeave } from "@/lib/calc/variants";
@@ -38,6 +39,10 @@ function Variants() {
   }, params);
   const isBest = best?.otherWeeks === result.otherWeeks;
   const missingBasis = Object.values(result.periods).flat().some((period) => !base.bases[period.parent]);
+  const firstParental = Object.values(result.periods).flat().filter((period) => period.kind === "parental").map((period) => period.from).sort()[0];
+  // ISO strings compare as dates; the 1st birthday is the same day one year later.
+  const birth = base.childBirthDate || base.startDate;
+  const firstBirthday = birth && `${Number(birth.slice(0, 4)) + 1}${birth.slice(4)}`;
   const customLeave = readCustomLeave({
     ...base,
     paternityStartDate: base.paternityStartDate || undefined,
@@ -108,6 +113,10 @@ function Variants() {
             <a href="https://www.gov.pl/web/rodzina/urlop-rodzicielski" className="text-link">Zasady urlopu na gov.pl</a>
           </section>
           <WarningBox items={result.warnings} />
+          <RiskNotice ids={[
+            canShare && !base.uninsuredParents?.includes(other) && result.otherWeeks < params.parentalOwnWeeks && "risk.reserved_9_weeks_lost",
+            result.flatRateApplied && !!firstParental && !!firstBirthday && firstParental >= firstBirthday && "risk.no_parental_first_year",
+          ]} />
 
           <Button
             className="min-h-[50px] self-start"

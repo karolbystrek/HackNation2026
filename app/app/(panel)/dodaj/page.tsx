@@ -9,7 +9,17 @@ import { startChildCase, updatePlan, usePlanDraft } from "@/lib/plan-store";
 import { useFamily } from "@/lib/use-family";
 import { DateField } from "@/components/ui/date-field";
 import { SituationForms } from "@/components/situation-forms";
+import { RiskNotice, type RiskId } from "@/components/risk-notice";
 import { todayInWarsaw } from "@/lib/dates";
+
+// Risks the event itself can trigger; shown before the user adds it to the plan.
+const EVENT_RISKS: Partial<Record<EventType, RiskId[]>> = {
+  contract: ["risk.sham_contract", "risk.waiting_period"],
+  salary: ["risk.base_inflation"],
+  contractEnd: ["risk.no_insurance_on_birth_day"],
+  business: ["risk.start_relief_no_cover", "risk.voluntary_no_backdating", "risk.jdg_debt"],
+  sickLeave: ["risk.sick_leave_misuse", "risk.waiting_period"],
+};
 
 export default function AddEventPage() {
   return <Suspense><AddEvent /></Suspense>;
@@ -285,6 +295,12 @@ function AddEvent() {
         </div>
       )}
 
+      <RiskNotice ids={[
+        ...(EVENT_RISKS[type] ?? []),
+        type === "returnToWork" && persona.parents[viewer].contract !== "uop" && "risk.voluntary_deregistration",
+        afterInsurance && "risk.no_insurance_on_birth_day",
+        hospital && "risk.supplementary_too_late",
+      ]} />
       <div className="flex flex-wrap gap-3">
         <Button disabled={unavailable || (type === "circumstance" && !circumstance)} onClick={add} className="min-h-[52px]">
           Dodaj do osi czasu

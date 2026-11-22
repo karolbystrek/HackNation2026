@@ -73,6 +73,17 @@ const REQUIRED_IF: Record<string, Condition> = {
   insured_pesel: { not: { fact: "no_pesel", eq: true } },
 };
 
+// Fallback hints for identifier formats, used when knowledge/ gives a field no help_pl.
+const TYPE_HINTS: Partial<Record<FieldType, string>> = {
+  pesel: "11 cyfr – znajdziesz go w dowodzie osobistym albo w aplikacji mObywatel.",
+  nip: "10 cyfr, bez kresek.",
+  regon: "9 albo 14 cyfr.",
+  bank_account: "26 cyfr polskiego rachunku – spacje nie przeszkadzają.",
+  phone: "Np. 600 100 200.",
+  address: "Ulica, numer domu i lokalu, kod pocztowy, miejscowość.",
+  id_document: "Rodzaj, seria i numer, np. dowód osobisty ABC123456.",
+};
+
 type RawField = {
   key: string; label_pl: string; type: FieldType; section?: string; required: FormField["required"];
   required_if?: Condition; options?: string[]; help_pl?: string;
@@ -88,7 +99,7 @@ function toField(raw: RawField, section: string): FormField {
     required: raw.required,
     requiredIf: raw.required_if ?? REQUIRED_IF[raw.key],
     options: raw.options?.map((value) => ({ value, label: OPTION_LABELS[value] ?? value.replaceAll("_", " ") })),
-    help: raw.help_pl,
+    help: raw.help_pl ?? TYPE_HINTS[raw.type],
   };
 }
 

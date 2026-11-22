@@ -9,6 +9,7 @@ import { formatPln } from "@/lib/format";
 import { Disclosure } from "@/components/ui/disclosure";
 import { useFamily } from "@/lib/use-family";
 import { debtOn } from "@/lib/mock/personas";
+import { RiskNotice } from "@/components/risk-notice";
 
 const returnPages = new Map([
   ["/plan", "Wróć do planu"],
@@ -106,15 +107,17 @@ function FamilyData() {
             <dt>Zadłużenie z tytułu składek ({parent.name})</dt>
             <dd className="font-bold">{debtDate && debt !== null ? formatPln(debt, 2) : "Brak danych w symulacji"}</dd>
           </div></dl>
-          {!!debt && debt > params.minWage * params.contributionDebtLimitRate && parent.contract === "jdg" && (
+          {!!debt && debt > params.minWage * params.contributionDebtLimitRate && parent.contract === "jdg" && <>
             <p className="text-sm">Zaległość przekracza {formatPln(params.minWage * params.contributionDebtLimitRate, 2)}, więc ZUS wypłaci zasiłek dopiero po jej spłacie.</p>
-          )}
+            <RiskNotice ids={["risk.jdg_debt"]} />
+          </>}
           <Disclosure label={<strong>Zaświadczenia e-ZLA</strong>}>
             <ul className="space-y-2 px-3 pb-3">
               {entries.filter((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")).map((entry) =>
                 <li key={entry.id}>{entry.title}. Od {formatDate(entry.date)}{entry.end ? ` do ${formatDate(entry.end)}` : ""}.</li>)}
               {!entries.some((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")) && <li>Brak zaświadczeń w symulacji.</li>}
             </ul>
+            {entries.some((entry) => entry.kind === "event" && entry.title.includes("e-ZLA")) && <RiskNotice className="mx-3 mb-3" ids={["risk.sick_leave_misuse"]} />}
           </Disclosure>
           <form className="flex flex-col items-start gap-2" onSubmit={(event) => {
             event.preventDefault();

@@ -364,7 +364,8 @@
       "label": "Ile lat ma dziecko?",
       "showIf": {
         "ref": "isPlacement"
-      }
+      },
+      "integer": true
     },
     {
       "id": "multiplePregnancy",
@@ -429,7 +430,8 @@
             ]
           }
         ]
-      }
+      },
+      "integer": true
     },
     {
       "id": "special",
@@ -702,7 +704,8 @@
       "label": "W którym tygodniu ciąży urodziło się dziecko?",
       "showIf": {
         "ref": "supplementaryCase"
-      }
+      },
+      "integer": true
     },
     {
       "id": "birthWeight",
@@ -714,7 +717,8 @@
       "hint": "Przy kilkorgu dzieciach podaj najniższą masę urodzeniową.",
       "showIf": {
         "ref": "supplementaryCase"
-      }
+      },
+      "integer": true
     },
     {
       "id": "hospitalWeeks",
@@ -726,7 +730,8 @@
       "hint": "Zsumuj wszystkie pobyty, niepełny tydzień liczy się jako cały. Przy porodzie po 37. tygodniu liczy się pobyt od 5. dnia po porodzie, jeśli trwał co najmniej 2 kolejne dni i zaczął się do 28. dnia. Przy kilkorgu dzieciach podaj najdłuższy pobyt.",
       "showIf": {
         "ref": "supplementaryCase"
-      }
+      },
+      "integer": true
     },
     {
       "id": "insuranceEndDate",

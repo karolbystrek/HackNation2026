@@ -102,12 +102,12 @@ export default function Benefits() {
 
       {risks.length > 0 && (
         <Disclosure className="border-l-4 border-action bg-warning-soft" label={<span className="flex items-center gap-3 font-bold"><Info aria-hidden className="size-5 shrink-0 text-action-foreground" />Ważne: na co uważać ({risks.length})</span>}>
-          <ul className="grid gap-4 px-3 pb-4 sm:px-4">
+          <ul className="divide-y divide-border px-3 pb-2 sm:px-4">
             {risks.map((r) => (
-              <li key={r.id}>
+              <li key={r.id} className="flex max-w-[70ch] flex-col gap-1 py-3">
                 <h3 className="font-bold">{r.title_pl}</h3>
-                <p>{r.consequence_pl}</p>
-                <p className="mt-1"><strong>Jak tego uniknąć:</strong> {r.prevention_pl}</p>
+                <p className="text-muted-foreground">{r.consequence_pl}</p>
+                <p><span className="font-semibold">Jak uniknąć:</span> {r.prevention_pl}</p>
               </li>
             ))}
           </ul>
