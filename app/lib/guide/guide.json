@@ -174,13 +174,11 @@
       "options": [
         {
           "value": "employment",
-          "label": "Umowa o pracę",
-          "hint": "Masz obowiązkowe ubezpieczenie chorobowe – bez względu na wymiar etatu i to, czy studiujesz. Zlecenie albo dzieło u własnego pracodawcy liczy się jak praca na etacie. W ciąży i na urlopach związanych z rodzicielstwem pracodawca nie może Cię zwolnić, a umowa na czas określony, która skończyłaby się po 3. miesiącu ciąży, przedłuża się do dnia porodu."
+          "label": "[Umowa o pracę](term.umowa_o_prace)"
         },
         {
           "value": "mandate",
-          "label": "Umowa zlecenia",
-          "hint": "Ubezpieczenie chorobowe ze zlecenia jest dobrowolne – musisz o nie wystąpić i nie działa ono wstecz. Nie masz go, jeśli jesteś uczniem lub studentem do 26 lat. Jeśli masz też umowę o pracę z co najmniej minimalnym wynagrodzeniem, ze zlecenia nie możesz mieć chorobowego – zasiłek liczymy tylko z etatu."
+          "label": "[Umowa zlecenia](term.umowa_zlecenia)"
         },
         {
           "value": "business",
@@ -188,8 +186,7 @@
         },
         {
           "value": "none",
-          "label": "Nie pracuję albo mam tylko umowę o dzieło",
-          "hint": "Bez ubezpieczenia chorobowego nie dostaniesz zasiłku chorobowego ani macierzyńskiego. Dotyczy to także umowy o dzieło zawartej z kimś innym niż Twój pracodawca. Możesz wtedy dostać świadczenie rodzicielskie – 1000 zł miesięcznie z gminy, bez kryterium dochodowego.",
+          "label": "Nie pracuję albo mam tylko [umowę o dzieło](term.umowa_o_dzielo)",
           "exclusive": true
         }
       ]

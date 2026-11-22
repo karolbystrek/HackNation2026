@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { HelpPopover, TermText } from "@/components/term-text";
 import { AlertCircle, ChevronLeft } from "lucide-react";
-import { BackLink, Button, Checkbox, Field, RadioOption } from "@/components/ui";
+import { BackLink, Button, Field, RadioOption } from "@/components/ui";
 import { DateField } from "@/components/ui/date-field";
 import { formatDate } from "@/lib/dates";
 import { activeAnswers, nextQuestion, plainText, visibleOptions, visibleQuestions, type Answer, type Answers, type Question } from "@/lib/guide/tree";
@@ -177,7 +177,7 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
       ) : (
         <fieldset className="w-full min-w-0" aria-describedby={error ? `${q.id}-error` : undefined}>
           <legend className="sr-only">{plainText(q.label)}</legend>
-          {q.hint && <p className="mb-3 text-muted-foreground"><TermText text={q.hint} /></p>}
+          {q.hint && <p className="mb-1 text-muted-foreground"><TermText text={q.hint} /></p>}
           {errorText}
           <div className="mt-2 grid gap-2">
             {q.type === "multi"
@@ -187,9 +187,10 @@ function QuestionForm({ question: q, answers, onSave }: { question: Question; an
                 const exclusive = new Set(options.filter((x) => x.exclusive).map((x) => x.value));
                 const ticked = o.exclusive ? [o.value] : [...list.filter((v) => !exclusive.has(v)), o.value];
                 return (
-                  <div key={o.value} className="rounded-sm border border-input px-3 py-1 hover:bg-secondary has-checked:border-primary has-checked:bg-primary-soft">
-                    <Checkbox title={<span className="font-normal"><TermText text={o.label} />{o.hint && <OptionHint label={o.label} hint={o.hint} />}</span>} checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)} />
-                  </div>
+                  <RadioOption key={o.value} type="checkbox" className="has-checked:bg-primary-soft" checked={checked} onChange={() => setValue(checked ? list.filter((v) => v !== o.value) : ticked)}>
+                    <TermText text={o.label} />
+                    {o.hint && <OptionHint label={o.label} hint={o.hint} />}
+                  </RadioOption>
                 );
               })
               : options.map((o) => (

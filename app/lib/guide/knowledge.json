@@ -1574,6 +1574,18 @@
       "term_pl": "rodzina zastępcza niezawodowa",
       "definition_pl": "Rodzina zastępcza inna niż zawodowa – ma prawo do urlopu na warunkach macierzyńskiego i zasiłku (dziecko do 7/10 lat). Rodzina zastępcza zawodowa – nie."
     },
+    "term.umowa_o_dzielo": {
+      "term_pl": "umowa o dzieło",
+      "definition_pl": "Umowa o dzieło z kimś innym niż Twój pracodawca nie daje ubezpieczenia chorobowego. Bez niego nie dostaniesz zasiłku chorobowego ani macierzyńskiego. Możesz wtedy dostać świadczenie rodzicielskie – 1000 zł miesięcznie z gminy, bez kryterium dochodowego."
+    },
+    "term.umowa_o_prace": {
+      "term_pl": "umowa o pracę",
+      "definition_pl": "Daje obowiązkowe ubezpieczenie chorobowe – bez względu na wymiar etatu i to, czy studiujesz. Zlecenie albo dzieło u własnego pracodawcy liczy się jak praca na etacie. W ciąży i na urlopach związanych z rodzicielstwem pracodawca nie może Cię zwolnić, a umowa na czas określony, która skończyłaby się po 3. miesiącu ciąży, przedłuża się do dnia porodu."
+    },
+    "term.umowa_zlecenia": {
+      "term_pl": "umowa zlecenia",
+      "definition_pl": "Ubezpieczenie chorobowe ze zlecenia jest dobrowolne – musisz o nie wystąpić i nie działa ono wstecz. Nie masz go, jeśli jesteś uczniem lub studentem do 26 lat. Jeśli masz też umowę o pracę z co najmniej minimalnym wynagrodzeniem, ze zlecenia nie możesz mieć chorobowego – zasiłek liczymy tylko z etatu."
+    },
     "term.wariant_81_5": {
       "term_pl": "zasiłek 81,5%",
       "definition_pl": "Zasiłek 81,5% za cały okres macierzyńskiego i rodzicielskiego po wniosku matki złożonym do 21 dni po porodzie; 9 tygodni drugiego rodzica zawsze 70%."
