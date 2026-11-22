@@ -203,3 +203,30 @@ test("a separate child case preserves the first case and its completed tasks", (
     logOut();
   }
 });
+
+test("demo profiles show twins and a separate adoption case", () => {
+  try {
+    logIn("maja-piotr");
+    updatePlan((state) => {
+      const persona = currentPersona(state)!;
+      expect(persona.kids).toBe(2);
+      expect(buildVariants(persona, params)[0].result.pool).toBe(params.parentalPoolWeeks.multiple);
+      return state;
+    });
+    logIn("ola-marek");
+    switchChildCase("hanna-adoption", "Poród Leona");
+    updatePlan((state) => {
+      expect(currentPersona(state)?.adoptedChildBirthDate).toBe("2023-04-18");
+      expect(currentPersona(state)?.childEvents).toEqual(["adoption"]);
+      expect(state.doneTasks).toEqual([]);
+      return state;
+    });
+    switchChildCase("initial", "Adopcja Hanny");
+    updatePlan((state) => {
+      expect(currentPersona(state)?.childName).toBe("Leon");
+      return state;
+    });
+  } finally {
+    logOut();
+  }
+});

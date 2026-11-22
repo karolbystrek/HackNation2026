@@ -1,5 +1,7 @@
 "use client";
 
+import { DocumentList } from "@/components/document-list";
+
 import { ApplicationAction } from "@/components/application-action";
 import { CaseCheck } from "@/components/case-check";
 import { Button, ButtonLink, Chip, PageBand, SectionTitle } from "@/components/ui";
@@ -46,13 +48,20 @@ export default function Applications() {
         </div>
         <h3 className="text-lg leading-snug font-bold">{task.title}</h3>
         {task.recipient && <p className="text-muted-foreground">{task.recipient}</p>}
-        <details className="text-sm">
-          <summary className="cursor-pointer font-bold">Dokumenty i instrukcja</summary>
-          <p>{task.description}</p>
-          {task.deadlineDetail && <p>{task.deadlineDetail}</p>}
-          {task.documents.length > 0 && <ul className="list-disc pl-5">{task.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>}
-          {task.guide && <a href={task.guide} className="text-link">{task.form === "ff.zas12" ? "Wzór ZAS-12 w serwisie ZUS" : "Oficjalna instrukcja"}</a>}
-        </details>
+        {task.documents.length > 0 && (
+          <div className="my-2 space-y-1">
+            <p className="font-bold">Dokumenty do przygotowania</p>
+            <DocumentList documents={task.documents} />
+          </div>
+        )}
+        {(task.description || task.deadlineDetail) && (
+          <details className="text-sm">
+            <summary className="cursor-pointer font-bold">Informacje o złożeniu</summary>
+            <p>{task.description}</p>
+            {task.deadlineDetail && <p>{task.deadlineDetail}</p>}
+          </details>
+        )}
+        {task.guide && <a href={task.guide} className="text-link self-start">{task.form === "ff.zas12" ? "Wzór ZAS-12 w serwisie ZUS" : "Oficjalna instrukcja"}</a>}
       </div>
       <div className="shrink-0 sm:max-w-xs"><ApplicationAction origin="wnioski" task={task} submission={plan.submissions[task.id]} /></div>
     </li>

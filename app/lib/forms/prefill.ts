@@ -80,7 +80,7 @@ export function prefill(spec: FormSpec, ctx: FormContext): FormValues {
     self_employed_sickness_insured: me.contract === "jdg",
     children: persona.birthDate && !placed
       ? Array.from({ length: persona.kids }, (_, index) => ({
-        name: recordedNames?.[index] ?? (index === 0 && persona.childName ? `${persona.childName} ${childLastName}` : ""), birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "",
+        name: recordedNames?.[index] ?? (index === 0 ? [persona.childName, persona.childName && persona.childLastName].filter(Boolean).join(" ") : ""), birthDate: persona.birthDate!, birthPlace: persona.birthPlace ?? "",
       }))
       : placed && recordedNames
         ? recordedNames.map((name) => ({ name, birthDate: persona.kids === 1 ? persona.adoptedChildBirthDate ?? "" : "", birthPlace: "" }))

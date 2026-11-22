@@ -2,7 +2,7 @@ import { PARENTS, planLeave, type LeavePeriod, type ParentKey } from "@/lib/calc
 import { formatDate, shiftIso } from "@/lib/dates";
 import { CIRCUMSTANCES, type EventWho, type TimelineEvent } from "@/lib/events";
 import { leaveInputFor, type Variant } from "@/lib/calc/variants";
-import { dueDate, factsFor, neededDocuments, stepsByTask, type Facts, type Journey } from "@/lib/journey";
+import { dueDate, factsFor, neededDocuments, stepsByTask, type Facts, type Journey, type RequiredDocument } from "@/lib/journey";
 import type { Persona } from "@/lib/mock/personas";
 import type { Params } from "@/lib/params";
 
@@ -32,7 +32,7 @@ type Entry = {
   /** Situational or third-party form, listed for completeness; it never counts as an open task. */
   extra?: boolean;
   /** Documents knowledge/ requires for this step. */
-  documents?: { id: string; title: string; instruction?: string }[];
+  documents?: RequiredDocument[];
   /** Event that caused this form to appear. */
   trigger?: TimelineEvent;
 };

@@ -42,6 +42,8 @@ export type ParentProfile = {
 export type Persona = {
   id: string;
   label: string;
+  demoDescription?: string;
+  demoOtherCase?: { label: string; event: TimelineEvent };
   /** Day the demo data was fetched. */
   fetchedAt: string;
   dueDate: string;
@@ -86,6 +88,7 @@ export const personas: Persona[] = [
   {
     id: "anna-tomasz",
     label: "Anna i Tomasz",
+    demoDescription: "Anna jest w ciąży i korzysta ze zwolnienia lekarskiego. Oboje pracują na umowę o pracę, a podział urlopu po porodzie jest do ustalenia.",
     fetchedAt: "2026-11-21",
     dueDate: "2027-03-15",
     paternityStart: "2027-04-01",
@@ -174,16 +177,17 @@ personas.push(
   {
     id: "maja-piotr",
     label: "Maja i Piotr",
+    demoDescription: "Bliźnięta Zofia i Jan urodzili się 17 listopada i czekają na zgłoszenie w USC. Maja prowadzi działalność i złożyła wniosek o zasiłek chorobowy.",
     fetchedAt: "2026-11-21",
     dueDate: "2026-11-20",
     birthDate: "2026-11-17",
     birthCardDate: "2026-11-18",
     birthPlace: "Kraków",
-    childName: "Zofia",
-    childLastName: "Wiśniewska",
+    childName: "Zofia i Jan",
     paternityStart: "2026-12-01",
     wantsAveragedRate: true,
-    kids: 1,
+    initialVariant: "A",
+    kids: 2,
     parents: {
       mother: {
         ...employed.mother,
@@ -217,7 +221,7 @@ personas.push(
         endDate: "2026-11-16",
         source: "zus",
         title: "Zwolnienie w ciąży (e-ZLA, kod B)",
-        description: "Zwolnienie wystawione przed narodzinami Zofii.",
+        description: "Zwolnienie wystawione przed narodzinami bliźniąt.",
       },
       {
         id: "birth",
@@ -226,7 +230,8 @@ personas.push(
         date: "2026-11-17",
         source: "user",
         decision: true,
-        title: "Narodziny Zofii",
+        title: "Narodziny Zofii i Jana",
+        childDetails: { count: 2, names: ["Zofia Wiśniewska", "Jan Wiśniewski"] },
         description: "Rzeczywista data porodu wyznacza terminy spraw związanych z zasiłkiem.",
       },
     ],
@@ -235,6 +240,27 @@ personas.push(
   {
     id: "ola-marek",
     label: "Ola i Marek",
+    demoDescription: "Dwie sprawy do przełączania na osi czasu. Leon jest zarejestrowany w USC, a rodzice wybrali podział urlopu. Adopcja Hanny jest prawomocna, a wnioski związane z przyjęciem dziecka są do przygotowania.",
+    demoOtherCase: {
+      label: "Adopcja Hanny (15.09.2026)",
+      event: {
+        id: "hanna-adoption",
+        type: "adoption",
+        who: "mother",
+        date: "2026-09-15",
+        source: "new",
+        startsCase: true,
+        title: "Przyjęcie Hanny na wychowanie",
+        description: "Osobna sprawa związana z przysposobieniem Hanny.",
+        childDetails: {
+          count: 1,
+          names: ["Hanna Zielińska"],
+          placement: "adoption",
+          childBirthDate: "2023-04-18",
+          adoptionOrderDate: "2026-10-13",
+        },
+      },
+    },
     fetchedAt: "2026-11-21",
     dueDate: "2026-06-14",
     birthDate: "2026-06-10",

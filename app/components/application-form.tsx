@@ -1,5 +1,8 @@
 "use client";
 
+import { DocumentList } from "@/components/document-list";
+import { useJourney } from "@/components/journey-provider";
+
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -7,6 +10,7 @@ import { CalculatorSteps } from "@/components/calculator/calculator-steps";
 import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
 import { BackLink, Button, ButtonLink, Checkbox, Field, Notice, PageBand, RadioGroup, WarningBox } from "@/components/ui";
+import type { RequiredDocument } from "@/lib/journey";
 import { formatDate } from "@/lib/dates";
 import { formContext, type FormContext } from "@/lib/forms/context";
 import { prefill } from "@/lib/forms/prefill";
@@ -58,22 +62,17 @@ export function ApplicationForm({ specs }: { specs: Record<string, FormSpec> }) 
       />
       <div className="page">
       <BackLink href={returnHref}>{returnLabel}</BackLink>
-      {!submission && found.entry.documents && found.entry.documents.length > 0 && (
-        <details className="border-y py-3">
-          <summary className="cursor-pointer font-bold">Dokumenty do przygotowania</summary>
-          <ul className="list-disc pl-6">{found.entry.documents.map((doc) => <li key={doc.id}>{doc.title}{doc.instruction && <span className="block text-muted-foreground">{doc.instruction}</span>}</li>)}</ul>
-        </details>
-      )}
       {submission
         ? <Submitted spec={spec} ctx={found.ctx} submission={submission} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />
-        : <Wizard key={taskId} spec={spec} ctx={found.ctx} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
+        : <Wizard key={taskId} spec={spec} ctx={found.ctx} documents={found.entry.documents} doneTasks={plan.doneTasks} returnHref={returnHref} returnLabel={returnLabel} />}
     </div>
     </main>
   );
 }
 
-function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormSpec; ctx: FormContext; doneTasks: string[]; returnHref: string; returnLabel: string }) {
+function Wizard({ spec, ctx, documents = [], doneTasks, returnHref, returnLabel }: { spec: FormSpec; ctx: FormContext; documents?: RequiredDocument[]; doneTasks: string[]; returnHref: string; returnLabel: string }) {
   const router = useRouter();
+  const journey = useJourney();
   const [values, setValues] = usePlanDraft(`wniosek/${ctx.parent}/${ctx.taskId}/${spec.id}`, prefill(spec, ctx));
   const [step, setStep] = useState(0);
   const [navigated, setNavigated] = useState(false);
@@ -84,6 +83,12 @@ function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormS
 
   const steps = formSteps(spec, ctx, values);
   const attachments = requiredAttachments(spec, ctx, values);
+  const checklist = [
+    ...attachments.map(({ id, title }) => ({
+      id, title, href: journey.documentLinks?.[id], instruction: journey.documentInstructions?.[id],
+    })),
+    ...documents.filter((doc) => !spec.attachments.some((attachment) => attachment.id === doc.id)),
+  ];
   const { errors, warnings } = validate(spec, values, ctx);
   const keysOf = (i: number) => [
     ...steps[i].fields.map((f) => f.key),
@@ -135,7 +140,7 @@ function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormS
   }
 
   const issues = sendError ?? errors;
-  return (
+  const wizard = (
     <CalculatorSteps
       step={step}
       onStepChange={goTo}
@@ -152,7 +157,7 @@ function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormS
             {s.title === ATTACHMENTS_STEP && attachments.map((a) => (
               <div key={a.id} data-field={attachmentKey(a.id)}>
                 <Checkbox checked={values[attachmentKey(a.id)] === true} onChange={() => set(attachmentKey(a.id))(values[attachmentKey(a.id)] !== true)} title={`Mam dokument do złożenia: ${a.title}`}>
-                  {a.note ?? (ctx.recipient === "employer" ? "Dokument przekazujesz pracodawcy razem z wnioskiem." : "Do wniosku elektronicznego dodajesz skan lub zdjęcie dokumentu.")}
+                  {a.note}
                 </Checkbox>
                 <FieldError message={errorFor(attachmentKey(a.id), i)} />
               </div>
@@ -203,6 +208,17 @@ function Wizard({ spec, ctx, doneTasks, returnHref, returnLabel }: { spec: FormS
         </div>
       }
     />
+  );
+  return (
+    <>
+      {checklist.length > 0 && (
+        <section aria-labelledby="required-documents" className="space-y-2 border-y py-4">
+          <h2 id="required-documents" className="text-lg font-bold">Dokumenty do przygotowania</h2>
+          <DocumentList documents={checklist} />
+        </section>
+      )}
+      {wizard}
+    </>
   );
 }
 

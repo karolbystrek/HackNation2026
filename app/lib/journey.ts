@@ -32,10 +32,13 @@ export type JourneyStep = {
   deadlines: string[];
 };
 
+export type RequiredDocument = { id: string; title: string; href?: string; instruction?: string };
+
 export type Journey = {
   scenarios: { id: string; conditions: Condition; steps: JourneyStep[] }[];
   deadlines: Record<string, Deadline>;
   documentTitles: Record<string, string>;
+  documentLinks?: Record<string, string>;
   documentInstructions?: Record<string, string>;
 };
 
@@ -166,9 +169,9 @@ export function dueDate(journey: Journey, steps: JourneyStep[], facts: Facts, an
 }
 
 /** Documents the steps need for this parent, deduplicated, with titles from knowledge/documents.json. */
-export function neededDocuments(journey: Journey, steps: JourneyStep[], facts: Facts): { id: string; title: string; instruction?: string }[] {
+export function neededDocuments(journey: Journey, steps: JourneyStep[], facts: Facts): RequiredDocument[] {
   const ids = new Set(steps.flatMap((step) => step.documents)
     .filter((doc) => !doc.condition || evalCondition(doc.condition, facts))
     .map((doc) => doc.id));
-  return [...ids].map((id) => ({ id, title: journey.documentTitles[id] ?? id, instruction: journey.documentInstructions?.[id] }));
+  return [...ids].map((id) => ({ id, title: journey.documentTitles[id] ?? id, href: journey.documentLinks?.[id], instruction: journey.documentInstructions?.[id] }));
 }

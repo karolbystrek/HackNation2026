@@ -58,6 +58,27 @@ export async function loadJourney(): Promise<Journey> {
     };
   };
 
+  // form_ids also identifies applications that require a document. Only use
+  // the linked form when it is the document's own official template.
+  const documentForms: Record<string, string> = {
+    "doc.hospital_cert_mother_stay": "form.zas40",
+    "doc.adoption_intake_statement": "form.zas26",
+    "doc.employer_leave_certificate": "form.zas15",
+    "doc.benefit_payer_periods_certificate": "form.zas24",
+    "doc.mother_death_abandonment_statement": "form.zas33",
+    "doc.payer_cert_employee": "form.z3",
+    "doc.payer_cert_non_employee": "form.z3a",
+    "doc.after_insurance_statement": "form.z10",
+    "doc.health_status_certificate": "form.ol9",
+    "doc.occupational_interview": "form.ol10",
+  };
+  const documentLinks: Record<string, string> = {};
+  for (const doc of documents) {
+    const form = formById.get(documentForms[doc.id]);
+    const href = doc.online_url ?? (form?.status === "current" ? form.page_url : undefined);
+    if (href) documentLinks[doc.id] = href;
+  }
+
   return {
     scenarios: scenarios
       .filter((s) => s.status === "current")
@@ -71,7 +92,15 @@ export async function loadJourney(): Promise<Journey> {
       title: d.title_pl, consequence: d.consequence_pl, anchor: d.anchor_event, offset: d.offset, kind: d.kind, appliesTo: d.applies_to ?? null,
     }])),
     documentTitles: Object.fromEntries(documents.map((d) => [d.id, d.title_pl])),
-    documentInstructions: Object.fromEntries(documents.filter((d) => d.how_to_obtain_pl).map((d) => [d.id, d.how_to_obtain_pl])),
+    documentLinks,
+    documentInstructions: {
+      "doc.e_zla": "Wystawia lekarz.",
+      "doc.medical_cert_expected_birth": "Poproś lekarza prowadzącego ciążę.",
+      "doc.medical_cert_pregnancy_in_employment": "Poproś lekarza prowadzącego ciążę.",
+      "doc.stillbirth_certificate": "Poproś w szpitalu lub położną.",
+      "doc.za_zyciem_certificate": "Poproś lekarza specjalistę prowadzącego ciążę lub opiekującego się dzieckiem.",
+      "doc.hospital_cert_child_stay": "Poproś w szpitalu.",
+    },
   };
 }
 
